@@ -1,0 +1,50 @@
+module.exports =(sequelize,Sequelize)=>{
+    const orderDetails = sequelize.define("orderdetails",{
+        "orderId":{
+            type:Sequelize.STRING
+        },
+        "orderNumber":{
+            type:Sequelize.STRING
+        },
+        "invoiceNumber":{
+            type:Sequelize.STRING
+        },
+        "pharmacyId":{
+            type:Sequelize.STRING
+        },
+        "pharmacyName":{
+            type:Sequelize.STRING
+        },
+        "address":{
+            type:Sequelize.TEXT
+        },
+        "contactNumber":{
+            type:Sequelize.BIGINT
+        },
+        "orderDate":{
+            type:Sequelize.DATE
+        },
+        "deliveryDate":{
+            type:Sequelize.DATE
+        },
+        "orderStatus":{
+            type:Sequelize.STRING
+        },
+        "totalAmount":{
+            type:Sequelize.DOUBLE
+        },
+        "paymentStatus":{
+            type:Sequelize.STRING
+        },
+        "InvoiceLink":{
+            type:Sequelize.STRING
+        },
+        "orderImage":{
+            type:Sequelize.STRING
+        }
+    },
+    {
+        tableName: "orderdetails"
+      })
+    return orderDetails
+}
