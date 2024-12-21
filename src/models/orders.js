@@ -1,5 +1,5 @@
 module.exports =(sequelize,Sequelize)=>{
-    const orderDetails = sequelize.define("orderdetails",{
+    const orders = sequelize.define("orders",{
         "orderId":{
             type:Sequelize.STRING
         },
@@ -44,7 +44,7 @@ module.exports =(sequelize,Sequelize)=>{
         }
     },
     {
-        tableName: "orderdetails"
+        tableName: "orders"
       })
-    return orderDetails
+    return orders
 }

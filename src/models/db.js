@@ -2,7 +2,8 @@ const dbConfig = require("../config/db");
 // import { Sequelize,Op } from "sequelize";
 const users = require('./users')
 const manufacturers = require('./manufacturers')
-const orders = require('./orderDetails')
+const orders = require('./orders')
+const stocks = require('./stocks')
 const items = require('./orderitems')
 const pharmacies = require('./retailers')
 const loginLogs = require('./loginlogs')
@@ -42,7 +43,8 @@ const db = {
   pharmacies: pharmacies(sequelize, Sequelize),
   loginLogs:loginLogs(sequelize,Sequelize),
   inquiry:inquiry(sequelize,Sequelize),
-  products:products(sequelize,Sequelize)
+  products:products(sequelize,Sequelize),
+  stocks:stocks(sequelize,Sequelize)
 };
 
 
@@ -52,6 +54,15 @@ const db = {
 
 // db.orders.hasMany(db.items, { foreignKey: 'orderId', sourceKey: 'orderId' });
 // db.items.belongsTo(db.orders, { foreignKey: 'orderId', targetKey: 'orderId' });
+
+db.stocks.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'product',
+});
+db.products.hasMany(db.stocks, {
+  foreignKey: 'PId',
+});
+
 
 
 module.exports = db;

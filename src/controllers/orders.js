@@ -115,22 +115,7 @@ exports.getOrderDetails = async (req,res) => {
                 message:message.message400
             })
         }
-        // const orderDetail = await Orders.findOne({
-        //     attributes:["orderDate",'deliveryDate','orderStatus','pharmacyId','invoiceNumber'],
-        //     where:{
-        //         orderId:orderId
-        //     },
-        //     include: [
-        //         {
-        //             model: Pharmacy,
-        //             attributes: ["name", "address", "contactNumber"],
-        //         },
-        //         {
-        //             model:Items,
-        //             attributes:['orderId','PName','quantity','totalAmount']
-        //         }
-        //     ],
-        // })
+      
         const { invNo } = req.body;  // Assuming `invNo` is passed in the API payload
 
        const result = await Sequelize.query(`
@@ -266,21 +251,3 @@ const resultGrouped = result?.reduce((acc, item) => {
     }
 }
 
-exports.routeInfo = async (req,res) => {
-    try {
-        const {orderN} = req.body
-        const  [data] =await Sequelize.query(`select * from delivery_track where orderNumber = ${orderN} order by id desc limit 1`)
-        console.log(data)
-        res.json({
-            status:message.code200,
-            message:message.message200,
-            apiData:data
-        })
-    } catch (error) {
-        console.log("routeInfo error:",error.message)
-        res.json({
-            status: message.code500,
-            message: message.message500
-        })
-    }
-}
