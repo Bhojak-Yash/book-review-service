@@ -4,11 +4,17 @@ const users = require('./users')
 const manufacturers = require('./manufacturers')
 const orders = require('./orders')
 const stocks = require('./stocks')
-const items = require('./orderitems')
-const pharmacies = require('./retailers')
+const orderitems = require('./orderitems')
+const retailers = require('./retailers')
+const distributors = require('./distributors')
 const loginLogs = require('./loginlogs')
 const inquiry = require('./inquiry')
 const products = require('./products')
+const usercarts = require('./usercarts')
+const employees = require('./employees')
+const divisions = require('./divisions')
+const roles = require('./roles')
+const authorizations = require('./authorizations')
 const ss = require('sequelize')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
@@ -38,22 +44,22 @@ const db = {
   Op: Op,
   users: users(sequelize, Sequelize),
   manufacturers: manufacturers(sequelize, Sequelize),
+  distributors: distributors(sequelize, Sequelize),
+  retailers: retailers(sequelize, Sequelize),
   orders: orders(sequelize, Sequelize),
-  items: items(sequelize, Sequelize),
-  pharmacies: pharmacies(sequelize, Sequelize),
+  orderitems: orderitems(sequelize, Sequelize),
+ // pharmacies: pharmacies(sequelize, Sequelize),
   loginLogs:loginLogs(sequelize,Sequelize),
   inquiry:inquiry(sequelize,Sequelize),
   products:products(sequelize,Sequelize),
-  stocks:stocks(sequelize,Sequelize)
+  stocks:stocks(sequelize,Sequelize),
+  usercarts:usercarts(sequelize,Sequelize),
+  authorizations:authorizations(sequelize,Sequelize),
+  employees:employees(sequelize,Sequelize),
+  divisions:divisions(sequelize,Sequelize),
+  roles:roles(sequelize,Sequelize)
 };
 
-
-
-// db.pharmacies.hasMany(db.orders, { foreignKey: 'pharmacyId', sourceKey: 'pharmacyId' });
-// db.orders.belongsTo(db.pharmacies, { foreignKey: 'pharmacyId', targetKey: 'pharmacyId' });
-
-// db.orders.hasMany(db.items, { foreignKey: 'orderId', sourceKey: 'orderId' });
-// db.items.belongsTo(db.orders, { foreignKey: 'orderId', targetKey: 'orderId' });
 
 db.stocks.belongsTo(db.products, {
   foreignKey: 'PId',
@@ -63,6 +69,9 @@ db.products.hasMany(db.stocks, {
   foreignKey: 'PId',
 });
 
-
+db.usercarts.belongsTo(db.products, { foreignKey: 'PId', as: 'productDetails' });
+db.products.hasMany(db.usercarts, { foreignKey: 'PId', as: 'cartItems' });
+db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" })
+db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" })
 
 module.exports = db;

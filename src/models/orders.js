@@ -1,50 +1,75 @@
-module.exports =(sequelize,Sequelize)=>{
-    const orders = sequelize.define("orders",{
-        "orderId":{
-            type:Sequelize.STRING
+module.exports = (sequelize, Sequelize) => {
+    const orders = sequelize.define(
+      "orders",
+      {
+        id: {
+          type: Sequelize.BIGINT,
+          primaryKey: true, // Mark this as the primary key
+          autoIncrement: true, // Automatically increment the ID
+          allowNull: false,
         },
-        "orderNumber":{
-            type:Sequelize.STRING
+        orderNo: {
+          type: Sequelize.STRING,
         },
-        "invoiceNumber":{
-            type:Sequelize.STRING
+        orderDate: {
+          type: Sequelize.DATE, // Corrected data type
         },
-        "pharmacyId":{
-            type:Sequelize.STRING
+        invNo: {
+          type: Sequelize.STRING,
         },
-        "pharmacyName":{
-            type:Sequelize.STRING
+        confirmationDate: {
+          type: Sequelize.DATE, // Corrected data type
         },
-        "address":{
-            type:Sequelize.TEXT
+        dueDate: {
+          type: Sequelize.DATE, // Corrected data type
         },
-        "contactNumber":{
-            type:Sequelize.BIGINT
+        barcode: {
+          type: Sequelize.INTEGER,
         },
-        "orderDate":{
-            type:Sequelize.DATE
+        invAmt: {
+          type: Sequelize.DOUBLE,
         },
-        "deliveryDate":{
-            type:Sequelize.DATE
+        cNAmt: {
+          type: Sequelize.DOUBLE,
         },
-        "orderStatus":{
-            type:Sequelize.STRING
+        recdAmt: {
+          type: Sequelize.DOUBLE,
         },
-        "totalAmount":{
-            type:Sequelize.DOUBLE
+        balance: {
+          type: Sequelize.DOUBLE,
         },
-        "paymentStatus":{
-            type:Sequelize.STRING
+        sMan: {
+          type: Sequelize.STRING,
         },
-        "InvoiceLink":{
-            type:Sequelize.STRING
+        sMobile: {
+          type: Sequelize.STRING,
         },
-        "orderImage":{
-            type:Sequelize.STRING
-        }
-    },
-    {
-        tableName: "orders"
-      })
-    return orders
-}
+        dMan: {
+          type: Sequelize.STRING,
+        },
+        dMobile: {
+          type: Sequelize.STRING,
+        },
+        orderStatus: {
+          type: Sequelize.STRING,
+        },
+        orderFrom: {
+          type: Sequelize.BIGINT,
+        },
+        orderTo: {
+          type: Sequelize.BIGINT,
+        },
+        deliveredAt: {
+          type: Sequelize.DATE, // Corrected data type
+        },
+        divisionId: {
+          type: Sequelize.BIGINT, // Corrected data type
+        },
+      },
+      {
+        tableName: "orders",
+      }
+    );
+    return orders;
+  };
+  

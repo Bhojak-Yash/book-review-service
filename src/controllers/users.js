@@ -4,6 +4,10 @@ const db = require('../models/db');
 const {generateToken} = require('../middlewares/auth')
 const Users = db.users;
 const Manufacturers = db.manufacturers;
+const Distributors = db.distributors;
+const Retailers = db.retailers;
+const Employees = db.employees;
+const Roles = db.roles;
 const Logs = db.loginLogs
 
 async function hashPassword(password) {
@@ -15,39 +19,89 @@ async function hashPassword(password) {
 exports.createUsers = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
-    const { userName, password, companyName } = req.body;
+    const { userName, password, companyName,userType } = req.body;
 
-    if (!userName || !password || !companyName) {
+    if (!userName || !password || !companyName ||!userType) {
       return res.json({
         status: message.code400,
         message: "All fields are required",
       });
     }
-
+    console.log(userType)
     const hashedPassword = await hashPassword(password);
-
+  
     // Create the user and get the user ID
     const user = await Users.create(
       {
         userName: userName,
         password: hashedPassword,
-        userType:"Manufacturer",
+        userType: userType,
         status:"Active"
       },
       { transaction }
     );
 
-    // Use the userId to create a manufacturer entry
-    await Manufacturers.create(
-      {
-        manufacturerId: user.id, // Assuming `id` is the primary key of the `users` table
-        companyName: companyName,
-      },
-      { transaction }
-    );
+    // Use the userId to create a entity entry
 
-    // Commit the transaction
-    await transaction.commit();
+    if(userType === "Manufacturer")
+    {
+        await Manufacturers.create(
+        {
+            manufacturerId: user.id, // Assuming `id` is the primary key of the `users` table
+            companyName: companyName,
+        },
+        { transaction }
+        );
+         // Commit the transaction
+        await transaction.commit();
+    }
+    else if(userType === "Distributor")
+    {
+        await Distributors.create(
+            {
+                distributorId: user.id, // Assuming `id` is the primary key of the `users` table
+                companyName: companyName,
+            },
+            { transaction }
+            );
+             // Commit the transaction
+            await transaction.commit();
+    }
+    else if (userType === "Retailer"){
+        await Retailers.create(
+            {
+                retailerId: user.id, // Assuming `id` is the primary key of the `users` table
+                firmName: companyName,
+            },
+            { transaction }
+            );
+             // Commit the transaction
+            await transaction.commit();
+    }
+    else if (userType === "Employee"){
+        if (!req.body.employeeOf || !req.body.divisionId) {
+            return res.json({
+              status: message.code400,
+              message: "Employee owner and division are mandatory",
+            });
+          }
+        await Employees.create(
+            {
+                employeeId: user.id, // Assuming `id` is the primary key of the `users` table
+                firstName: req.body.firstName,
+                lastName:  req.body.lastName,
+                employeeCode: "EMP"+user.id,
+                employeeOf: req.body.employeeOf,
+                divisionId: req.body.divisionId,
+                roleId: req.body.roleId,
+                employeeStatus: "Active"
+            },
+            { transaction }
+            );
+             // Commit the transaction
+            await transaction.commit();
+    }
+
 
     res.json({
       status: message.code200,

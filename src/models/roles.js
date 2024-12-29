@@ -1,29 +1,29 @@
 module.exports =(sequelize,Sequelize)=>{
-    const users = sequelize.define("users",{
+    const roles = sequelize.define("roles",{
         "id":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
             autoIncrement: true, // Optional: Automatically increment the ID
             allowNull: false
         },
-        "userName":{
+        "roleCode":{
             type:Sequelize.STRING
         },
-        "password":{
+        "roleName":{
             type:Sequelize.STRING
         },
-        "userType":{
+        "description":{
             type:Sequelize.STRING
         },
-        "isPasswordChangeRequired":{
+        "priority":{
             type:Sequelize.INTEGER,
             allowNull: false,
-            defaultValue: 1,
+           
         }
     },
 
     {
-        tableName: "users"
+        tableName: "roles"
       })
-    return users
+    return roles
 }

@@ -1,18 +1,15 @@
 module.exports =(sequelize,Sequelize)=>{
-    const distributors = sequelize.define("distributors",{
-        "distributorId":{
+    const divisions = sequelize.define("divisions",{
+        "divisionId":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
-           // autoIncrement: true, // Optional: Automatically increment the ID
+           autoIncrement: true, // Optional: Automatically increment the ID
             allowNull: false
         },
-        "distributorCode":{
+        "divisionCode":{
             type:Sequelize.STRING
         },
-        "companyName":{
-            type:Sequelize.STRING
-        },
-        "ownerName":{
+        "name":{
             type:Sequelize.STRING
         },
         "address":{
@@ -21,23 +18,21 @@ module.exports =(sequelize,Sequelize)=>{
         "phone":{
             type:Sequelize.BIGINT
         },
-        "licence":{
+       "email":{
             type:Sequelize.STRING
         },
-        "email":{
+        "divisionOf":{
             type:Sequelize.STRING
         },
-        "profilePic":{
+       "status":{
             type:Sequelize.STRING
         },
-        "GST":{
-            type:Sequelize.STRING
-        }
+
     },
 
     {
-        tableName: "distributors"
+        tableName: "divisions"
       })
-    return distributors
+    return divisions
 }
 

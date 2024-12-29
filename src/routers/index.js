@@ -8,9 +8,11 @@ const stockRouter = require('./stocks')
 const manufacturerRouter = require('./manufacturers')
 const retailerRouter = require('./retailers')
 const distributorRouter = require('./distributors')
+const usercartRouter = require('./usercarts')
+const divisionRouter = require('./divisions')
 
 
 
 
 module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryRouter,productRouter,manufacturerRouter,
-    retailerRouter,distributorRouter,stockRouter}
+    retailerRouter,distributorRouter,stockRouter,usercartRouter,divisionRouter}

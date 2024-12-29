@@ -1,18 +1,18 @@
 module.exports =(sequelize,Sequelize)=>{
-    const distributors = sequelize.define("distributors",{
-        "distributorId":{
+    const employees = sequelize.define("employees",{
+        "employeeId":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
            // autoIncrement: true, // Optional: Automatically increment the ID
             allowNull: false
         },
-        "distributorCode":{
+        "employeeCode":{
             type:Sequelize.STRING
         },
-        "companyName":{
+        "firstName":{
             type:Sequelize.STRING
         },
-        "ownerName":{
+        "lastName":{
             type:Sequelize.STRING
         },
         "address":{
@@ -21,23 +21,27 @@ module.exports =(sequelize,Sequelize)=>{
         "phone":{
             type:Sequelize.BIGINT
         },
-        "licence":{
+       "email":{
             type:Sequelize.STRING
         },
-        "email":{
+        "employeeOf":{
             type:Sequelize.STRING
         },
-        "profilePic":{
+        "divisionId":{
             type:Sequelize.STRING
         },
-        "GST":{
+        "roleId":{
+            type:Sequelize.BIGINT
+        },
+       "employeeStatus":{
             type:Sequelize.STRING
-        }
+        },
+
     },
 
     {
-        tableName: "distributors"
+        tableName: "employees"
       })
-    return distributors
+    return employees
 }
 
