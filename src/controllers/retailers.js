@@ -7,8 +7,62 @@ const Sequelize = db.sequelize;
 const Op = db.Op;
 const Pharmacy = db.retailers
 
+async function hashPassword(password) {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  return hashedPassword;
+}
 
 
+
+exports.createRetailer = async (req,res) => {
+    let transaction;
+    try {
+        const { userName, password, companyName } = req.body;
+    
+        if (!userName || !password || !companyName) {
+          return res.json({
+            status: message.code400,
+            message: "All fields are required",
+          });
+        }
+        transaction = await db.sequelize.transaction();
+    
+        const hashedPassword = await hashPassword(password);
+
+        const user = await Users.create(
+            {
+              userName: userName,
+              password: hashedPassword,
+              userType: userType,
+              status:"Active"
+            },
+            { transaction }
+          );
+      
+
+        await Retailers.create(
+            {
+                retailerId: user.id, // Assuming `id` is the primary key of the `users` table
+                firmName: companyName,
+            },
+            { transaction }
+            );
+             // Commit the transaction
+            await transaction.commit();
+    
+            res.json({
+                status:message.code200,
+                message:message.message200
+            })
+    } catch (error) {
+        console.log('createRetailer error:',error.message)
+        res.json({
+            status:message.code500,
+            message:message.message500
+        })
+    }
+};
 
 exports.pharmacyDetails = async (req, res) => {
     try {
@@ -77,4 +131,3 @@ exports.pharmacyDetails = async (req, res) => {
         })
     }
 }
-
