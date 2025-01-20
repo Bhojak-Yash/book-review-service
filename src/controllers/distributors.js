@@ -4,6 +4,60 @@ const db = require('../models/db');
 const Users = db.users;
 const Distributors = db.distributors;
 
+async function hashPassword(password) {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  return hashedPassword;
+}
+
+
+exports.createDistributor = async (req,res) => {
+  let transaction;
+  try {
+    const { userName, password, companyName } = req.body;
+    
+    if (!userName || !password || !companyName) {
+      return res.json({
+        status: message.code400,
+        message: "All fields are required",
+      });
+    }
+    transaction = await db.sequelize.transaction();
+
+    const hashedPassword = await hashPassword(password);
+
+    const user = await Users.create(
+      {
+        userName: userName,
+        password: hashedPassword,
+        userType: userType,
+        status:"Active"
+      },
+      { transaction }
+    );
+
+    await Distributors.create(
+      {
+          distributorId: user.id,
+          companyName: companyName,
+      },
+      { transaction }
+      );
+       // Commit the transaction
+      await transaction.commit();
+      res.json({
+        status: message.code200,
+        message: message.message200,
+      });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    console.log('createDistributor error:',error.message)
+    res.json({
+      status:message.code500,
+      message:message.message500
+    })
+  }
+}
 
 exports.updateDistributors = async (req, res) => {
     try {
@@ -48,6 +102,6 @@ exports.updateDistributors = async (req, res) => {
         message: message.message500,
       });
     }
-  };
+};
 
 
