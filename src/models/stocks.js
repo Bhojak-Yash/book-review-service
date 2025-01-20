@@ -33,7 +33,11 @@ module.exports =(sequelize,Sequelize)=>{
         "Stock":{
             type:Sequelize.INTEGER
         },
-        "manufacturerId":{
+        "organisationId":{
+            type:Sequelize.BIGINT
+        }
+        ,
+        "entityId":{
             type:Sequelize.BIGINT
         }
     },

@@ -65,6 +65,9 @@ module.exports = (sequelize, Sequelize) => {
         divisionId: {
           type: Sequelize.BIGINT, // Corrected data type
         },
+        reason: {
+          type: Sequelize.STRING, // Corrected data type
+        },
       },
       {
         tableName: "orders",

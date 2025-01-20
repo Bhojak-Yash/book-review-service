@@ -30,8 +30,9 @@ exports.verifyToken = async(req, res, next) => {
         return res.status(401).json({ status:401,message: 'Invalid or expired token.' });
       }
       const decoded = jwt.verify(token, process.env.JWTKEY);
-      console.log(decoded)
+      
       req.user = decoded;
+      console.log(req.user)
       next();
     } catch (error) {
       res.status(401).json({ status:401,message: 'Invalid or expired token.' });

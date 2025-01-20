@@ -3,7 +3,7 @@ module.exports =(sequelize,Sequelize)=>{
         "authorizedBy":{
             type:Sequelize.INTEGER
         },
-        "authorizedTo":{
+        "authorizedId":{
             type:Sequelize.INTEGER
         },
         "status":{

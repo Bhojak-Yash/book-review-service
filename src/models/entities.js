@@ -1,12 +1,12 @@
 module.exports =(sequelize,Sequelize)=>{
-    const divisions = sequelize.define("divisions",{
-        "divisionId":{
+    const entities = sequelize.define("entities",{
+        "entityId":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
            autoIncrement: true, // Optional: Automatically increment the ID
             allowNull: false
         },
-        "divisionCode":{
+        "entityCode":{
             type:Sequelize.STRING
         },
         "name":{
@@ -21,18 +21,21 @@ module.exports =(sequelize,Sequelize)=>{
        "email":{
             type:Sequelize.STRING
         },
-        "divisionOf":{
-            type:Sequelize.STRING
+        "organisationId":{
+            type:Sequelize.INTEGER
         },
        "status":{
+            type:Sequelize.STRING
+        },
+       "entityType":{
             type:Sequelize.STRING
         },
 
     },
 
     {
-        tableName: "divisions"
+        tableName: "entities"
       })
-    return divisions
+    return entities
 }
 

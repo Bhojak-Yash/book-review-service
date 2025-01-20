@@ -9,10 +9,11 @@ const manufacturerRouter = require('./manufacturers')
 const retailerRouter = require('./retailers')
 const distributorRouter = require('./distributors')
 const usercartRouter = require('./usercarts')
-const divisionRouter = require('./divisions')
+const entityRouter = require('./entities')
+const rolesRouter = require('./roles')
 
 
 
 
 module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryRouter,productRouter,manufacturerRouter,
-    retailerRouter,distributorRouter,stockRouter,usercartRouter,divisionRouter}
+    retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter}

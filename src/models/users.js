@@ -19,6 +19,12 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.INTEGER,
             allowNull: false,
             defaultValue: 1,
+        },
+        "status":{
+            type:Sequelize.STRING
+        },
+        "entityId":{
+            type:Sequelize.INTEGER
         }
     },
 

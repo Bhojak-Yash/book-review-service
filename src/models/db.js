@@ -12,7 +12,7 @@ const inquiry = require('./inquiry')
 const products = require('./products')
 const usercarts = require('./usercarts')
 const employees = require('./employees')
-const divisions = require('./divisions')
+const entities = require('./entities')
 const roles = require('./roles')
 const authorizations = require('./authorizations')
 const ss = require('sequelize')
@@ -56,7 +56,7 @@ const db = {
   usercarts:usercarts(sequelize,Sequelize),
   authorizations:authorizations(sequelize,Sequelize),
   employees:employees(sequelize,Sequelize),
-  divisions:divisions(sequelize,Sequelize),
+  entities:entities(sequelize,Sequelize),
   roles:roles(sequelize,Sequelize)
 };
 

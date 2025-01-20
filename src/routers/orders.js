@@ -6,7 +6,7 @@ const {verifyToken} = require('../middlewares/auth')
 // router.get('/getOrderDetails',verifyToken,ordersc.getOrderDetails)
 router.post('/createOrder',verifyToken,ordersc.createOrder)
 router.put('/updateOrder/:id',verifyToken,ordersc.updateOrder)
-router.get('/getOrder/filters',verifyToken,ordersc.getOrderByFilters)
-router.get('/getOrderBytype',verifyToken,ordersc.getOrderByType)
+router.get('/getOrder/filters',verifyToken,ordersc.getOrdersByFilters)
+router.get('/getOrderBytype',verifyToken,ordersc.getOrdersByType)
 
 module.exports =router
