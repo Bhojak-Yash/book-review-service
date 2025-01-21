@@ -2,10 +2,12 @@
 const message = require('../helpers/message')
 const { generateToken } = require('../middlewares/auth')
 const db = require('../models/db')
+const bcrypt = require('bcrypt');
 const Users = db.users;
 const Sequelize = db.sequelize;
 const Op = db.Op;
-const Pharmacy = db.retailers
+const Pharmacy = db.retailers;
+const Retailers = db.retailers
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -34,7 +36,7 @@ exports.createRetailer = async (req,res) => {
             {
               userName: userName,
               password: hashedPassword,
-              userType: userType,
+              userType: 'Retailer',
               status:"Active"
             },
             { transaction }
@@ -56,6 +58,7 @@ exports.createRetailer = async (req,res) => {
                 message:message.message200
             })
     } catch (error) {
+        if (transaction) await transaction.rollback();
         console.log('createRetailer error:',error.message)
         res.json({
             status:message.code500,
@@ -130,4 +133,4 @@ exports.pharmacyDetails = async (req, res) => {
             apiData: null
         })
     }
-}
+};

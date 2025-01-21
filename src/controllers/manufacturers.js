@@ -29,7 +29,7 @@ exports.createManufacturer=async (req,res) => {
       {
         userName: userName,
         password: hashedPassword,
-        userType: userType,
+        userType: 'Manufacturer',
         status:"Active"
       },
       { transaction }

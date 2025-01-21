@@ -30,7 +30,7 @@ exports.createDistributor = async (req,res) => {
       {
         userName: userName,
         password: hashedPassword,
-        userType: userType,
+        userType: 'Distributor',
         status:"Active"
       },
       { transaction }

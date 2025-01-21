@@ -12,9 +12,9 @@ module.exports =(sequelize,Sequelize)=>{
         "ownerName":{
             type:Sequelize.STRING
         },
-        "ownerName":{
-            type:Sequelize.STRING
-        },
+        // "ownerName":{
+        //     type:Sequelize.STRING
+        // },
         "logo":{
             type:Sequelize.STRING
         },

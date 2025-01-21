@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 const db = require('./models/db')
 const Sequelize = db.sequelize
 const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
-  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter} = require('./routers/index')
+  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter} = require('./routers/index')
 const cors = require('cors')
 app.use(cors());
 const dbConnection = async () => {
@@ -30,7 +30,7 @@ function formatToMySQLDateTime(inputDate) {
 }
 
 app.use(usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
-  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter)
+  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter)
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
