@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const Users = db.users;
 const Employees = db.employees;
+const EmployeeService = require('../services/employeeService');
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -12,63 +13,17 @@ async function hashPassword(password) {
 
 
 exports.createEmployee = async (req,res) => {
-  let transaction;
   try {
-    const { userName, password, companyName,employeeOf,entityId } = req.body;
-    console.log(req.body)
-    if (!userName || !password || !companyName) {
-      return res.json({
-        status: message.code400,
-        message: "All fields are required",
-      });
-    }
+    const data = req.body
+    const Employee = await EmployeeService.createEmployee(data);
 
-    if (!employeeOf || !entityId) {
-        return res.json({
-          status: message.code400,
-          message: "Employee owner and entityId are mandatory",
-        });
-      }
-    transaction = await db.sequelize.transaction();
+    // if (!distributor) {
+      return res.json({ status:Employee.status,message:Employee.message, });
+    // }
 
-    const hashedPassword = await hashPassword(password);
-
-    const user = await Users.create(
-      {
-        userName: userName,
-        password: hashedPassword,
-        userType: 'Employee',
-        status:"Active"
-      },
-      { transaction }
-    );
-
-    await Employees.create(
-        {
-            employeeId: user.id,
-            firstName: req.body.firstName,
-            lastName:  req.body.lastName,
-            employeeCode: "EMP"+user.id,
-            employeeOf: req.body.employeeOf,
-            entityId:req.body.entityId,
-            // divisionId: req.body.divisionId,
-            // roleId: req.body.roleId,
-            employeeStatus: "Active",
-        },
-        { transaction }
-        );
-       // Commit the transaction
-      await transaction.commit();
-      res.json({
-        status: message.code200,
-        message: message.message200,
-      });
+    // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
   } catch (error) {
-    if (transaction) await transaction.rollback();
-    console.log('createEmployee error:',error.message)
-    res.json({
-      status:message.code500,
-      message:message.message500
-    })
+    console.error("Error fetching createDistributor:", error);
+    return res.status(500).json({ status:message.code500,message: "Failed to create distributer", error: error.message });
   }
 }

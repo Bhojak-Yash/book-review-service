@@ -6,6 +6,7 @@ const Users = db.users;
 const usercarts = db.usercarts;
 const Sequelize = db.sequelize;
 const Op = db.Op;
+const UsersCartService = require('../services/usercartService')
 
 
 exports.addToCart = async (req, res) => {
