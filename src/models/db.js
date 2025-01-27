@@ -15,6 +15,9 @@ const employees = require('./employees')
 const entities = require('./entities')
 const roles = require('./roles')
 const authorizations = require('./authorizations')
+const address = require('./address')
+const documentCategory = require('./documentCategory')
+const documents = require('./documents')
 const ss = require('sequelize')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
@@ -57,7 +60,10 @@ const db = {
   authorizations:authorizations(sequelize,Sequelize),
   employees:employees(sequelize,Sequelize),
   entities:entities(sequelize,Sequelize),
-  roles:roles(sequelize,Sequelize)
+  roles:roles(sequelize,Sequelize),
+  address:address(sequelize,Sequelize),
+  documentCategory:documentCategory(sequelize,Sequelize),
+  documents:documents(sequelize,Sequelize)
 };
 
 

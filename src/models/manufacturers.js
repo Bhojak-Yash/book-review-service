@@ -1,13 +1,28 @@
-module.exports =(sequelize,Sequelize)=>{
+module.exports =async(sequelize,Sequelize)=>{
     const manufacturers = sequelize.define("manufacturers",{
         "manufacturerId":{
             type:Sequelize.INTEGER,
-            primaryKey: true, // Mark this as the primary key
-           // autoIncrement: true, // Optional: Automatically increment the ID
+            primaryKey: true,
             allowNull: false
         },
         "companyName":{
             type:Sequelize.STRING
+        },
+        "companyType": {
+            type: Sequelize.ENUM(
+                "Sole Proprietorship",
+                "Partnership Firm",
+                "Limited Liability Partnership (LLP)",
+                "Private Limited Company",
+                "Public Limited Company",
+                "One Person Company (OPC)",
+                "Section 8 Company",
+                "Producer Company",
+                "Nidhi Company",
+                "Unlimited Company",
+                "Other"
+            ),
+            allowNull: true
         },
         "ownerName":{
             type:Sequelize.STRING
@@ -27,7 +42,22 @@ module.exports =(sequelize,Sequelize)=>{
         "email":{
             type:Sequelize.STRING
         },
+        "PAN":{
+            type:Sequelize.STRING
+        },
         "GST":{
+            type:Sequelize.STRING
+        },
+        "CIN":{
+            type:Sequelize.STRING
+        },
+        "drugLicense":{
+            type:Sequelize.STRING
+        },
+        "fssaiLicense":{
+            type:Sequelize.STRING
+        },
+        "wholesaleLicense":{
             type:Sequelize.STRING
         },
         "licence":{
@@ -38,5 +68,6 @@ module.exports =(sequelize,Sequelize)=>{
     {
         tableName: "manufacturers"
       })
+    //   await manufacturers.sync({ alter: true });
     return manufacturers
 }
