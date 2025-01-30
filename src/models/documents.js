@@ -6,6 +6,9 @@ module.exports =async(sequelize,Sequelize)=>{
             allowNull: false,
             autoIncrement: true,
         },
+        "userId":{
+            type:Sequelize.INTEGER
+        },
         "PAN":{
             type:Sequelize.STRING
         },

@@ -40,3 +40,15 @@ exports.updateManufacturer = async (req, res) => {
   }
 };
 
+exports.getManufacturer = async (req, res) => {
+  try {
+    const data = req.body
+    const manufacturer = await ManufacturerService.getManufacturer(data);
+
+      return res.json({ status:manufacturer.status,message:manufacturer.message,apiData:manufacturer?.apiData || null });
+   
+  } catch (error) {
+    console.error("Error fetching updateManufacturer:", error);
+    return res.status(500).json({ status:message.code500,message: "Failed to update manufacturer", error: error.message });
+  }
+};
