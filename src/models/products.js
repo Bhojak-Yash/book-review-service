@@ -12,17 +12,26 @@ module.exports =(sequelize,Sequelize)=>{
         "PName":{
             type:Sequelize.STRING
         },
-        "Packing":{
+        "PackingDetails":{
             type:Sequelize.STRING
         },
-        "HSN":{
-            type:Sequelize.STRING
+        // "HSN":{
+        //     type:Sequelize.STRING
+        // },
+        // "LOCA":{
+        //     type:Sequelize.STRING
+        // },
+        // "LOCN":{
+        //     type:Sequelize.STRING
+        // },
+        "Package":{
+             type:Sequelize.STRING
         },
-        "LOCA":{
-            type:Sequelize.STRING
+        "ProductForm":{
+             type:Sequelize.STRING
         },
-        "LOCN":{
-            type:Sequelize.STRING
+        "SaltComposition":{
+             type:Sequelize.STRING
         },
         "Generic":{
             type:Sequelize.STRING
@@ -69,6 +78,7 @@ module.exports =(sequelize,Sequelize)=>{
     },
     {
         tableName: "products"
-      })
+      }
+    )
     return products
 }

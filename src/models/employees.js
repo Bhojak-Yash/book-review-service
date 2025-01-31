@@ -38,7 +38,7 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "entityId":{
             type:Sequelize.BIGINT
-        }
+        },
 
     },
 

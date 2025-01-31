@@ -39,6 +39,9 @@ module.exports =(sequelize,Sequelize)=>{
         ,
         "entityId":{
             type:Sequelize.BIGINT
+        },
+        "location":{
+            type:Sequelize.STRING
         }
     },
     {
@@ -46,3 +49,21 @@ module.exports =(sequelize,Sequelize)=>{
       })
     return stocks
 }
+
+
+// SId int AI PK 
+// PID int 
+// BatchNo varchar(255) 
+// ExpDate date 
+// MRP double 
+// PTR double 
+// Scheme varchar(255) 
+// BoxQty int 
+// Loose int 
+// Stock int 
+// entityId int 
+// createdAt datetime 
+// updatedAt datetime 
+// deletedAt datetime 
+// organisationId int 
+// location varchar(45)

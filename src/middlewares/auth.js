@@ -7,7 +7,8 @@ const Users = db.users
 dotenv.config()
 
 exports.generateToken = (user) => {
-  const payload = { id: user.id, userName: user.userName,userType:user.userType }; 
+  // console.log(user)
+  const payload = { id: user.id, userName: user.userName,userType:user.userType,data:user?.data }; 
   const secretKey = process.env.JWTKEY;
   const options = { expiresIn: '30d' }; 
 
@@ -36,23 +37,22 @@ exports.verifyToken = async(req, res, next) => {
       }
       const decoded = jwt.verify(token, process.env.JWTKEY);
       req.user = decoded;
-      if(decoded && decoded?.userType && decoded?.userType === 'Employee'){
-        const employee =await Employees.findOne({where:{employeeId:decoded.id}});
-        const employeeOf = await Users.findOne({where:{id:employee.dataValues.employeeOf}})
-        loggedInUserId = employee.dataValues.employeeOf;
-        // console.log(employee,'l;l;l;',employeeOf)
-        req.user.emp= {
-          "employeeId":employee.dataValues?.employeeId ,
-          "employeeOf": employee.dataValues?.employeeOf,
-          "entityId": employee.dataValues?.entityId,
-          "userType":"Employee"
-        }
-        req.user.empOf={
-          "id":employeeOf.dataValues.id,
-          "userType":employeeOf.dataValues.userType
-        }
-      }
-      // console.log(req.user,';;;;')
+      // if(decoded && decoded?.userType && decoded?.userType === 'Employee'){
+      //   const employee =await Employees.findOne({where:{employeeId:decoded.id}});
+      //   const employeeOf = await Users.findOne({where:{id:employee.dataValues.employeeOf}})
+      //   loggedInUserId = employee.dataValues.employeeOf;
+      //   // console.log(employee,'l;l;l;',employeeOf)
+      //   req.user.emp= {
+      //     "employeeId":employee.dataValues?.employeeId ,
+      //     "employeeOf": employee.dataValues?.employeeOf,
+      //     "entityId": employee.dataValues?.entityId,
+      //     "userType":"Employee"
+      //   }
+      //   req.user.empOf={
+      //     "id":employeeOf.dataValues.id,
+      //     "userType":employeeOf.dataValues.userType
+      //   }
+      // }
       next();
     } catch (error) {
       console.log('auth error',error.message)

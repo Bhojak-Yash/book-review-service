@@ -26,6 +26,12 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "email":{
             type:Sequelize.STRING
+        },
+        "status":{
+            type:Sequelize.ENUM(
+                "Active",
+                "Inactive"
+            )
         }
     },
 

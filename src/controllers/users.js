@@ -16,6 +16,19 @@ async function hashPassword(password) {
   return hashedPassword;
 }
 
+const getData = async(userType,id)=>{
+    // console.log(userType,id)
+if(userType==='Manufacturer'){
+    return await Manufacturers.findOne({where:{manufacturerId:Number(id)}})
+}else if(userType === 'Distributor'){
+    return await Distributors.findOne({where:{distributorId:Number(id)}})
+}else if(userType === 'Retailer'){
+    return await Retailers.findOne({where:{retailerId:Number(id)}})
+}else if(userType === 'Admin'){
+    return await Employees.findOne({where:{employeeId:Number(id)}})
+}
+}
+
 exports.createUsers = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -127,17 +140,22 @@ exports.login = async(req,res)=>{
         if(checkUser){
             const match = await bcrypt.compare(password, checkUser.dataValues.password);
             if(match){
-                const token = await generateToken(checkUser.dataValues)
+                const data = await getData(checkUser.dataValues.userType,checkUser.dataValues.id)
+                const tokenPayload={...checkUser.dataValues,"data":data?.dataValues}
+                // console.log(tokenPayload)
+                const token = await generateToken(tokenPayload)
                 const loginlogs = await Logs.create({
                     userId:checkUser.dataValues.id,
                     token:token
                 })
+                // console.log(checkUser)
                 checkUser.dataValues.loginId=loginlogs.id
                 res.json({
                     status:message.code200,
                     message:message.message200,
                     apiToken:token,
-                    apiData:checkUser.dataValues
+                    apiData:checkUser.dataValues,
+                    data:data?.dataValues || null
                 })
             }else{
                 res.json({

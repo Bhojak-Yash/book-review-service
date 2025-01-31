@@ -1,4 +1,4 @@
-module.exports =async(sequelize,Sequelize)=>{
+module.exports =(sequelize,Sequelize)=>{
     const manufacturers = sequelize.define("manufacturers",{
         "manufacturerId":{
             type:Sequelize.INTEGER,
@@ -62,6 +62,12 @@ module.exports =async(sequelize,Sequelize)=>{
         },
         "licence":{
             type:Sequelize.STRING
+        },
+        "status":{
+            type:Sequelize.ENUM(
+                "Active",
+                "Inactive"
+            )
         }
     },
 
@@ -71,3 +77,5 @@ module.exports =async(sequelize,Sequelize)=>{
     //   await manufacturers.sync({ alter: true });
     return manufacturers
 }
+
+

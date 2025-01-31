@@ -294,7 +294,8 @@ class ManufacturerService {
       const [aa] = await sequelize.query(
         `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
       );
-  
+      const ddd=await Manufacturers.find({where:{category:'Manufacturer'}})
+  console.log(ddd,';;;;;;;;')
       let columns = [];
       if (aa) {
         columns = aa.map((item) => item.documentName);

@@ -59,7 +59,7 @@ class StocksService {
           attributes: ['PId', 'PCode', 'PName'],
         },
       ],
-      where: { manufacturerId },
+      where: {organisationId: manufacturerId },
     });
   }
 }
