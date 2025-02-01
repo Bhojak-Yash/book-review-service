@@ -12,7 +12,7 @@ module.exports =(sequelize,Sequelize)=>{
         "PName":{
             type:Sequelize.STRING
         },
-        "PackingDetails":{
+        "PackagingDetails":{
             type:Sequelize.STRING
         },
         // "HSN":{
