@@ -114,3 +114,30 @@ exports.getManufacturerStockSummary = async (req, res) => {
     });
   }
 };
+
+
+exports.getAllStocks = async (req, res) => {
+  try {
+    const userData = req.user;
+    const params= req.query
+    const data = {...userData,...params}
+    const stockDetails = await StocksService.getAllStocks(data);
+
+    if (!stockDetails || stockDetails.length === 0) {
+      return res.status(404).json({status:404, message: "Stock not found." });
+    }
+// console.log(stockDetails,';loioo')
+    return res.status(200).json({
+      status:200,
+      message: "Stock details retrieved successfully.",
+      apiData: stockDetails
+    });
+  } catch (error) {
+    console.error("Error fetching Stock details:", error);
+    return res.status(500).json({
+      status:500,
+      message: "Failed to retrieve Stock details.",
+      error: error.message,
+    });
+  }
+};
