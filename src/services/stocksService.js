@@ -441,7 +441,7 @@ class StocksService {
       // console.log(enrichedStocks);
       
       
-      const result = enrichedStocks.length
+      const result = stockSums.length
       const totalData = result;
       const totalPage = Math.ceil(result / Number(Limit));
       const currentPage = Page;

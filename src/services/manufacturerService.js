@@ -324,7 +324,7 @@ class ManufacturerService {
   
       const [dataa] = await sequelize.query(query);
       const transformedData = {};
-  
+  // console.log(dataa)
       dataa.forEach((row) => {
         const manufacturerId = row.manufacturerId;
   
@@ -371,6 +371,7 @@ class ManufacturerService {
             addressId: row.addressId,
             userId: row.userId,
             name: row.name,
+            email:row.email,
             mobile: row.mobile,
             webURL: row.webURL,
             addLine1: row.addLine1,
@@ -393,7 +394,7 @@ class ManufacturerService {
       // Convert transformedData object to an array
       const result = Object.values(transformedData);
   
-      console.log(result);
+      // console.log(result);
   
       return {
         status: message.code200,

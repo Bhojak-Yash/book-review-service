@@ -7,7 +7,7 @@ class UsersCartService {
         this.db = db;
     }
 
-    async createRetailers(data) {
+    async addToCart(data) {
 
     }
 }
