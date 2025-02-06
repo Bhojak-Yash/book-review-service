@@ -289,26 +289,42 @@ class ManufacturerService {
           message: "Manufacturer ID is required",
         };
       }
-  
+
       // Fetch allowed document columns
       const [aa] = await sequelize.query(
         `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
       );
       // const ddd=await Manufacturers.find({where:{category:'Manufacturer'}})
-  // console.log(ddd,';;;;;;;;')
+      // console.log(ddd,';;;;;;;;')
       let columns = [];
       if (aa) {
         columns = aa.map((item) => item.documentName);
       }
-  
+
       // Ensure column names are safely wrapped in backticks
       const documentColumns = columns.length > 0 ? columns.map(col => `doc.\`${col}\``).join(", ") : '';
-  
+
       const documentColumnsQuery = documentColumns ? `, ${documentColumns}` : '';
-  
+
       const query = `
         SELECT 
-          mn.*, 
+          mn.companyName, 
+    mn.ownerName, 
+    mn.logo, 
+    mn.createdAt, 
+    mn.updatedAt, 
+    mn.address, 
+    mn.phone, 
+    mn.email, 
+    mn.GST as gst, 
+    mn.manufacturerId, 
+    mn.licence, 
+    mn.companyType, 
+    mn.PAN as pan, 
+    mn.CIN as cin, 
+    mn.drugLicense as dlicense, 
+    mn.fssaiLicense as flicense, 
+    mn.wholesaleLicense as wholesalelicense, 
           us.*, 
           ad.* 
           ${documentColumnsQuery} 
@@ -321,13 +337,13 @@ class ManufacturerService {
           ON doc.userId = mn.manufacturerId
         WHERE mn.manufacturerId = ${manufacturerId};
       `;
-  
+
       const [dataa] = await sequelize.query(query);
       const transformedData = {};
-  // console.log(dataa)
+      console.log(dataa)
       dataa.forEach((row) => {
         const manufacturerId = row.manufacturerId;
-  
+
         if (!transformedData[manufacturerId]) {
           transformedData[manufacturerId] = {
             manufacturer: {
@@ -339,17 +355,17 @@ class ManufacturerService {
               address: row.address,
               phone: row.phone,
               email: row.email,
-              GST: row.GST,
+              GST: row.gst,
               manufacturerId: row.manufacturerId,
               licence: row.licence,
               companyType: row.companyType,
-              PAN: row.PAN,
-              CIN: row.CIN,
-              drugLicense: row.drugLicense,
-              fssaiLicense: row.fssaiLicense,
-              wholesaleLicense: row.wholesaleLicense,
-              manufacturingLicense: row.manufacturingLicense,
-              ISO: row.ISO,
+              PAN: row.pan,
+              CIN: row.cin,
+              drugLicense: row.dlicense,
+              fssaiLicense: row.flicense,
+              wholesaleLicense: row.wholesalelicense,
+              // manufacturingLicense: row.manufacturingLicense,
+              // ISO: row.iso,
             },
             user: {
               id: row.id,
@@ -364,14 +380,14 @@ class ManufacturerService {
             documents: {},
           };
         }
-  
+
         // Add addresses with addressType as key
         if (row.addressType) {
           transformedData[manufacturerId].addresses[row.addressType] = {
             addressId: row.addressId,
             userId: row.userId,
             name: row.name,
-            email:row.email,
+            email: row.email,
             mobile: row.mobile,
             webURL: row.webURL,
             addLine1: row.addLine1,
@@ -382,7 +398,7 @@ class ManufacturerService {
             pinCode: row.pinCode,
           };
         }
-  
+
         // Add documents (only specific columns that were dynamically added)
         columns.forEach((col) => {
           if (row[col] !== undefined) {
@@ -390,12 +406,12 @@ class ManufacturerService {
           }
         });
       });
-  
+
       // Convert transformedData object to an array
       const result = Object.values(transformedData);
-  
+
       // console.log(result);
-  
+
       return {
         status: message.code200,
         message: message.message200,
@@ -409,7 +425,7 @@ class ManufacturerService {
       };
     }
   }
-  
+
 }
 
 // module.exports = ManufacturerService;
