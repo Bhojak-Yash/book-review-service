@@ -75,8 +75,10 @@ db.products.hasMany(db.stocks, {
   foreignKey: 'PId',
 });
 
-// db.usercarts.belongsTo(db.products, { foreignKey: 'PId', as: 'productDetails' });
-// db.products.hasMany(db.usercarts, { foreignKey: 'PId', as: 'cartItems' });
+db.usercarts.belongsTo(db.products, { foreignKey: 'PId', as: 'productDetails' });
+db.products.hasMany(db.usercarts, { foreignKey: 'PId', as: 'cartItems' });
+db.usercarts.belongsTo(db.stocks, { foreignKey: 'stockId', as: 'stockDetails' });
+db.stocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 

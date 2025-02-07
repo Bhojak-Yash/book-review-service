@@ -133,7 +133,7 @@ exports.deleteCartItem = async (req, res) => {
 
 exports.getUserCart = async (req, res) => {
     try {
-      const data = {...req.user}
+      const data = {...req.user,...req.query}
       const cart = await UsersCartService.getUserCart(data);
       return res.json(cart);
     } catch (error) {

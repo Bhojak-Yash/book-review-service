@@ -3,36 +3,45 @@ const OrdersService = require('../services/ordersService');
 const db = require('../models/db')
 const sequelize = db.sequelize
 const message = require('../helpers/message')
-const {verifyToken} = require('../middlewares/auth')
+const { verifyToken } = require('../middlewares/auth')
 
 const ordersService = new OrdersService(db);
 
 class OrdersController {
   static async createOrder(req, res) {
-    try {
-      const { id: loggedInUserId ,userType} = req.user;
-      console.log(userType);
-      const orderData = req.body;
+    // try {
+    //   const { id: loggedInUserId ,userType} = req.user;
+    //   console.log(userType);
+    //   const orderData = req.body;
 
-      if(userType === "Employee"){
-        const employee =await db.employees.findOne({where:{employeeId:loggedInUserId}});
-        loggedInUserId = employee.employeeOf;
-      }
-      const newOrder = await ordersService.createOrder(orderData, loggedInUserId);
-      res.status(201).json(newOrder);
+    //   if(userType === "Employee"){
+    //     const employee =await db.employees.findOne({where:{employeeId:loggedInUserId}});
+    //     loggedInUserId = employee.employeeOf;
+    //   }
+    //   const newOrder = await ordersService.createOrder(orderData, loggedInUserId);
+    //   res.status(201).json(newOrder);
+    // } catch (error) {
+    //   res.status(500).json({ error: error.message });
+    // }
+    try {
+      const data = req.user
+      const orderData = req.body
+      const order = await ordersService.createOrder(data, orderData);
+      return res.json(order);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error("Error in createOrder:", error.message);
+      return res.status(500).json({ status: message.code500, message: error.message });
     }
   }
 
   static async updateOrder(req, res) {
     try {
-      const { id: loggedInUserId , userType} = req.user;
+      const { id: loggedInUserId, userType } = req.user;
       const { id: orderId } = req.params;
       const updates = req.body;
 
-      if(userType === "Employee"){
-        const employee =await db.employees.findOne({where:{employeeId:loggedInUserId}});
+      if (userType === "Employee") {
+        const employee = await db.employees.findOne({ where: { employeeId: loggedInUserId } });
         loggedInUserId = employee.employeeOf;
       }
       const updatedOrder = await ordersService.updateOrder(orderId, updates, loggedInUserId);
@@ -55,13 +64,13 @@ class OrdersController {
 
   static async getOrdersByType(req, res) {
     try {
-      const { id: loggedInUserId, userType} = req.user;
-    //  const { type: orderType } = req.params;
-     
+      const { id: loggedInUserId, userType } = req.user;
+      //  const { type: orderType } = req.params;
+
       const filters = req.query;
-      console.log("orderType "+filters.orderType);
-      if(userType === "Employee"){
-        const employee =await db.employees.findOne({where:{employeeId:loggedInUserId}});
+      console.log("orderType " + filters.orderType);
+      if (userType === "Employee") {
+        const employee = await db.employees.findOne({ where: { employeeId: loggedInUserId } });
         loggedInUserId = employee.employeeOf;
       }
       const ordersList = await ordersService.getOrdersByType(filters, filters.orderType, loggedInUserId);

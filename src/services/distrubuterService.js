@@ -180,6 +180,7 @@ class DistributorService {
                 `SELECT 
                     mn.manufacturerId, 
                     mn.companyName,
+                    mn.logo,
                     au.id AS authorizationId,
                     au.status, 
                     JSON_ARRAYAGG(

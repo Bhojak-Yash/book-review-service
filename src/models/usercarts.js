@@ -16,6 +16,9 @@ module.exports = (sequelize, Sequelize) => {
           type: Sequelize.INTEGER,
           allowNull: false,
         },
+        PId:{
+          type: Sequelize.INTEGER
+        },
         orderFrom: {
           type: Sequelize.BIGINT,   // loggedin user id
         },

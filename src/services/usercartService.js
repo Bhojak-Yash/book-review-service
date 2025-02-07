@@ -9,7 +9,7 @@ class UsersCartService {
 
     async addToCart(data) {
         try {
-            const { id, quantity, SId, orderTo } = data
+            const { id, quantity, SId, orderTo,PId } = data
             if (!id || !quantity || !SId || !orderTo) {
                 return {
                     status: message.code400,
@@ -34,7 +34,8 @@ class UsersCartService {
                     stockId: Number(SId),
                     orderFrom: Number(id),
                     orderTo: Number(orderTo),
-                    quantity: Number(quantity)
+                    quantity: Number(quantity),
+                    PId:Number(PId)
                 })
                 return {
                     status: message.code200,
@@ -113,26 +114,79 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            const { id } = data
+            const { id,manufacturerId } = data
             // Fetch all items in the cart for the logged-in user
+            const [manufacturer] = await db.sequelize.query(
+                `SELECT 
+                    mn.manufacturerId, 
+                    mn.companyName,
+                    mn.logo,
+                    JSON_ARRAYAGG(
+                      JSON_OBJECT(
+                        'addressType', ad.addressType, 
+                        'name', ad.name, 
+                        'mobile', ad.mobile, 
+                        'city', ad.city, 
+                        'state', ad.state
+                      )
+                    ) AS addresses
+                 FROM manufacturers AS mn
+                 LEFT JOIN \`address\` AS ad
+                   ON ad.userId = mn.manufacturerId
+                 WHERE mn.manufacturerId = :manufacturerId
+                 GROUP BY mn.manufacturerId, mn.companyName`,
+                {
+                    replacements: {
+                        manufacturerId: Number(manufacturerId),
+                        id: Number(id),
+                    },
+                    type: db.Sequelize.QueryTypes.SELECT,
+                }
+            );
             const cartItems = await db.usercarts.findAll({
                 where: {
                     orderFrom: Number(id),
+                    orderTo:Number(manufacturerId)
                 },
                 include: [
                     {
                         model: db.products, // Include associated product details if needed
                         as: "productDetails",
-                        attributes: ["PName"], // Adjust fields as per your database schema
+                        attributes: ["PName","SaltComposition"], // Adjust fields as per your database schema
                     },
+                    {
+                        model:db.stocks,
+                        as:"stockDetails",
+                        attributes:['MRP','PTR','BatchNo']
+                    }
                 ],
             });
+            // let totalAmount = 0
+            const updateCart = await cartItems.map((item)=>{
+                // totalAmount+= (Number(item.stockDetails.MRP)*Number(item.quantity))
+                return {
+                    "id":item.id,
+                    "quantity":item.quantity,
+                    "stockId":item.stockId,
+                    "PId":item.PId,
+                    "orderFrom":item.orderFrom,
+                    "orderTo":item.orderTo,
+                    "createdAt":item.createdAt,
+                    "PName":item.productDetails.PName,
+                    "SaltComposition":item.productDetails.SaltComposition,
+                    "MRP":item.stockDetails.MRP,
+                    "PTR":item.stockDetails.PTR,
+                    "BatchNo":item.stockDetails.BatchNo,
+                    // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
+                }
+            })
 
             // Check if the cart is empty
             if (!cartItems.length) {
                 return {
                     status: message.code200,
                     message: "Your cart is empty.",
+                    manufacturer:manufacturer,
                     cart: [],
                 };
             }
@@ -140,7 +194,8 @@ class UsersCartService {
             return {
                 status: message.code200,
                 message: "Cart fetched successfully.",
-                cart: cartItems,
+                manufacturer:manufacturer,
+                cart: updateCart,
             };
         } catch (error) {
             console.error("getUserCart servcie error:", error);

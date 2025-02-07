@@ -8,9 +8,9 @@ module.exports = (sequelize, Sequelize) => {
           autoIncrement: true, // Automatically increment the ID
           allowNull: false,
         },
-        orderNo: {
-          type: Sequelize.STRING,
-        },
+        // orderNo: {
+        //   type: Sequelize.STRING,
+        // },
         orderDate: {
           type: Sequelize.DATE, // Corrected data type
         },
