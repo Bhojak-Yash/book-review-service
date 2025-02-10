@@ -87,9 +87,9 @@ db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documn
 
 
 
- sequelize.queryInterface.addConstraint('documents', {
-  fields: ['categoryId', 'userId'],
-  type: 'unique',
-  name: 'unique_category_user'
-});
+//  sequelize.queryInterface.addConstraint('documents', {
+//   fields: ['categoryId', 'userId'],
+//   type: 'unique',
+//   name: 'unique_category_user'
+// });
 module.exports = db;
