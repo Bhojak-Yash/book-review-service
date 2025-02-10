@@ -214,57 +214,68 @@ class ManufacturerService {
       // ------------------------ Document Handling ------------------------
 
       // Check if documents exist
-      const existingDocument = await db.sequelize.query(
-        `SELECT * FROM documents WHERE userId = :manufacturerId`,
-        {
-          replacements: { manufacturerId },
-          type: db.Sequelize.QueryTypes.SELECT,
-          transaction,
-        }
-      );
+      // const existingDocument = await db.sequelize.query(
+      //   `SELECT * FROM documents WHERE userId = :manufacturerId`,
+      //   {
+      //     replacements: { manufacturerId },
+      //     type: db.Sequelize.QueryTypes.SELECT,
+      //     transaction,
+      //   }
+      // );
 
-      if (existingDocument.length) {
-        // Update document
-        await db.sequelize.query(
-          `UPDATE documents 
-             SET PAN = :PAN, GST = :GST, CIN = :CIN, 
-                 manufacturingLicense = :manufacturingLicense, drugLicense = :drugLicense, 
-                 ISO = :ISO, updatedAt = NOW()
-             WHERE userId = :manufacturerId`,
-          {
-            replacements: {
-              manufacturerId,
-              PAN: documents.PAN,
-              GST: documents.GST,
-              CIN: documents.CIN,
-              manufacturingLicense: documents.manufacturingLicense,
-              drugLicense: documents.drugLicense,
-              ISO: documents.ISO,
-            },
-            transaction,
-          }
-        );
-      } else {
-        // Insert document
-        await db.sequelize.query(
-          `INSERT INTO documents 
-             ( userId, PAN, GST, CIN, manufacturingLicense, drugLicense, ISO, createdAt, updatedAt)
-             VALUES 
-             ( :manufacturerId, :PAN, :GST, :CIN, :manufacturingLicense, :drugLicense, :ISO, NOW(), NOW())`,
-          {
-            replacements: {
-              manufacturerId,
-              PAN: documents.PAN,
-              GST: documents.GST,
-              CIN: documents.CIN,
-              manufacturingLicense: documents.manufacturingLicense,
-              drugLicense: documents.drugLicense,
-              ISO: documents.ISO,
-            },
-            transaction,
-          }
-        );
-      }
+      // if (existingDocument.length) {
+      //   // Update document
+      //   await db.sequelize.query(
+      //     `UPDATE documents 
+      //        SET PAN = :PAN, GST = :GST, CIN = :CIN, 
+      //            manufacturingLicense = :manufacturingLicense, drugLicense = :drugLicense, 
+      //            ISO = :ISO, updatedAt = NOW()
+      //        WHERE userId = :manufacturerId`,
+      //     {
+      //       replacements: {
+      //         manufacturerId,
+      //         PAN: documents.PAN,
+      //         GST: documents.GST,
+      //         CIN: documents.CIN,
+      //         manufacturingLicense: documents.manufacturingLicense,
+      //         drugLicense: documents.drugLicense,
+      //         ISO: documents.ISO,
+      //       },
+      //       transaction,
+      //     }
+      //   );
+      // } else {
+      //   // Insert document
+      //   await db.sequelize.query(
+      //     `INSERT INTO documents 
+      //        ( userId, PAN, GST, CIN, manufacturingLicense, drugLicense, ISO, createdAt, updatedAt)
+      //        VALUES 
+      //        ( :manufacturerId, :PAN, :GST, :CIN, :manufacturingLicense, :drugLicense, :ISO, NOW(), NOW())`,
+      //     {
+      //       replacements: {
+      //         manufacturerId,
+      //         PAN: documents.PAN,
+      //         GST: documents.GST,
+      //         CIN: documents.CIN,
+      //         manufacturingLicense: documents.manufacturingLicense,
+      //         drugLicense: documents.drugLicense,
+      //         ISO: documents.ISO,
+      //       },
+      //       transaction,
+      //     }
+      //   );
+      // }
+
+      const documentsData = documents.map((doc) => ({
+        categoryId: doc.id,
+        image: doc.image,
+        userId: Number(manufacturerId)
+    }));
+
+    await db.documents.bulkCreate(documentsData, {
+      updateOnDuplicate: ["image"],
+      conflictFields: ["categoryId", "userId"]
+  });
 
       await transaction.commit();
       return {
@@ -294,6 +305,21 @@ class ManufacturerService {
       const [aa] = await sequelize.query(
         `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
       );
+      const document = await db.documentCategory.findAll({
+        attributes:['id','documentName'],
+        include:[
+          {
+            model:db.documents,
+            as:"documnets",
+            attributes:['image','updatedAt'],
+            where: {
+              userId:Number(manufacturerId)
+          },
+          required: false,
+          },
+        ],
+        where:{category:"Manufacturer"}
+      })
       // const ddd=await Manufacturers.find({where:{category:'Manufacturer'}})
       // console.log(ddd,';;;;;;;;')
       let columns = [];
@@ -326,21 +352,18 @@ class ManufacturerService {
     mn.fssaiLicense as flicense, 
     mn.wholesaleLicense as wholesalelicense, 
           us.*, 
-          ad.* 
-          ${documentColumnsQuery} 
+          ad.*
         FROM crm_db.manufacturers AS mn
         LEFT JOIN crm_db.users AS us 
           ON mn.manufacturerId = us.id
         LEFT JOIN crm_db.address AS ad
           ON mn.manufacturerId = ad.userId
-        LEFT JOIN crm_db.documents AS doc
-          ON doc.userId = mn.manufacturerId
         WHERE mn.manufacturerId = ${manufacturerId};
       `;
 
       const [dataa] = await sequelize.query(query);
       const transformedData = {};
-      console.log(dataa)
+      // console.log(dataa)
       dataa.forEach((row) => {
         const manufacturerId = row.manufacturerId;
 
@@ -398,13 +421,14 @@ class ManufacturerService {
             pinCode: row.pinCode,
           };
         }
-
+        
+        transformedData[manufacturerId].documents=document
         // Add documents (only specific columns that were dynamically added)
-        columns.forEach((col) => {
-          if (row[col] !== undefined) {
-            transformedData[manufacturerId].documents[col] = row[col];
-          }
-        });
+        // columns.forEach((col) => {
+        //   if (row[col] !== undefined) {
+        //     transformedData[manufacturerId].documents[col] = row[col];
+        //   }
+        // });
       });
 
       // Convert transformedData object to an array
@@ -425,6 +449,8 @@ class ManufacturerService {
       };
     }
   }
+
+
 
 }
 

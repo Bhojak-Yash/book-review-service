@@ -81,5 +81,15 @@ db.usercarts.belongsTo(db.stocks, { foreignKey: 'stockId', as: 'stockDetails' })
 db.stocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
+db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
+db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
 
+
+
+
+ sequelize.queryInterface.addConstraint('documents', {
+  fields: ['categoryId', 'userId'],
+  type: 'unique',
+  name: 'unique_category_user'
+});
 module.exports = db;

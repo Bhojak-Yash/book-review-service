@@ -1,37 +1,28 @@
-module.exports =async(sequelize,Sequelize)=>{
-    const documents = sequelize.define("documents",{
+module.exports = (sequelize, Sequelize) => {
+    const documents = sequelize.define("documents", {
         "documnetId": {
             type: Sequelize.INTEGER,
             primaryKey: true,
             allowNull: false,
             autoIncrement: true,
         },
-        "userId":{
-            type:Sequelize.INTEGER
+        "userId": {
+            type: Sequelize.INTEGER
         },
-        "PAN":{
-            type:Sequelize.STRING
+        "categoryId": {
+            type: Sequelize.INTEGER
         },
-        "GST":{
+        "image":{
+            type: Sequelize.TEXT
+        },
+        "status": {
             type: Sequelize.STRING
         },
-        "CIN":{
-            type:Sequelize.STRING
-        },
-        "manufacturingLicense":{
-            type:Sequelize.STRING
-        },
-        "drugLicense":{
-            type:Sequelize.STRING
-        },
-        "ISO":{
-            type:Sequelize.STRING
-        }
     },
 
-    {
-        tableName: "documents", 
-    })
-    await documents.sync({ alter: true });
+        {
+            tableName: "documents",
+        })
+    // await documents.sync({ alter: true });
     return documents
 }
