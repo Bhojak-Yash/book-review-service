@@ -13,15 +13,26 @@ class AuthService {
                 where: {
                     authorizedBy: Number(authorizedBy),
                     authorizedId: Number(authorizedId),
-                    status: 'Pending'
+                    // status: 'Pending'
                 }
             })
-            if(check){
+            if(check.status==='Pending'){
                 return {
                     status:message.code400,
                     message:'Your authorization request is already pending. Please wait for approval before submitting a new request'
                 }
+            }else if(check.status==='Not Send'){
+              const Data =   await db.authorizations.update(
+                    { status: 'Pending' }, // Update fields
+                    { where: { id: Number(check.id) } } // Condition
+                );
+                return {
+                    status: message.code200,
+                    message: 'Authorization request sent',
+                    // apiData: Data
+                }
             }
+
             const Data = await db.authorizations.create({
                 authorizedBy: Number(authorizedBy),
                 authorizedId: Number(authorizedId),

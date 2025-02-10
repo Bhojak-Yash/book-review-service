@@ -43,7 +43,7 @@ exports.updateProduct = async (req, res) => {
 exports.getAllProductsByManufacturerId = async (req, res) => {
   // console.log(req.params);
   try {
-    const data = req.params
+    const data = {...req.params,...req.query}
     const Product = await ProductsService.getAllProductsByManufacturerId(data);
 
     // if (!distributor) {
