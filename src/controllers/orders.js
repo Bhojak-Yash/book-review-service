@@ -34,15 +34,28 @@ class OrdersController {
     }
   }
 
+  // static async updateOrder(req, res) {
+  //   try {
+  //     // const data = req.user
+  //     // const orderData = req.body
+  //     const data = {...req.user,...req.body}
+  //     const order = await ordersService.updateOrder(data);
+  //     return res.json(order);
+  //   } catch (error) {
+  //     console.error("Error in createOrder:", error.message);
+  //     return res.status(500).json({ status: message.code500, message: error.message });
+  //   }
+  // }
+
   static async updateOrder(req, res) {
     try {
-      const { id: loggedInUserId, userType } = req.user;
-      const { id: orderId } = req.params;
+      let { id: loggedInUserId, userType } = req.user;
+      const orderId = req.params.id;
       const updates = req.body;
-
+      // console.log(req.user,';;;;;;;;')
       if (userType === "Employee") {
-        const employee = await db.employees.findOne({ where: { employeeId: loggedInUserId } });
-        loggedInUserId = employee.employeeOf;
+        // const employee = await db.employees.findOne({ where: { employeeId: loggedInUserId } });
+        loggedInUserId = req.user.data.employeeOf;
       }
       const updatedOrder = await ordersService.updateOrder(orderId, updates, loggedInUserId);
       res.status(200).json(updatedOrder);

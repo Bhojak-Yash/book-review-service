@@ -68,69 +68,72 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
+    // console.log(orderId,updates,loggedInUserId,';;lllll')
     const order = await this.db.orders.findByPk(orderId);
     const orderItems = await db.orderitems.findAll({
       where: { orderId: orderId },
     });
+    // console.log(order,orderItems,';pppppp')
     if (!order) throw new Error("Order not found.");
 
-    if (order.orderTo !== loggedInUserId) {
-      throw new Error("Unauthorized to update this order.");
-    }
-
-    if (updates.orderStatus === "Approved") {
-      updates.confirmationDate = new Date();
-      const existingAuthorization = await this.db.authorizations.findOne({
-        where: {
-          authorizedBy: loggedInUserId,
-          authorizedTo: order.orderFrom,
-        },
-      });
-
-      if (!existingAuthorization) {
-        await this.db.authorizations.create({
-          authorizedBy: loggedInUserId,
-          authorizedId: order.orderFrom,
-          status: "Approved",
-        });
+    if(updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched'){
+      if (order.orderTo != loggedInUserId) {
+        throw new Error("Unauthorized to update this order.");
+      }
+    }else{
+      if (order.orderFrom != loggedInUserId) {
+        throw new Error("Unauthorized to update this order.");
       }
     }
 
-    if (updates.orderStatus === "Delivered") {
-      updates.deliveredAt = new Date();
-
-      // Retrieve the items in the order
-      const orderItems = await db.orderitems.findAll({
-        where: { orderId: orderId },
-      });
-
+    if (updates.orderStatus === "Confirmed") {
+      updates.confirmationDate = new Date();
       if (orderItems && orderItems.length > 0) {
-        // Loop through each item and directly update the stock
-        await Promise.all(
-          orderItems.map(async (item) => {
-            const [result, metadata] = await db.sequelize.query(
-              `
-                UPDATE stocks
-                SET Stock = Stock - :itemQuantity
-                WHERE SId = :stockId AND quantity >= :itemQuantity
-                RETURNING SId
-                `,
+
+        await db.sequelize.transaction(async (t) => {
+          // First, check if all items have enough stock before making any updates
+          for (const item of orderItems) {
+            const [stock] = await db.sequelize.query(
+              `SELECT Stock FROM stocks WHERE SId = :stockId`,
               {
-                replacements: {
-                  itemQuantity: item.quantity,
-                  stockId: item.stockId,
-                },
+                replacements: { stockId: item.stockId },
+                type: db.Sequelize.QueryTypes.SELECT,
+                transaction: t, // Use the transaction
               }
             );
-
-            if (!result || result.length === 0) {
+        
+            if (!stock || stock.Stock < item.quantity) {
               throw new Error(
                 `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
               );
             }
-          })
-        );
+          }
+        
+          // If all items have sufficient stock, update them
+          await Promise.all(
+            orderItems.map(async (item) => {
+              await db.sequelize.query(
+                `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+                {
+                  replacements: {
+                    itemQuantity: item.quantity,
+                    stockId: item.stockId,
+                  },
+                  transaction: t, // Use the transaction
+                }
+              );
+            })
+          );
+        });
       }
+    }
+
+    if (updates.orderStatus === "Received" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
+      updates.deliveredAt = new Date();
+      // Retrieve the items in the order
+      const orderItems = await db.orderitems.findAll({
+        where: { orderId: orderId },
+      });
     }
 
 
@@ -139,6 +142,23 @@ class OrdersService {
 
     return this.db.orders.findByPk(orderId);
   }
+
+  // async updateOrder(data) {
+  //   try {
+  //     const orderData = await db.orders.findOne({where:{id:Number(data.orderId)}})
+  //     return {
+  //       status:message.code200,
+  //       message:message.message200,
+  //       apiData:orderData
+  //     }
+  //   } catch (error) {
+  //     console.log('updateOrder service error:',error.message)
+  //     return {
+  //       status:message.code500,
+  //       message:error.message
+  //     }
+  //   }
+  // }
 
   async getOrdersByFilters(filters) {
     console.log(filters);

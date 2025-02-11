@@ -269,11 +269,12 @@ class ManufacturerService {
       const documentsData = documents.map((doc) => ({
         categoryId: doc.id,
         image: doc.image,
+        status:'Verified',
         userId: Number(manufacturerId)
     }));
 
     await db.documents.bulkCreate(documentsData, {
-      updateOnDuplicate: ["image"],
+      updateOnDuplicate: ["image",'status'],
       conflictFields: ["categoryId", "userId"]
   });
 
@@ -311,7 +312,7 @@ class ManufacturerService {
           {
             model:db.documents,
             as:"documnets",
-            attributes:['image','updatedAt'],
+            attributes:['image',"status",'updatedAt'],
             where: {
               userId:Number(manufacturerId)
           },

@@ -62,12 +62,18 @@ module.exports = (sequelize, Sequelize) => {
         deliveredAt: {
           type: Sequelize.DATE, // Corrected data type
         },
-        divisionId: {
-          type: Sequelize.BIGINT, // Corrected data type
+        // divisionId: {
+        //   type: Sequelize.BIGINT, // Corrected data type
+        // },
+        orderTotal:{
+          type:Sequelize.BIGINT
         },
         reason: {
           type: Sequelize.STRING, // Corrected data type
         },
+        invUrl:{
+          type:Sequelize.STRING
+        }
       },
       {
         tableName: "orders",

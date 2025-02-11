@@ -65,7 +65,7 @@ class StocksService {
 
   async getStockDetailsByManufacturer(data) {
     const { manufacturerId, entityId, page, limit, expStatus, search, stockStatus } = data;
-
+// console.log(data)
     let Page = page || 1;
     let Limit = limit || 10;
     const nearToExpDate = Number(process.env.lowStockDays)
@@ -211,7 +211,7 @@ class StocksService {
     // console.log(enrichedStocks);
     
     
-    const result = enrichedStocks.length
+    const result = stockSums.length
     const totalData = result;
     const totalPage = Math.ceil(result / Number(Limit));
     const currentPage = Page;

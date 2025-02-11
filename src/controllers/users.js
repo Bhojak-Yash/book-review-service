@@ -24,7 +24,7 @@ if(userType==='Manufacturer'){
     return await Distributors.findOne({where:{distributorId:Number(id)}})
 }else if(userType === 'Retailer'){
     return await Retailers.findOne({where:{retailerId:Number(id)}})
-}else if(userType === 'Admin'){
+}else if(userType === 'Employee'){
     return await Employees.findOne({where:{employeeId:Number(id)}})
 }
 }
