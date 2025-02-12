@@ -83,6 +83,17 @@ db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
 db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
+db.orders.belongsTo(db.distributors, {
+  foreignKey: 'orderFrom', // Ensure this is correct
+  as: 'distributer'
+});
+
+// In distributors model
+db.distributors.hasMany(db.orders, {
+  foreignKey: 'orderFrom', // Ensure this is correct
+  as: 'distributer'
+});
+
 
 
 

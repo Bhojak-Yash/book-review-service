@@ -131,9 +131,48 @@ class OrdersService {
     if (updates.orderStatus === "Received" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
       updates.deliveredAt = new Date();
       // Retrieve the items in the order
-      const orderItems = await db.orderitems.findAll({
-        where: { orderId: orderId },
-      });
+      // const orderItems = await db.orderitems.findAll({
+      //   where: { orderId: orderId },
+      // });
+
+      if (orderItems && orderItems.length > 0) {
+
+        await db.sequelize.transaction(async (t) => {
+          // First, check if all items have enough stock before making any updates
+          for (const item of orderItems) {
+            const [stock] = await db.sequelize.query(
+              `SELECT Stock FROM stocks WHERE SId = :stockId`,
+              {
+                replacements: { stockId: item.stockId },
+                type: db.Sequelize.QueryTypes.SELECT,
+                transaction: t, // Use the transaction
+              }
+            );
+        
+            if (!stock || stock.Stock < item.quantity) {
+              throw new Error(
+                `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
+              );
+            }
+          }
+        
+          // If all items have sufficient stock, update them
+          await Promise.all(
+            orderItems.map(async (item) => {
+              await db.sequelize.query(
+                `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+                {
+                  replacements: {
+                    itemQuantity: item.quantity,
+                    stockId: item.stockId,
+                  },
+                  transaction: t, // Use the transaction
+                }
+              );
+            })
+          );
+        });
+      }
     }
 
 

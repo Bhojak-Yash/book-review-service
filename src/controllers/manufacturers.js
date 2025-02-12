@@ -23,7 +23,7 @@ exports.createManufacturer=async (req,res) => {
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
   } catch (error) {
     console.error("Error fetching createManufacturer:", error);
-    return res.status(500).json({ status:message.code500,message: "Failed to create Manufacturer", error: error.message });
+    return res.status(500).json({ status:message.code500,message:error.message });
   }
 };
 
@@ -35,8 +35,8 @@ exports.updateManufacturer = async (req, res) => {
       return res.json({ status:manufacturer.status,message:manufacturer.message, });
    
   } catch (error) {
-    console.error("Error fetching updateManufacturer:", error);
-    return res.status(500).json({ status:message.code500,message: "Failed to update manufacturer", error: error.message });
+    console.error("Error updateManufacturer:", error);
+    return res.status(500).json({ status:message.code500,message: error.message });
   }
 };
 
@@ -48,7 +48,20 @@ exports.getManufacturer = async (req, res) => {
       return res.json({ status:manufacturer.status,message:manufacturer.message,apiData:manufacturer?.apiData || null });
    
   } catch (error) {
-    console.error("Error fetching updateManufacturer:", error);
-    return res.status(500).json({ status:message.code500,message: "Failed to update manufacturer", error: error.message });
+    console.error("Error getManufacturer:", error);
+    return res.status(500).json({ status:message.code500,message: error.message });
+  }
+};
+
+exports.prchaseOrders = async (req, res) => {
+  try {
+    const data = {...req.query,...req.user};
+    const manufacturer = await ManufacturerService.prchaseOrders(data);
+
+      return res.json(manufacturer);
+   
+  } catch (error) {
+    console.error("Error prchaseOrders:", error);
+    return res.status(500).json({ status:message.code500,message:error.message });
   }
 };

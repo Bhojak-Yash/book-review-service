@@ -6,6 +6,7 @@ const sequelize = db.sequelize
 const Manufacturers = db.manufacturers;
 const Address = db.address;
 const Documents = db.documents;
+const Op = db.Op
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -451,6 +452,68 @@ class ManufacturerService {
     }
   }
 
+  async prchaseOrders(data) {
+    try {
+      let Page =Number(data.page) || 1
+      let Limit =Number(data.limit) || 10
+      let Skip = 0
+
+      if(Page>1){
+        Skip = (Page-1)*Limit
+      }
+      let whereCondition = {orderTo:Number(data.id)}
+      if(data?.status){
+        whereCondition.orderStatus = data.status
+      }
+      if (data?.search) {
+        whereCondition[Op.or] = [
+          { id: { [Op.like]: `%${data.search}%` } }, 
+          { orderFrom: { [Op.like]: `%${data.search}%` } }
+        ];
+      }         
+      const totalData = await db.orders.count({where:whereCondition})
+      const result = await db.orders.findAll({
+        attributes:['id','orderDate','dueDate','deliveredAt','orderTotal','invAmt','orderFrom','orderStatus','orderTo','dMan','dMobile'],
+        where:whereCondition,
+        include:[
+          {
+            model:db.distributors,
+            as:'distributer',
+            attributes:['distributorId','companyName']
+          }
+        ],
+        limit:Limit,
+        offset:Skip
+      })
+
+      const updateResult = result.map((item) => {
+        const plainItem = item.toJSON(); // Convert to plain object
+      
+        let deliveryType = 
+          plainItem.orderStatus === 'Ready to ship' ? 'Shipped' :
+          plainItem.orderStatus === 'Ready to pickup' ? 'Pickup' :
+          null;
+      
+        return { ...plainItem, deliveryType };
+      })
+      const totalPage = Math.ceil(Number(totalData)/Limit)
+
+      return {
+        status:message.code200,
+        message:message.message200,
+        currentPage:Page,
+        totalPage:totalPage,
+        totalData:totalData,  
+        apiData:updateResult || null
+      }
+    } catch (error) {
+      console.log('prchaseOrders service error:',error.message)
+      return {
+        status:message.code500,
+        message:message.message500
+      }
+    }
+  }
 
 
 }
