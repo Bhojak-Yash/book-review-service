@@ -68,13 +68,14 @@ class StocksService {
 // console.log(data)
     let Page = page || 1;
     let Limit = limit || 10;
-    const nearToExpDate = Number(process.env.lowStockDays)
+    const lowStockDays = Number(process.env.lowStockDays)
     // console.log(nearToExpDate)
     let whereCondition = { organisationId: Number(manufacturerId) };
     if (entityId) {
       whereCondition.entityId = Number(entityId);
     }
 
+    const nearToExpDate = new Date();
     // Handle expiration status filter
     if (expStatus) {
       const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
@@ -82,14 +83,14 @@ class StocksService {
       if (expStatus === "expired") {
         whereCondition.ExpDate = { [db.Sequelize.Op.lt]: today }; // Expired (before today)
       } else if (expStatus === "nearToExp") {
-        const nearToExpDate = new Date();
-        nearToExpDate.setDate(nearToExpDate.getDate() + nearToExpDate);
+        nearToExpDate.setDate(nearToExpDate.getDate() + Number(lowStockDays));
+        // console.log(nearToExpDate)
         whereCondition.ExpDate = {
           [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
         }; // Between today and 90 days from now
       } else if (expStatus === "upToDate") {
         const upToDateThreshold = new Date();
-        upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(nearToExpDate));
+        upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(lowStockDays));
         whereCondition.ExpDate = { [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0] }; // More than 90 days from today
       }
     }
@@ -211,7 +212,7 @@ class StocksService {
     // console.log(enrichedStocks);
     
     
-    const result = stockSums.length
+    const result = stocks.length
     const totalData = result;
     const totalPage = Math.ceil(result / Number(Limit));
     const currentPage = Page;
