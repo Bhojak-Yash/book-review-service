@@ -128,6 +128,49 @@ class OrdersService {
       }
     }
 
+    if(updates.orderStatus === 'Dispatched'){
+      // if (orderItems && orderItems.length > 0) {
+
+        await db.sequelize.transaction(async (t) => {
+          // First, check if all items have enough stock before making any updates
+          // for (const item of updates.items) {
+            // const [stock] = await db.sequelize.query(
+            //   `SELECT * FROM stocks WHERE SId = :stockId`,
+            //   {
+            //     replacements: { stockId: item.stockId },
+            //     type: db.Sequelize.QueryTypes.SELECT,
+            //     transaction: t, // Use the transaction
+            //   }
+            // );
+            await db.sequelize.transaction(async (t) => {
+              // First, check if all items have enough stock before making any updates
+              for (const item of updates.items) {
+                console.log(item,';;;;;;')
+            db.orderitems.update({
+              BoxQty:item.BoxQty,
+              loose:item.loose
+            },{where:{id:Number(item.id)}}),{transaction: t}
+              }
+            
+              // If all items have sufficient stock, update them
+              // await Promise.all(
+              //   orderItems.map(async (item) => {
+                  
+              //   })
+              // );          
+            });
+          // }
+        
+          // If all items have sufficient stock, update them
+          // await Promise.all(
+          //   orderItems.map(async (item) => {
+              
+          //   })
+          // );          
+        });
+      // }
+    }
+
     if (updates.orderStatus === "Received" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
       updates.deliveredAt = new Date();
       // Retrieve the items in the order
@@ -141,36 +184,44 @@ class OrdersService {
           // First, check if all items have enough stock before making any updates
           for (const item of orderItems) {
             const [stock] = await db.sequelize.query(
-              `SELECT Stock FROM stocks WHERE SId = :stockId`,
+              `SELECT * FROM stocks WHERE SId = :stockId`,
               {
                 replacements: { stockId: item.stockId },
                 type: db.Sequelize.QueryTypes.SELECT,
                 transaction: t, // Use the transaction
               }
             );
+            await db.sequelize.query(
+              `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose) 
+               VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose) 
+               ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
+              {
+                replacements: {
+                  itemQuantity: item.quantity,
+                  PId: item.PId,
+                  BatchNo: stock.BatchNo,
+                  ExpDate:stock.ExpDate,
+                  createdAt:new Date(),
+                  updatedAt:new Date(),
+                  organisationId:order.orderFrom,
+                  MRP:item.MRP,
+                  PTR:item.PTR,
+                  Scheme:item.Scheme,
+                  BoxQty:item.BoxQty,
+                  loose:item.loose
+                },
+                transaction: t, // Use the transaction
+              }
+            );
         
-            if (!stock || stock.Stock < item.quantity) {
-              throw new Error(
-                `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
-              );
-            }
           }
         
           // If all items have sufficient stock, update them
-          await Promise.all(
-            orderItems.map(async (item) => {
-              await db.sequelize.query(
-                `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
-                {
-                  replacements: {
-                    itemQuantity: item.quantity,
-                    stockId: item.stockId,
-                  },
-                  transaction: t, // Use the transaction
-                }
-              );
-            })
-          );
+          // await Promise.all(
+          //   orderItems.map(async (item) => {
+              
+          //   })
+          // );          
         });
       }
     }

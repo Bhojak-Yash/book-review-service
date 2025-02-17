@@ -104,6 +104,15 @@ module.exports =(sequelize,Sequelize)=>{
           stockId: {
             type: Sequelize.INTEGER,
             allowNull: false,
+          },
+          BoxQty:{
+            type: Sequelize.INTEGER,
+          },
+          Scheme:{
+            type: Sequelize.STRING
+          },
+          loose:{
+            type: Sequelize.INTEGER,
           }
     },
     {

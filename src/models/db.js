@@ -103,4 +103,10 @@ db.distributors.hasMany(db.orders, {
 //   type: 'unique',
 //   name: 'unique_category_user'
 // });
+//  sequelize.queryInterface.addConstraint('stocks', {
+//   fields: ['PId', 'BatchNo','organisationId'],
+//   type: 'unique',
+//   name: 'unique_category_stock'
+// });
+
 module.exports = db;
