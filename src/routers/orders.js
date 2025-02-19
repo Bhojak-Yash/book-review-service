@@ -9,5 +9,6 @@ router.put('/updateOrder/:id',verifyToken,ordersc.updateOrder)
 // router.post('/updateOrder',verifyToken,ordersc.updateOrder)
 router.get('/getOrder/filters',verifyToken,ordersc.getOrdersByFilters)
 router.get('/getOrderBytype',verifyToken,ordersc.getOrdersByType)
+router.get('/')
 
 module.exports =router
