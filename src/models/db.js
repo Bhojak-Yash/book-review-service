@@ -94,6 +94,16 @@ db.distributors.hasMany(db.orders, {
   as: 'distributer'
 });
 
+db.authorizations.belongsTo(db.distributors,{foreignKey:'authorizedId',as:"distributers"})
+db.authorizations.belongsTo(db.users,{foreignKey:'authorizedId',as:"user"})
+db.address.belongsTo(db.distributors,{foreignKey:'userId',targetKey:'distributorId',as:'distributorAddress'})
+db.distributors.hasMany(db.address, {
+  foreignKey: "userId", // Ensure this matches the address table
+  sourceKey: "distributorId", // Ensure this matches the distributors table
+  as: "addresses"
+});
+// console.log(db.address.associations);
+// console.log(db.distributors.associations);
 
 
 

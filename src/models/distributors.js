@@ -32,6 +32,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "GST":{
             type:Sequelize.STRING
+        },
+        "type":{
+            type:Sequelize.ENUM('CNF','Distributer')
         }
     },
 

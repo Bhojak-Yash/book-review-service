@@ -65,3 +65,16 @@ exports.prchaseOrders = async (req, res) => {
     return res.status(500).json({ status:message.code500,message:error.message });
   }
 };
+
+exports.cnf_details = async (req, res) => {
+  try {
+    const data = {...req.query,...req.user};
+    const cnf = await ManufacturerService.cnf_details(data);
+
+      return res.json(cnf);
+   
+  } catch (error) {
+    console.error("Error cnf_details:", error);
+    return res.status(500).json({ status:message.code500,message:error.message });
+  }
+};

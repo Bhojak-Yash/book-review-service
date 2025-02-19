@@ -270,14 +270,14 @@ class ManufacturerService {
       const documentsData = documents.map((doc) => ({
         categoryId: doc.id,
         image: doc.image,
-        status:'Verified',
+        status: 'Verified',
         userId: Number(manufacturerId)
-    }));
+      }));
 
-    await db.documents.bulkCreate(documentsData, {
-      updateOnDuplicate: ["image",'status'],
-      conflictFields: ["categoryId", "userId"]
-  });
+      await db.documents.bulkCreate(documentsData, {
+        updateOnDuplicate: ["image", 'status'],
+        conflictFields: ["categoryId", "userId"]
+      });
 
       await transaction.commit();
       return {
@@ -308,19 +308,19 @@ class ManufacturerService {
         `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
       );
       const document = await db.documentCategory.findAll({
-        attributes:['id','documentName'],
-        include:[
+        attributes: ['id', 'documentName'],
+        include: [
           {
-            model:db.documents,
-            as:"documnets",
-            attributes:['image',"status",'updatedAt'],
+            model: db.documents,
+            as: "documnets",
+            attributes: ['image', "status", 'updatedAt'],
             where: {
-              userId:Number(manufacturerId)
-          },
-          required: false,
+              userId: Number(manufacturerId)
+            },
+            required: false,
           },
         ],
-        where:{category:"Manufacturer"}
+        where: { category: "Manufacturer" }
       })
       // const ddd=await Manufacturers.find({where:{category:'Manufacturer'}})
       // console.log(ddd,';;;;;;;;')
@@ -423,8 +423,8 @@ class ManufacturerService {
             pinCode: row.pinCode,
           };
         }
-        
-        transformedData[manufacturerId].documents=document
+
+        transformedData[manufacturerId].documents = document
         // Add documents (only specific columns that were dynamically added)
         // columns.forEach((col) => {
         //   if (row[col] !== undefined) {
@@ -454,68 +454,133 @@ class ManufacturerService {
 
   async prchaseOrders(data) {
     try {
-      let Page =Number(data.page) || 1
-      let Limit =Number(data.limit) || 10
+      let Page = Number(data.page) || 1
+      let Limit = Number(data.limit) || 10
       let Skip = 0
+      let StartDate = new Date()
+      let EndDate = new Date()
 
-      if(Page>1){
-        Skip = (Page-1)*Limit
+      if (Page > 1) {
+        Skip = (Page - 1) * Limit
       }
-      let whereCondition = {orderTo:Number(data.id)}
-      if(data?.status){
+      let whereCondition = { orderTo: Number(data.id) }
+      if (data?.status) {
         whereCondition.orderStatus = data.status
       }
       if (data?.search) {
         whereCondition[Op.or] = [
-          { id: { [Op.like]: `%${data.search}%` } }, 
+          { id: { [Op.like]: `%${data.search}%` } },
           { orderFrom: { [Op.like]: `%${data.search}%` } }
         ];
-      }         
-      const totalData = await db.orders.count({where:whereCondition})
+      }
+      if(data?.distributorId){
+        whereCondition.orderFrom=Number(data.distributorId)
+      }
+      if (data.start_date && data.end_date) {
+        const startDateParts = data.start_date.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
+        const endDateParts = data.end_date.split('-');
+
+        const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`; // "2025-09-02 00:00:00"
+        const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`; // "2025-09-02 23:59:59"
+
+        whereCondition.OrderDate = {
+          [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+        };
+      }
+      // console.log(whereCondition)
+      const totalData = await db.orders.count({ where: whereCondition })
       const result = await db.orders.findAll({
-        attributes:['id','orderDate','dueDate','deliveredAt','orderTotal','invAmt','orderFrom','orderStatus','orderTo','dMan','dMobile'],
-        where:whereCondition,
-        include:[
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile'],
+        where: whereCondition,
+        include: [
           {
-            model:db.distributors,
-            as:'distributer',
-            attributes:['distributorId','companyName']
+            model: db.distributors,
+            as: 'distributer',
+            attributes: ['distributorId', 'companyName']
           }
         ],
-        limit:Limit,
-        offset:Skip
+        limit: Limit,
+        offset: Skip
       })
 
       const updateResult = result.map((item) => {
         const plainItem = item.toJSON(); // Convert to plain object
-      
-        let deliveryType = 
+
+        let deliveryType =
           plainItem.orderStatus === 'Ready to ship' ? 'Shipped' :
-          plainItem.orderStatus === 'Ready to pickup' ? 'Pickup' :
-          null;
-      
+            plainItem.orderStatus === 'Ready to pickup' ? 'Pickup' :
+              null;
+
         return { ...plainItem, deliveryType };
       })
-      const totalPage = Math.ceil(Number(totalData)/Limit)
+      const totalPage = Math.ceil(Number(totalData) / Limit)
 
       return {
-        status:message.code200,
-        message:message.message200,
-        currentPage:Page,
-        totalPage:totalPage,
-        totalData:totalData,  
-        apiData:updateResult || null
+        status: message.code200,
+        message: message.message200,
+        currentPage: Page,
+        totalPage: totalPage,
+        totalData: totalData,
+        apiData: updateResult || null
       }
     } catch (error) {
-      console.log('prchaseOrders service error:',error.message)
+      console.log('prchaseOrders service error:', error.message)
       return {
-        status:message.code500,
-        message:message.message500
+        status: message.code500,
+        message: message.message500
       }
     }
   }
 
+  async cnf_details(data) {
+    try {
+      const id= Number(data.distributorId)
 
+      const result =await db.distributors.findOne({
+        attributes:['distributorId','status',"phone","email","GST"],
+        include:[
+          {
+            model:db.address,
+            as:"addresses",
+          }
+        ],
+        where:{distributorId:id}
+      })
+      const orders = await db.orders.findAndCountAll({
+        where: { orderFrom: id },
+        limit: 1,  // Get the latest order
+        order: [["createdAt", "DESC"]], // Sort by createdAt descending (latest first)
+        raw: true
+    });
+    
+    const totalOrders = orders.count;
+    const latestCreatedAt = orders.rows.length > 0 ? orders.rows[0].createdAt : null;
+    
+    // console.log({ totalOrders, latestCreatedAt });
+    const completeOrder = await db.orders.count({
+      where: {
+          orderFrom: id,
+          orderStatus: { [Op.in]: ["Received", "Paid", "Partial Paid"] }
+      },
+      raw: true
+  });
+  const sumOfOrders = await db.orders.findOne({
+    attributes:[[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"]]
+  })
+// console.log(orders)
+      return {
+        status:message.code200,
+        message:message.message200,
+        apiData:{result,totalOrders,latestCreatedAt,completeOrder,sumOfOrders}
+      }
+    } catch ( error) {
+      console.log('cnf_details service error',error.message)
+      return {
+        status:message.code500,
+        messaage:message.message500
+      }
+    }
+  }
 }
 
 // module.exports = ManufacturerService;
