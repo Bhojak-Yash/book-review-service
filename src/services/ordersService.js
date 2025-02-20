@@ -145,7 +145,7 @@ class OrdersService {
             await db.sequelize.transaction(async (t) => {
               // First, check if all items have enough stock before making any updates
               for (const item of updates.items) {
-                console.log(item,';;;;;;')
+                // console.log(item,';;;;;;')
             db.orderitems.update({
               BoxQty:item.BoxQty,
               loose:item.loose
@@ -298,6 +298,43 @@ class OrdersService {
     }
 
     return this.getOrdersByFilters(filters);
+  }
+
+  async distributer_purchase_orders(data) {
+    try {
+      const id = Number(data.id);
+      const Page = Number(data.page) || 1;
+      const Limit = Number(data.limit) || 10;
+      let skip =0
+      let whereClause = {orderFrom:id}
+      if( Page>1){
+        skip = (Page-1)*Limit
+      }
+      // if(data.search){
+      //   whereClause.
+      // }
+
+      const {count,rows:orders} = await db.orders.findAndCountAll({
+        attributes:['id','orderDate','dueDate','deliveredAt','invAmt','orderStatus','orderTo','orderTotal','invNo'],
+        where:whereClause,
+        offset:skip,
+        limit:Limit
+      })
+      return {
+        status:message.code200,
+        message:message.message200,
+        totalItems:count,
+        currentPage:Page,
+        totalPage:Math.ceil(count/Limit),
+        apiData:orders
+      }
+    } catch (error) {
+      console.log('distributer_purchase_orders error:',error.message)
+      return {
+        status:message.code500,
+        message:error.message
+      }
+    }
   }
 }
 

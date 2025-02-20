@@ -207,12 +207,12 @@ class DistributorService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
-            if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
-                return {
-                    status: 400,
-                    message: "Not authorized"
-                }
-            }
+            // if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
+            //     return {
+            //         status: 400,
+            //         message: "Not authorized"
+            //     }
+            // }
 
             const stocks = await db.stocks.findAll({
                 attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP'],
