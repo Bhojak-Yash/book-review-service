@@ -262,7 +262,7 @@ class DistributorService {
                     }
                 }
             })
-            const totalCount = await db.products.count({ where:whereCondition })
+            const totalCount = await db.products.count({ where: whereCondition })
 
             // const totalCount = updatedStock.length
             const totalPage = Math.ceil(totalCount / Limit)
@@ -272,7 +272,7 @@ class DistributorService {
                 currentPage: Page,
                 totalPage: totalPage,
                 totalData: totalCount,
-                limit:Limit,
+                limit: Limit,
                 apiData: { manufacturer, stocks: updatedStock }
             }
         } catch (error) {
@@ -281,6 +281,101 @@ class DistributorService {
                 status: message.code500,
                 message: message.message500
             }
+        }
+    }
+
+    async po_page_data(data) {
+        try {
+            const id = Number(data.id)
+            // console.log(id)
+            const result = await db.orders.findOne({
+                attributes: [
+                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                    [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+                ],
+                where: { orderFrom: id },
+                raw: true
+            });
+
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:{
+                    "totalOrders": result.totalOrders,
+                    "completedOrders": Number(result.completedOrders),
+                    "pendingOrders":Number(result.totalOrders)-Number(result.completedOrders),
+                    "totalDueAmtOrders": result.totalDueAmtOrders,
+                    "totalDueAmount": result.totalDueAmount
+                }
+             }
+        } catch (error) {
+            console.log('po_page_data service error:', error.message)
+        }
+    }
+    async so_page_data(data) {
+        try {
+            const id = Number(data.id)
+            const result = await db.orders.findOne({
+                attributes: [
+                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                    [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+                ],
+                where: { orderTo: id },
+                raw: true
+            });
+
+            const users = await db.authorizations.findOne({
+                attributes: [
+                    [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.id")), "totalApproved"], // Total Approved authorizations
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN authorizedUser.userType = 'Distributor' THEN 1 ELSE 0 END")), "totalDistributors"], // Count of Distributors
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN authorizedUser.userType = 'Retailer' THEN 1 ELSE 0 END")), "totalRetailers"], // Count of Retailers
+                    [
+                        db.sequelize.literal(`(
+                            SELECT COUNT(*) 
+                            FROM authorizations AS pendingAuth 
+                            WHERE pendingAuth.authorizedBy = ${id} 
+                            AND pendingAuth.status = 'Pending'
+                        )`),
+                        "totalPending"
+                    ]
+                ],
+                include: [
+                    {
+                        model: db.users,
+                        as: "authorizedUser", // Use the correct alias
+                        attributes: [], // No need to fetch user attributes
+                        required: true // Ensures only matching users are counted
+                    }
+                ],
+                where: {
+                    authorizedBy: id, // Replace with actual ID
+                    status: "Approved"
+                },
+                raw: true
+            });
+            
+            
+
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:{
+                    "totalOrders": result.totalOrders,
+                    "completedOrders": Number(result.completedOrders),
+                    "pendingOrders":Number(result.totalOrders)-Number(result.completedOrders),
+                    "totalDueAmtOrders": result.totalDueAmtOrders,
+                    "totalDueAmount": result.totalDueAmount,
+                    "totalDistribuor":users.totalDistributors ||0,
+                    "totalRetailer":users.totalRetailers ||0,
+                    "totalPending":users.totalPending ||0
+                }
+             }
+        } catch (error) {
+            console.log('so_page_data service error:', error.message)
         }
     }
 }

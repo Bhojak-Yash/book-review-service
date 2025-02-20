@@ -107,6 +107,8 @@ db.distributors.hasMany(db.address, {
   sourceKey: "distributorId", // Ensure this matches the distributors table
   as: "addresses"
 });
+db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authorizedUser" });
+
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

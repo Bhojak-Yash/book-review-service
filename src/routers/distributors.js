@@ -7,5 +7,7 @@ const {verifyToken} = require('../middlewares/auth')
 router.post('/createDistributor',distributorsc.createDistributor)
 router.get('/get-manufacturers',verifyToken,distributorsc.getManufacturer)
 router.get('/get-stocksByManufacturer',verifyToken,distributorsc.getStocksByManufacturer)
+router.get('/po-page-data',verifyToken,distributorsc.po_page_data)
+router.get('/so-page-data',verifyToken,distributorsc.so_page_data)
 
 module.exports =router

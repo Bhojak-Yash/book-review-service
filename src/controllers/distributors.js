@@ -19,7 +19,7 @@ exports.createDistributor = async (req, res) => {
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
   } catch (error) {
     console.error("Error fetching createDistributor:", error);
-    return res.status(500).json({ status:message.code500,message: "Failed to create distributer", error: error.message });
+    return res.status(500).json({ status:message.code500,message:  error.message });
   }
 };
 
@@ -49,7 +49,7 @@ exports.getManufacturer = async (req, res) => {
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
     console.error("getManufacturer Error:", error.message);
-    return res.status(500).json({ status:message.code500,message: "Failed to update distributer", error: error.message });
+    return res.status(500).json({ status:message.code500,message: error.message });
   }
 };
 exports.getStocksByManufacturer = async (req, res) => {
@@ -63,6 +63,36 @@ exports.getStocksByManufacturer = async (req, res) => {
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
     console.error("getStocksByManufacturer Error:", error.message);
-    return res.status(500).json({ status:message.code500,message: "Failed to update distributer", error: error.message });
+    return res.status(500).json({ status:message.code500,message:  error.message });
+  }
+};
+
+exports.po_page_data = async (req, res) => {
+
+  try {
+    const data = {...req.user,...req.query}
+    const distributor = await DistributorService.po_page_data(data);
+
+    return res.json(distributor);
+
+    // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
+  } catch (error) {
+    console.error("po_page_data Error:", error.message);
+    return res.status(500).json({ status:message.code500,message: error.message });
+  }
+};
+
+exports.so_page_data = async (req, res) => {
+
+  try {
+    const data = {...req.user,...req.query}
+    const distributor = await DistributorService.so_page_data(data);
+
+    return res.json(distributor);
+
+    // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
+  } catch (error) {
+    console.error("so_page_data Error:", error.message);
+    return res.status(500).json({ status:message.code500,message: error.message });
   }
 };
