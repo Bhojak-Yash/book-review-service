@@ -87,6 +87,11 @@ db.orders.belongsTo(db.distributors, {
   foreignKey: 'orderFrom', // Ensure this is correct
   as: 'distributer'
 });
+db.orders.belongsTo(db.manufacturers,{foreignKey:'orderTo',as: 'manufacturer'})
+db.distributors.belongsTo(db.manufacturers,{foreignKey:'distributorId',as:"disuser"})
+db.retailers.belongsTo(db.manufacturers,{foreignKey:'retailerId',as:"reuser"})
+db.users.hasMany(db.distributors,{foreignKey:'distributorId',as:"disuser"})
+db.users.hasMany(db.retailers,{foreignKey:'retailerId',as:"reuser"})
 
 // In distributors model
 db.distributors.hasMany(db.orders, {

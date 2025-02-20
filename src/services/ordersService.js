@@ -1,6 +1,8 @@
 const message = require('../helpers/message');
 const db = require('../models/db');
 const StocksService = require('./stocksService');
+const Op = db.Op;
+const moment = require("moment");
 
 class OrdersService {
   constructor(db) {
@@ -47,10 +49,10 @@ class OrdersService {
       }
       const deletedItemsCount = await db.usercarts.destroy({
         where: {
-            orderFrom: Number(data.id),
-            orderTo:Number(orderData.orderData.orderTo)
+          orderFrom: Number(data.id),
+          orderTo: Number(orderData.orderData.orderTo)
         },
-      },{transaction})
+      }, { transaction })
       await transaction.commit();
       return {
         status: message.code200,
@@ -76,11 +78,11 @@ class OrdersService {
     // console.log(order,orderItems,';pppppp')
     if (!order) throw new Error("Order not found.");
 
-    if(updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched'){
+    if (updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched') {
       if (order.orderTo != loggedInUserId) {
         throw new Error("Unauthorized to update this order.");
       }
-    }else{
+    } else {
       if (order.orderFrom != loggedInUserId) {
         throw new Error("Unauthorized to update this order.");
       }
@@ -101,14 +103,14 @@ class OrdersService {
                 transaction: t, // Use the transaction
               }
             );
-        
+
             if (!stock || stock.Stock < item.quantity) {
               throw new Error(
                 `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
               );
             }
           }
-        
+
           // If all items have sufficient stock, update them
           await Promise.all(
             orderItems.map(async (item) => {
@@ -128,46 +130,46 @@ class OrdersService {
       }
     }
 
-    if(updates.orderStatus === 'Dispatched'){
+    if (updates.orderStatus === 'Dispatched') {
       // if (orderItems && orderItems.length > 0) {
 
+      await db.sequelize.transaction(async (t) => {
+        // First, check if all items have enough stock before making any updates
+        // for (const item of updates.items) {
+        // const [stock] = await db.sequelize.query(
+        //   `SELECT * FROM stocks WHERE SId = :stockId`,
+        //   {
+        //     replacements: { stockId: item.stockId },
+        //     type: db.Sequelize.QueryTypes.SELECT,
+        //     transaction: t, // Use the transaction
+        //   }
+        // );
         await db.sequelize.transaction(async (t) => {
           // First, check if all items have enough stock before making any updates
-          // for (const item of updates.items) {
-            // const [stock] = await db.sequelize.query(
-            //   `SELECT * FROM stocks WHERE SId = :stockId`,
-            //   {
-            //     replacements: { stockId: item.stockId },
-            //     type: db.Sequelize.QueryTypes.SELECT,
-            //     transaction: t, // Use the transaction
-            //   }
-            // );
-            await db.sequelize.transaction(async (t) => {
-              // First, check if all items have enough stock before making any updates
-              for (const item of updates.items) {
-                // console.log(item,';;;;;;')
+          for (const item of updates.items) {
+            // console.log(item,';;;;;;')
             db.orderitems.update({
-              BoxQty:item.BoxQty,
-              loose:item.loose
-            },{where:{id:Number(item.id)}}),{transaction: t}
-              }
-            
-              // If all items have sufficient stock, update them
-              // await Promise.all(
-              //   orderItems.map(async (item) => {
-                  
-              //   })
-              // );          
-            });
-          // }
-        
+              BoxQty: item.BoxQty,
+              loose: item.loose
+            }, { where: { id: Number(item.id) } }), { transaction: t }
+          }
+
           // If all items have sufficient stock, update them
           // await Promise.all(
           //   orderItems.map(async (item) => {
-              
+
           //   })
           // );          
         });
+        // }
+
+        // If all items have sufficient stock, update them
+        // await Promise.all(
+        //   orderItems.map(async (item) => {
+
+        //   })
+        // );          
+      });
       // }
     }
 
@@ -200,26 +202,26 @@ class OrdersService {
                   itemQuantity: item.quantity,
                   PId: item.PId,
                   BatchNo: stock.BatchNo,
-                  ExpDate:stock.ExpDate,
-                  createdAt:new Date(),
-                  updatedAt:new Date(),
-                  organisationId:order.orderFrom,
-                  MRP:item.MRP,
-                  PTR:item.PTR,
-                  Scheme:item.Scheme,
-                  BoxQty:item.BoxQty,
-                  loose:item.loose
+                  ExpDate: stock.ExpDate,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  organisationId: order.orderFrom,
+                  MRP: item.MRP,
+                  PTR: item.PTR,
+                  Scheme: item.Scheme,
+                  BoxQty: item.BoxQty,
+                  loose: item.loose
                 },
                 transaction: t, // Use the transaction
               }
             );
-        
+
           }
-        
+
           // If all items have sufficient stock, update them
           // await Promise.all(
           //   orderItems.map(async (item) => {
-              
+
           //   })
           // );          
         });
@@ -305,37 +307,199 @@ class OrdersService {
       const id = Number(data.id);
       const Page = Number(data.page) || 1;
       const Limit = Number(data.limit) || 10;
-      let skip =0
-      let whereClause = {orderFrom:id}
-      if( Page>1){
-        skip = (Page-1)*Limit
-      }
-      // if(data.search){
-      //   whereClause.
-      // }
+      let skip = 0;
+      let whereClause = { orderFrom: id };
 
-      const {count,rows:orders} = await db.orders.findAndCountAll({
-        attributes:['id','orderDate','dueDate','deliveredAt','invAmt','orderStatus','orderTo','orderTotal','invNo'],
-        where:whereClause,
-        offset:skip,
-        limit:Limit
+      if (Page > 1) {
+        skip = (Page - 1) * Limit;
+      }
+
+      // Adjust search condition
+      if (data.search) {
+        whereClause[Op.or] = [
+          { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
+          {
+            '$manufacturer.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+          }
+        ];
+      }
+      if (data.start_date && data.end_date) {
+        const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+        whereClause.orderDate = {
+          [Op.between]: [startDate, endDate]
+        };
+      }
+      // console.log(whereClause)
+      const { count, rows: orders } = await db.orders.findAndCountAll({
+        attributes: [
+          "id",
+          "orderDate",
+          "dueDate",
+          "deliveredAt",
+          "invAmt",
+          "orderStatus",
+          "orderTo",
+          "orderTotal",
+          "invNo",
+        ],
+        include: [
+          {
+            model: db.manufacturers,
+            as: "manufacturer",
+            attributes: ["companyName"],
+            required: false, // Ensure manufacturer is included even if no match is found
+          },
+        ],
+        where: whereClause,
+        offset: skip,
+        limit: Limit,
+      });
+      "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
+      const upadtesResult = await orders?.map((order) => {
+        return {
+          "id": order.id,
+          "orderDate": order.orderDate,
+          "dueDate": order.dueDate,
+          "deliveredAt": order.deliveredAt,
+          "invAmt": order.invAmt,
+          "status": order.orderStatus,
+          // "deliveryStatus":orderStatus=='Ready to pickup'?"Pickup":orderStatus=='Ready to pickup'?
+          "orderTo": order.orderTo,
+          "orderTotal": order.orderTotal,
+          "invNo": order.invNo,
+        }
       })
+
       return {
-        status:message.code200,
-        message:message.message200,
-        totalItems:count,
-        currentPage:Page,
-        totalPage:Math.ceil(count/Limit),
-        apiData:orders
-      }
+        status: message.code200,
+        message: message.message200,
+        totalItems: count,
+        currentPage: Page,
+        totalPage: Math.ceil(count / Limit),
+        apiData: upadtesResult,
+      };
     } catch (error) {
-      console.log('distributer_purchase_orders error:',error.message)
+      console.log("distributer_purchase_orders service error:", error.message);
       return {
-        status:message.code500,
-        message:error.message
-      }
+        status: message.code500,
+        message: error.message,
+      };
     }
   }
+
+  async distributer_sales_orders(data) {
+    try {
+      const id = Number(data.id);
+      const Page = Number(data.page) || 1;
+      const Limit = Number(data.limit) || 10;
+      let skip = 0;
+      let whereClause = { orderTo: id };
+
+      if (Page > 1) {
+        skip = (Page - 1) * Limit;
+      }
+
+      // Adjust search condition
+      // if (data.search) {
+      //   whereClause[Op.or] = [
+      //     { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
+      //     {
+      //       '$manufacturer.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+      //     }
+      //   ];
+      // }
+      if (data.start_date && data.end_date) {
+        const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+        whereClause.orderDate = {
+          [Op.between]: [startDate, endDate]
+        };
+      }
+      // console.log(whereClause)
+      const { count, rows: orders } = await db.orders.findAndCountAll({
+        attributes: [
+          "id",
+          "orderDate",
+          "dueDate",
+          "deliveredAt",
+          "invAmt",
+          "orderStatus",
+          "orderTo",
+          "orderFrom",
+          "orderTotal",
+          "invNo",
+        ],
+        include: [
+          {
+            model: db.users,
+            as: "orderFromUser",
+            attributes: ["id", "userType"],
+            required: false,
+            include: [
+              {
+                model: db.retailers,
+                as: "reuser",
+                attributes: ["retailerId"],
+                required: false,
+              },
+              {
+                model: db.distributors,
+                as: "disuser",
+                attributes: ["distributorId", "companyName"],
+                required: false,
+              },
+            ],
+          },
+        ],
+        where: whereClause,
+        offset: skip,
+        limit: Limit,
+      });
+
+      const result = await orders?.map((order) => {
+        return {
+          "id": order.id,
+          "orderDate": order.orderDate,
+          "dueDate": order.dueDate,
+          "deliveredAt": order.deliveredAt,
+          "invAmt": order.invAmt,
+          "status": order.orderStatus,
+          "orderTo": order?.orderFromUser.reuser.length>0?order?.orderFromUser.reuser[0].firmName:order?.orderFromUser.disuser.companyName,
+          "orderTotal": 2000,
+          "invNo": "367225",
+          "orderFromUser": {
+            "id": 77,
+            "userType": "Retailer",
+            "reuser": [
+              {
+                "retailerId": 77
+              }
+            ],
+            "disuser": []
+          }
+        }
+      })
+
+      return {
+        status: message.code200,
+        message: message.message200,
+        totalItems: count,
+        currentPage: Page,
+        totalPage: Math.ceil(count / Limit),
+        apiData: orders,
+      };
+    } catch (error) {
+      console.log("distributer_sales_orders error:", error.message);
+      return {
+        status: message.code500,
+        message: error.message,
+      };
+    }
+  }
+
 }
 
 module.exports = OrdersService;

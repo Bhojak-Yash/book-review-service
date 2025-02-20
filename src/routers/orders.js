@@ -10,5 +10,6 @@ router.put('/updateOrder/:id',verifyToken,ordersc.updateOrder)
 router.get('/getOrder/filters',verifyToken,ordersc.getOrdersByFilters)
 router.get('/getOrderBytype',verifyToken,ordersc.getOrdersByType)
 router.get('/distributer-purchase-order',verifyToken,ordersc.distributer_purchase_orders)
+router.get('/distributer-sales-order',verifyToken,ordersc.distributer_sales_orders)
 
 module.exports =router

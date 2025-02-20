@@ -99,6 +99,20 @@ class OrdersController {
       const ordersList = await ordersService.distributer_purchase_orders(data);
       res.json(ordersList)
     } catch (error) {
+      console.log('distributer_purchase_orders error:',error.message)
+      res.json({
+        status:message.code500,
+        message:error.message
+      })
+    }
+  }
+
+  static async distributer_sales_orders(req,res) {
+    try {
+      const data ={...req.user,...req.query }
+      const ordersList = await ordersService.distributer_sales_orders(data);
+      res.json(ordersList)
+    } catch (error) {
       console.log('distributer_sales_orders error:',error.message)
       res.json({
         status:message.code500,

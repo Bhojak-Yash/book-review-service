@@ -157,12 +157,14 @@ class UsersCartService {
                     {
                         model:db.stocks,
                         as:"stockDetails",
-                        attributes:['MRP','PTR','BatchNo']
+                        attributes:['MRP','PTR','BatchNo',"Scheme"]
                     }
                 ],
             });
+            // console.log(cartItems)
             // let totalAmount = 0
             const updateCart = await cartItems.map((item)=>{
+                // console.log(item)
                 // totalAmount+= (Number(item.stockDetails.MRP)*Number(item.quantity))
                 return {
                     "id":item.id,
@@ -176,6 +178,7 @@ class UsersCartService {
                     "SaltComposition":item.productDetails.SaltComposition,
                     "MRP":item.stockDetails.MRP,
                     "PTR":item.stockDetails.PTR,
+                    "scheme":item.stockDetails.Scheme || null,
                     "BatchNo":item.stockDetails.BatchNo,
                     // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
                 }
