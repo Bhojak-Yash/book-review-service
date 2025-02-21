@@ -121,8 +121,20 @@ class OrdersController {
     }
   }
 
+  static async purchase_order_summary(req,res) {
+    try {
+      const data ={...req.user,...req.query }
+      const ordersList = await ordersService.purchase_order_summary(data);
+      res.json(ordersList)
+    } catch (error) {
+      console.log('purchase_order_summary error:',error.message)
+      res.json({
+        status:message.code500,
+        message:error.message
+      })
+    }
+  }
 
-  
 }
 
 module.exports = OrdersController;

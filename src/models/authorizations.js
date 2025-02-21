@@ -8,6 +8,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "status":{
             type: Sequelize.STRING
+        },
+        "poStatus":{
+            type:Sequelize.STRING
         }
     },
 

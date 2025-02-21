@@ -1,3 +1,4 @@
+const { where } = require('sequelize');
 const message = require('../helpers/message');
 const db = require('../models/db');
 const StocksService = require('./stocksService');
@@ -391,112 +392,179 @@ class OrdersService {
 
   async distributer_sales_orders(data) {
     try {
-        const id = Number(data.id);
-        const Page = Number(data.page) || 1;
-        const Limit = Number(data.limit) || 10;
-        let skip = (Page - 1) * Limit;
-        let whereClause = { orderTo: id };
+      const id = Number(data.id);
+      const Page = Number(data.page) || 1;
+      const Limit = Number(data.limit) || 10;
+      let skip = (Page - 1) * Limit;
+      let whereClause = { orderTo: id };
 
-        // Date Filter
-        if (data.start_date && data.end_date) {
-            const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-            const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
-            whereClause.orderDate = { [Op.between]: [startDate, endDate] };
+      // Date Filter
+      if (data.start_date && data.end_date) {
+        const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+        whereClause.orderDate = { [Op.between]: [startDate, endDate] };
+      }
+
+      // Status Filter
+      if (data.status) {
+        if (data.status === 'Unpaid') {
+          whereClause.balance = { [Op.gt]: 0 };
+        } else {
+          whereClause.orderStatus = data.status;
         }
+      }
 
-        // Status Filter
-        if (data.status) {
-            if (data.status === 'Unpaid') {
-                whereClause.balance = { [Op.gt]: 0 };
-            } else {
-                whereClause.orderStatus = data.status;
-            }
-        }
+      // Search Filter
+      if (data.search) {
+        whereClause[Op.or] = [
+          { id: { [Op.like]: `%${data.search}%` } }, // Search by orderId
+        ];
+      }
 
-        // Search Filter
-        if (data.search) {
-            whereClause[Op.or] = [
-                { id: { [Op.like]: `%${data.search}%` } }, // Search by orderId
-            ];
-        }
-
-        const { count, rows: orders } = await db.orders.findAndCountAll({
-            attributes: [
-                "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
-                "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance"
-            ],
+      const { count, rows: orders } = await db.orders.findAndCountAll({
+        attributes: [
+          "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
+          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance"
+        ],
+        include: [
+          {
+            model: db.users,
+            as: "orderFromUser",
+            attributes: ["id", "userType"],
+            required: false,
             include: [
-                {
-                    model: db.users,
-                    as: "orderFromUser",
-                    attributes: ["id", "userType"],
-                    required: false,
-                    include: [
-                        {
-                            model: db.retailers,
-                            as: "reuser",
-                            attributes: ["retailerId", "firmName"],
-                            required: false
-                        },
-                        {
-                            model: db.distributors,
-                            as: "disuser",
-                            attributes: ["distributorId", "companyName"],
-                            required: false
-                        },
-                    ],
-                },
+              {
+                model: db.retailers,
+                as: "reuser",
+                attributes: ["retailerId", "firmName"],
+                required: false
+              },
+              {
+                model: db.distributors,
+                as: "disuser",
+                attributes: ["distributorId", "companyName"],
+                required: false
+              },
             ],
-            where: whereClause,
-            offset: skip,
-            limit: Limit,
-        });
+          },
+        ],
+        where: whereClause,
+        offset: skip,
+        limit: Limit,
+      });
 
-        // Formatting Result
-        const result = orders.map((order) => {
-            let orderFrom = "";
-            let userType = "";
+      // Formatting Result
+      const result = orders.map((order) => {
+        let orderFrom = "";
+        let userType = "";
 
-            if (order?.orderFromUser?.reuser?.length > 0) {
-                orderFrom = order?.orderFromUser.reuser[0].firmName;
-                userType = "Retailer";
-            } else if (order?.orderFromUser?.disuser?.length > 0) {
-                orderFrom = order?.orderFromUser.disuser[0].companyName;
-                userType = "Distributor";
-            }
-
-            return {
-                id: order.id,
-                orderDate: order.orderDate,
-                dueDate: order.dueDate,
-                deliveredAt: order.deliveredAt,
-                invAmt: order.invAmt,
-                balance: order.balance || 0,
-                status: order.orderStatus,
-                orderFrom: orderFrom,
-                userType: userType,
-                orderTotal: order.orderTotal,
-                invNo: order.invNo,
-            };
-        });
+        if (order?.orderFromUser?.reuser?.length > 0) {
+          orderFrom = order?.orderFromUser.reuser[0].firmName;
+          userType = "Retailer";
+        } else if (order?.orderFromUser?.disuser?.length > 0) {
+          orderFrom = order?.orderFromUser.disuser[0].companyName;
+          userType = "Distributor";
+        }
 
         return {
-            status: message.code200,
-            message: message.message200,
-            totalItems: count,
-            currentPage: Page,
-            totalPage: Math.ceil(count / Limit),
-            apiData: result,
+          id: order.id,
+          orderDate: order.orderDate,
+          dueDate: order.dueDate,
+          deliveredAt: order.deliveredAt,
+          invAmt: order.invAmt,
+          balance: order.balance || 0,
+          status: order.orderStatus,
+          orderFrom: orderFrom,
+          userType: userType,
+          orderTotal: order.orderTotal,
+          invNo: order.invNo,
         };
+      });
+
+      return {
+        status: message.code200,
+        message: message.message200,
+        totalItems: count,
+        currentPage: Page,
+        totalPage: Math.ceil(count / Limit),
+        apiData: result,
+      };
     } catch (error) {
-        console.log("distributer_sales_orders error:", error.message);
-        return {
-            status: message.code500,
-            message: error.message,
-        };
+      console.log("distributer_sales_orders error:", error.message);
+      return {
+        status: message.code500,
+        message: error.message,
+      };
     }
-}
+  }
 
+  async purchase_order_summary(data) {
+    try {
+      const { id, orderId } = data
+      const userId = Number(id)
+      if(!id || !userId){
+        return {
+          status:message.code400,
+          message:'orderId is required'
+        }
+      }
+
+      const user = await db.users.findOne({
+        where: { id: Number(userId) },
+        attributes: ['id'],
+        include: [
+          {
+            model: db.manufacturers,
+            as: "manufacturer",
+            attributes: ["manufacturerId", "companyName"],
+            required: false,
+          },
+          {
+            model: db.distributors,
+            as: "disuser",
+            attributes: ["distributorId", "companyName"],
+            required: false,
+          },
+          {
+            model: db.address,
+            as: "address",
+            required: false,
+          }
+        ]
+      });
+
+      const updatedUser = {
+        "id":user?.id,
+        "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
+        "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
+      }
+
+      const order = await db.orders.findOne({
+        // attributes:[''],
+        where:{id:Number(orderId)},
+        include:[
+          {
+            model:db.orderitems,
+            as:"orderItems",
+          }
+        ]
+      })
+
+      return {
+        status: message.code200,
+        message: "Order fetched successfully.",
+        manufacturer: updatedUser,
+        order: order,
+      };
+    } catch (error) {
+      console.log('purchase_order_summary service error:', error.message)
+      return {
+        status: message.code500,
+        message: message.message500,
+        // apiData: null
+      }
+    }
+  }
 
 
 }

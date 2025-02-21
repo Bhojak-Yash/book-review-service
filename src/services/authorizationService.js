@@ -293,9 +293,32 @@ class AuthService {
         }
     }
     
+    async stop_po(data) {
+        try {
+            const {id,userId} = data
+            if(!userId){
+                return {
+                    status:message.code400,
+                    message:'userId is required'
+                }
+            }
+            await db.authorizations.update(
+                {poStatus:'Stopped'},
+                {where:{authorizedId:Number(userId),authorizedBy:Number(id)}}
+            )
+            return {
+                status:message.code200,
+                message:'Po stopped'
+            }
+        } catch (error) {
+            console.log('stop_po service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
     
-    
-
 }
 
 module.exports = new AuthService(db);

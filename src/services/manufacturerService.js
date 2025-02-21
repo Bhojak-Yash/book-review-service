@@ -465,7 +465,11 @@ class ManufacturerService {
       }
       let whereCondition = { orderTo: Number(data.id) }
       if (data?.status) {
+        if(data?.status==='Unpaid'){
+          whereCondition.balance = { [Op.gt]: 0 }
+        }else{
         whereCondition.orderStatus = data.status
+        }
       }
       if (data?.search) {
         whereCondition[Op.or] = [

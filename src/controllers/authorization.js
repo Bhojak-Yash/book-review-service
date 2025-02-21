@@ -33,3 +33,14 @@ exports.auth_distributer_summary = async (req, res) => {
       return res.status(500).json({ status:message.code500,message: error.message });
     }
 }
+
+exports.stop_po = async (req, res) => {
+  try {
+      const data = {...req.user,...req.body}
+      const auth = await AuthService.stop_po(data);
+      return res.json(auth);
+    } catch (error) {
+      console.error("stop_po Error:", error.message);
+      return res.status(500).json({ status:message.code500,message: error.message });
+    }
+}
