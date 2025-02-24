@@ -344,6 +344,7 @@ class OrdersService {
           "orderTo",
           "orderTotal",
           "invNo",
+          "balance"
         ],
         include: [
           {
@@ -356,8 +357,9 @@ class OrdersService {
         where: whereClause,
         offset: skip,
         limit: Limit,
+        order: [["createdAt", "DESC"]]
       });
-      "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
+      // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
       const upadtesResult = await orders?.map((order) => {
         return {
           "id": order.id,
@@ -370,6 +372,8 @@ class OrdersService {
           "orderTo": order.orderTo,
           "orderTotal": order.orderTotal,
           "invNo": order.invNo,
+          "balance":order.balance,
+          "orderTo":order.manufacturer.companyName
         }
       })
 
