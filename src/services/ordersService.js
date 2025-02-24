@@ -513,35 +513,35 @@ class OrdersService {
         }
       }
 
-      const user = await db.users.findOne({
-        where: { id: Number(userId) },
-        attributes: ['id'],
-        include: [
-          {
-            model: db.manufacturers,
-            as: "manufacturer",
-            attributes: ["manufacturerId", "companyName"],
-            required: false,
-          },
-          {
-            model: db.distributors,
-            as: "disuser",
-            attributes: ["distributorId", "companyName"],
-            required: false,
-          },
-          {
-            model: db.address,
-            as: "address",
-            required: false,
-          }
-        ]
-      });
+      // const user = await db.users.findOne({
+      //   where: { id: Number(userId) },
+      //   attributes: ['id'],
+      //   include: [
+      //     {
+      //       model: db.manufacturers,
+      //       as: "manufacturer",
+      //       attributes: ["manufacturerId", "companyName"],
+      //       required: false,
+      //     },
+      //     {
+      //       model: db.distributors,
+      //       as: "disuser",
+      //       attributes: ["distributorId", "companyName"],
+      //       required: false,
+      //     },
+      //     {
+      //       model: db.address,
+      //       as: "address",
+      //       required: false,
+      //     }
+      //   ]
+      // })
 
-      const updatedUser = {
-        "id":user?.id,
-        "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
-        "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
-      }
+      // const updatedUser = {
+      //   "id":user?.id,
+      //   "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
+      //   "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
+      // }
 
       const order = await db.orders.findOne({
         // attributes:[''],
@@ -565,6 +565,42 @@ class OrdersService {
           }
         ]
       })
+
+      const user = await db.users.findOne({
+        where: { id: Number(order.orderFrom) },
+        attributes: ['id'],
+        include: [
+          // {
+          //   model: db.manufacturers,
+          //   as: "manufacturer",
+          //   attributes: ["manufacturerId", "companyName"],
+          //   required: false,
+          // },
+          {
+            model: db.distributors,
+            as: "disuser",
+            attributes: ["distributorId", "companyName"],
+            required: false,
+          },
+          {
+            model: db.retailers,
+            as: "reuser",
+            attributes: ["retailerId", "firmName"],
+            required: false,
+          },
+          {
+            model: db.address,
+            as: "address",
+            required: false,
+          }
+        ]
+      });
+
+      const updatedUser = {
+        "id":user?.id,
+        "companyName":user?.reuser[0]?user?.reuser[0].firmName:user?.disuser[0].companyName,
+        "address":user?.address || null
+      }
 
       return {
         status: message.code200,
