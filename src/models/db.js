@@ -111,6 +111,8 @@ db.distributors.hasMany(db.address, {
 });
 db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authorizedUser" });
 db.users.hasMany(db.address,{foreignKey: "userId", as: "address"})
+db.orderitems.belongsTo(db.products, { foreignKey: "PId", as: "product" });
+db.orderitems.belongsTo(db.stocks, { foreignKey: "stockId", as: "stock" });
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

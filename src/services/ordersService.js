@@ -546,6 +546,18 @@ class OrdersService {
           {
             model:db.orderitems,
             as:"orderItems",
+            include:[
+              {
+                model:db.products,
+                as:"product",
+                attributes:['PId','PName','SaltComposition']
+              },
+              {
+                model:db.stocks,
+                as:'stock',
+                attributes:['SId','BatchNo']
+              }
+            ]
           }
         ]
       })
