@@ -35,6 +35,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "PAN":{
             type:Sequelize.STRING
+        },
+        "GST":{
+            type:Sequelize.STRING
         }
     },
 

@@ -579,13 +579,13 @@ class OrdersService {
           {
             model: db.distributors,
             as: "disuser",
-            attributes: ["distributorId", "companyName"],
+            attributes: ["distributorId", "companyName",'PAN','GST'],
             required: false,
           },
           {
             model: db.retailers,
             as: "reuser",
-            attributes: ["retailerId", "firmName"],
+            attributes: ["retailerId", "firmName",'PAN','GST'],
             required: false,
           },
           {
