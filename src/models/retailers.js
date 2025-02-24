@@ -32,6 +32,9 @@ module.exports =(sequelize,Sequelize)=>{
                 "Active",
                 "Inactive"
             )
+        },
+        "PAN":{
+            type:Sequelize.STRING
         }
     },
 

@@ -35,6 +35,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "type":{
             type:Sequelize.ENUM('CNF','Distributer')
+        },
+        "PAN":{
+            type:Sequelize.STRING
         }
     },
 

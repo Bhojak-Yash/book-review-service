@@ -599,6 +599,8 @@ class OrdersService {
       const updatedUser = {
         "id":user?.id,
         "companyName":user?.reuser[0]?user?.reuser[0].firmName:user?.disuser[0].companyName,
+        "PAN":user?.reuser[0]?user?.reuser[0].PAN:user?.disuser[0].PAN,
+        "GST":user?.reuser[0]?user?.reuser[0].GST:user?.disuser[0].GST,
         "address":user?.address || null
       }
 
