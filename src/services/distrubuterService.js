@@ -122,16 +122,12 @@ class DistributorService {
             // Construct the SQL query dynamically
             let query = `
                 SELECT mn.manufacturerId, mn.companyName 
-                FROM crm_db.authorizations AS au
-                LEFT JOIN crm_db.manufacturers AS mn
-                ON au.authorizedBy = mn.manufacturerId
-                WHERE au.authorizedId = :authorizedId
-                AND au.status IN ('Approved', 'Not Send')
+                FROM crm_db.manufacturers as mn
             `;
 
             // Append search filter if provided
             if (searchQuery) {
-                query += ` AND mn.companyName LIKE :searchQuery`;
+                query += ` where mn.companyName LIKE :searchQuery`;
             }
 
             // Execute the query using parameterized values

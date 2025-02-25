@@ -22,7 +22,7 @@ class AuthService {
                     status: message.code400,
                     message: 'Your authorization request is already pending. Please wait for approval before submitting a new request'
                 }
-            } else if (check.status === 'Not Send') {
+            } else if (check.status === 'Not Send' || check.status === 'Rejected') {
                 const Data = await db.authorizations.update(
                     { status: 'Pending' }, // Update fields
                     { where: { id: Number(check.id) } } // Condition

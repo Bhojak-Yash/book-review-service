@@ -4,7 +4,7 @@ const {verifyToken} = require('../middlewares/auth')
 
 router.post('/createManufacturer',manufacturerc.createManufacturer)
 router.post('/updateManufacturer',verifyToken,manufacturerc.updateManufacturer)
-router.post('/getManufacturer',manufacturerc.getManufacturer)
+router.post('/getManufacturer',verifyToken,manufacturerc.getManufacturer)
 router.get('/manufacturer-prchaseOrders',verifyToken,manufacturerc.prchaseOrders)
 router.get('/cnf-details',verifyToken,manufacturerc.cnf_details)
 
