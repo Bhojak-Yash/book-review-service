@@ -17,6 +17,7 @@ class AuthService {
                     // status: 'Pending'
                 }
             })
+            if(check){
             if (check.status === 'Pending') {
                 return {
                     status: message.code400,
@@ -33,6 +34,7 @@ class AuthService {
                     // apiData: Data
                 }
             }
+        }
 
             const Data = await db.authorizations.create({
                 authorizedBy: Number(authorizedBy),
