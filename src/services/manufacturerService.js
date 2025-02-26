@@ -628,7 +628,9 @@ class ManufacturerService {
         PendingCountChange: (Number(Number(currentResult.pendingCount || 0)-Number(previousResult.pendingCount || 0))/Number(previousResult.pendingCount && previousResult.pendingCount>0?previousResult.pendingCount:1))*100
       }
 
-      let finalResult = {...currentResult,...changes}
+      const orders = await db.orders.count({where:{orderTo:Number(id)}})
+
+      let finalResult = {...currentResult,...changes,totalOrders:orders}
 
       return {
         status: message.code200,
