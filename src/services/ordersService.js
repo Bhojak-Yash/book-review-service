@@ -78,6 +78,16 @@ class OrdersService {
     });
     // console.log(order,orderItems,';pppppp')
     if (!order) throw new Error("Order not found.");
+    if(updates?.payment){
+      const {amount,mode,image} = updates?.payment
+      await db.payments.create({
+        orderId:Number(orderId),
+        amount:Number(amount),
+        mode:mode,
+        image:image
+      })
+      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amount)}`) },{where:{orderId:Number(orderId)}})
+    }
 
     if (updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched') {
       if (order.orderTo != loggedInUserId) {
@@ -566,50 +576,53 @@ class OrdersService {
         ]
       })
 
-      const user = await db.users.findOne({
-        where: { id: Number(order.orderFrom) },
-        attributes: ['id'],
-        include: [
-          // {
-          //   model: db.manufacturers,
-          //   as: "manufacturer",
-          //   attributes: ["manufacturerId", "companyName"],
-          //   required: false,
-          // },
-          {
-            model: db.distributors,
-            as: "disuser",
-            attributes: ["distributorId", "companyName",'PAN','GST'],
-            required: false,
-          },
-          {
-            model: db.retailers,
-            as: "reuser",
-            attributes: ["retailerId", "firmName",'PAN','GST'],
-            required: false,
-          },
-          {
-            model: db.address,
-            as: "address",
-            required: false,
-          }
-        ]
-      });
+      const Op = db.Op
 
-      const updatedUser = {
-        "id":user?.id,
-        "companyName":user?.reuser[0]?user?.reuser[0]?.firmName:user?.disuser[0]?.companyName || null,
-        "PAN":user?.reuser[0]?user?.reuser[0]?.PAN:user?.disuser[0]?.PAN || null,
-        "GST":user?.reuser[0]?user?.reuser[0]?.GST:user?.disuser[0]?.GST || null,
-        "address":user?.address || null
-      }
+const users = await db.users.findAll({
+  where: { id: { [Op.or]: [Number(order.orderTo), Number(order.orderFrom)] } },
+  attributes: ["id"],
+  include: [
+    {
+      model: db.distributors,
+      as: "disuser",
+      attributes: ["distributorId", "companyName", "PAN", "GST"],
+      required: false,
+    },
+    {
+      model: db.retailers,
+      as: "reuser",
+      attributes: ["retailerId", "firmName", "PAN", "GST"],
+      required: false,
+    },
+    {
+      model: db.address,
+      as: "address",
+      required: false,
+    },
+  ],
+});
 
-      return {
-        status: message.code200,
-        message: "Order fetched successfully.",
-        manufacturer: updatedUser,
-        order: order,
-      };
+// Extract users based on their IDs
+const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
+const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
+
+// Format the response for both users
+const formatUser = (user) => ({
+  id: user?.id || null,
+  companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
+  PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
+  GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
+  address: user?.address || null,
+});
+
+return {
+  status: message.code200,
+  message: "Order fetched successfully.",
+  distributor: formatUser(userFrom), // Distributor details (orderFrom)
+  manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
+  order: order,
+};
+;
     } catch (error) {
       console.log('purchase_order_summary service error:', error.message)
       return {

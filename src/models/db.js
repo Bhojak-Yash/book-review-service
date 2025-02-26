@@ -18,6 +18,7 @@ const authorizations = require('./authorizations')
 const address = require('./address')
 const documentCategory = require('./documentCategory')
 const documents = require('./documents')
+const payments = require('./payment')
 const ss = require('sequelize')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
@@ -63,7 +64,8 @@ const db = {
   roles:roles(sequelize,Sequelize),
   address:address(sequelize,Sequelize),
   documentCategory:documentCategory(sequelize,Sequelize),
-  documents:documents(sequelize,Sequelize)
+  documents:documents(sequelize,Sequelize),
+  payments:payments(sequelize,Sequelize)
 };
 
 
@@ -113,6 +115,7 @@ db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authori
 db.users.hasMany(db.address,{foreignKey: "userId", as: "address"})
 db.orderitems.belongsTo(db.products, { foreignKey: "PId", as: "product" });
 db.orderitems.belongsTo(db.stocks, { foreignKey: "stockId", as: "stock" });
+db.orders.hasMany(db.payments,{ foreignKey: "id", as: "payments" })
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 
