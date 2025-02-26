@@ -86,7 +86,11 @@ class OrdersService {
         mode:mode,
         image:image
       })
-      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amount)}`) },{where:{orderId:Number(orderId)}})
+      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amount)}`) },{where:{id:Number(orderId)}})
+      return {
+        status:message.code200,
+        message:message.message200
+      }
     }
 
     if (updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched') {

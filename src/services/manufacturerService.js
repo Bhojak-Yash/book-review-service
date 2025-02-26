@@ -465,10 +465,10 @@ class ManufacturerService {
       }
       let whereCondition = { orderTo: Number(data.id) }
       if (data?.status) {
-        if(data?.status==='Unpaid'){
+        if (data?.status === 'Unpaid') {
           whereCondition.balance = { [Op.gt]: 0 }
-        }else{
-        whereCondition.orderStatus = data.status
+        } else {
+          whereCondition.orderStatus = data.status
         }
       }
       if (data?.search) {
@@ -477,8 +477,8 @@ class ManufacturerService {
           { orderFrom: { [Op.like]: `%${data.search}%` } }
         ];
       }
-      if(data?.distributorId){
-        whereCondition.orderFrom=Number(data.distributorId)
+      if (data?.distributorId) {
+        whereCondition.orderFrom = Number(data.distributorId)
       }
       if (data.start_date && data.end_date) {
         const startDateParts = data.start_date.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
@@ -538,53 +538,157 @@ class ManufacturerService {
 
   async cnf_details(data) {
     try {
-      const id= Number(data.distributorId)
+      const id = Number(data.distributorId)
 
-      const result =await db.distributors.findOne({
-        attributes:['distributorId','status',"phone","email","GST"],
-        include:[
+      const result = await db.distributors.findOne({
+        attributes: ['distributorId', 'status', "phone", "email", "GST"],
+        include: [
           {
-            model:db.address,
-            as:"addresses",
+            model: db.address,
+            as: "addresses",
           }
         ],
-        where:{distributorId:id}
+        where: { distributorId: id }
       })
       const orders = await db.orders.findAndCountAll({
         where: { orderFrom: id },
         limit: 1,  // Get the latest order
         order: [["createdAt", "DESC"]], // Sort by createdAt descending (latest first)
         raw: true
-    });
-    
-    const totalOrders = orders.count;
-    const latestCreatedAt = orders.rows.length > 0 ? orders.rows[0].createdAt : null;
-    
-    // console.log({ totalOrders, latestCreatedAt });
-    const completeOrder = await db.orders.count({
-      where: {
+      });
+
+      const totalOrders = orders.count;
+      const latestCreatedAt = orders.rows.length > 0 ? orders.rows[0].createdAt : null;
+
+      // console.log({ totalOrders, latestCreatedAt });
+      const completeOrder = await db.orders.count({
+        where: {
           orderFrom: id,
           orderStatus: { [Op.in]: ["Received", "Paid", "Partial Paid"] }
-      },
-      raw: true
-  });
-  const sumOfOrders = await db.orders.findOne({
-    attributes:[[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"]]
-  })
-// console.log(orders)
+        },
+        raw: true
+      });
+      const sumOfOrders = await db.orders.findOne({
+        attributes: [[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"]]
+      })
+      // console.log(orders)
       return {
-        status:message.code200,
-        message:message.message200,
-        apiData:{result,totalOrders,latestCreatedAt,completeOrder,sumOfOrders}
+        status: message.code200,
+        message: message.message200,
+        apiData: { result, totalOrders, latestCreatedAt, completeOrder, sumOfOrders }
       }
-    } catch ( error) {
-      console.log('cnf_details service error',error.message)
+    } catch (error) {
+      console.log('cnf_details service error', error.message)
       return {
-        status:message.code500,
-        messaage:message.message500
+        status: message.code500,
+        messaage: message.message500
       }
     }
   }
+
+  async distributers_cnf_summary(data) {
+    try {
+      const { id, start_date, end_date } = data;
+      let whereClause = { authorizedBy: Number(id) };
+
+      // Date range filter
+      if (start_date && end_date) {
+        whereClause.createdAt = {
+          [Op.between]: [
+            new Date(start_date + " 00:00:00"),
+            new Date(end_date + " 23:59:59"),
+          ],
+        };
+      }
+      
+
+      // Current period result
+      let currentResult =await getcurrentResult(whereClause)
+      let previousWhereClause = { authorizedBy: Number(id) };
+    
+      if (start_date && end_date) {
+          let previousStartDate = new Date(start_date);
+          let previousEndDate = new Date(end_date);
+
+          // Calculate previous period range
+          const diff = previousEndDate.getTime() - previousStartDate.getTime();
+          previousStartDate.setTime(previousStartDate.getTime() - diff);
+          previousEndDate.setTime(previousEndDate.getTime() - diff);
+
+          previousWhereClause.createdAt = {
+              [Op.between]: [previousStartDate, previousEndDate],
+          };
+      }
+
+      let previousResult =await getcurrentResult(previousWhereClause)
+
+      let changes = {
+        disChange : (Number(Number(currentResult.dis || 0)-Number(previousResult.dis || 0))/Number(previousResult.dis && previousResult.dis>0?previousResult.dis:1))*100,
+        cnfChange : (Number(Number(currentResult.cnf || 0)-Number(previousResult.cnf || 0))/Number(previousResult.cnf && previousResult.cnf>0?previousResult.cnf:1))*100,
+        PendingCountChange: (Number(Number(currentResult.pendingCount || 0)-Number(previousResult.pendingCount || 0))/Number(previousResult.pendingCount && previousResult.pendingCount>0?previousResult.pendingCount:1))*100
+      }
+
+      let finalResult = {...currentResult,...changes}
+
+      return {
+        status: message.code200,
+        message: message.message200,
+        apiData: finalResult,
+      }
+    } catch (error) {
+      console.log('distributers_cnf_summary error:', error.message)
+      return {
+        status: message.code500,
+        message: message.message500
+      }
+    }
+  }
+}
+
+async function getcurrentResult (whereClause){
+  let currentResult = await db.authorizations.findOne({
+    attributes: [
+      // [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalCount"],
+      [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Approved' THEN 1 ELSE 0 END`)), "approvedCount"],
+      [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END`)), "rejectedCount"],
+      [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Pending' THEN 1 ELSE 0 END`)), "pendingCount"],
+    ],
+    where: whereClause,
+    raw: true,
+  }) || {};
+
+ let whereCondition={...whereClause,status:'Approved'}
+  const counts = await db.authorizations.findAll({
+    attributes: [
+      "distributers.type",
+      [db.sequelize.fn("COUNT", db.sequelize.col("authorizedId")), "count"],
+    ],
+    where: whereCondition,
+    include: [
+      {
+        model: db.distributors,
+        as: "distributers",
+        attributes: ['type'],
+      },
+    ],
+    group: ["distributers.type"],
+    raw: true,
+  });
+
+
+  let distributorCount = 0;
+  let cnfCount = 0;
+
+  counts.forEach((item) => {
+    if (item.type === "Distributor") {
+      distributorCount = item.count;
+    } else if (item.type === "CNF") {
+      cnfCount = item.count;
+    }
+  });
+  currentResult.cnf = cnfCount
+  currentResult.dis = distributorCount
+  return currentResult
 }
 
 // module.exports = ManufacturerService;

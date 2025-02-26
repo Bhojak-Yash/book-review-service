@@ -78,3 +78,16 @@ exports.cnf_details = async (req, res) => {
     return res.status(500).json({ status:message.code500,message:error.message });
   }
 };
+
+exports.distributers_cnf_summary = async (req, res) => {
+  try {
+    const data = {...req.query,...req.user};
+    const cnf = await ManufacturerService.distributers_cnf_summary(data);
+
+      return res.json(cnf);
+   
+  } catch (error) {
+    console.error("Error cnf_details:", error);
+    return res.status(500).json({ status:message.code500,message:error.message });
+  }
+};
