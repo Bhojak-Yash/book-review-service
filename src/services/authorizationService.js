@@ -58,7 +58,8 @@ class AuthService {
 
     async auth_request_list(data) {
         try {
-            console.log(data)
+            // console.log(data)
+            const {start_date,end_date} = data
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
@@ -72,6 +73,14 @@ class AuthService {
                     whereClause.status = data.status
                 }
             }
+            if (start_date && end_date) {
+                whereClause.createdAt = {
+                  [Op.between]: [
+                    new Date(start_date + " 00:00:00"),
+                    new Date(end_date + " 23:59:59"),
+                  ],
+                };
+              }
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
@@ -317,6 +326,29 @@ class AuthService {
             return {
                 status:message.code500,
                 message:message.message500
+            }
+        }
+    }
+
+    async update_auth_request(data) {
+        try {
+            const {id,userId,status} = data
+            if(!id || !userId || !status){
+                return {
+                    status:message.code400,
+                    message:'Invalid params'
+                }
+            }
+            await db.authorizations.update({status:status},{where:{authorizedId:userId,authorizedBy:id}})
+            return {
+                status:message.code200,
+                message:message.message200,
+            }
+        } catch (error) {
+            console.log('update_auth_request service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
             }
         }
     }

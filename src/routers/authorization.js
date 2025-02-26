@@ -6,5 +6,6 @@ router.post('/distributer-auth-request',verifyToken,authorization.distributer_au
 router.get('/auth-request-list',verifyToken,authorization.auth_request_list)
 router.get('/auth-distributer-summary',verifyToken,authorization.auth_distributer_summary)
 router.post('/stop-po',verifyToken,authorization.stop_po)
+router.get('/update-auth-request',verifyToken,authorization.update_auth_request)
 
 module.exports =router
