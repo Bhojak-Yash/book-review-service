@@ -118,31 +118,33 @@ class OrdersService {
                 transaction: t, // Use the transaction
               }
             );
-
+console.log('ppppp',updates)
             if (!stock || stock.Stock < item.quantity) {
               throw new Error(
                 `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
               );
             }
           }
-          for (let item of updates.item) {
-            await db.orderitems.update(item, { where: { id: item.id } },transaction);
+          for (let item of updates?.items) {
+            console.log('dwekjh')
+            await db.orderitems.update(item, { where: { id: item.id } },{transaction:t});
           }
 
           // If all items have sufficient stock, update them
           await Promise.all(
             orderItems.map(async (item) => {
+              console.log(item.dataValues.stockId)
               await db.sequelize.query(
                 `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
                 {
                   replacements: {
                     itemQuantity: item.quantity,
-                    stockId: item.stockId,
+                    stockId: item.dataValues.stockId,
                   },
                   transaction: t, // Use the transaction
                 }
               );
-              await db.orderitems.update(item)
+              // await db.orderitems.update(item)
             })
           );
         });
