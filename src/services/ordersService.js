@@ -125,6 +125,9 @@ class OrdersService {
               );
             }
           }
+          for (let item of updates.item) {
+            await db.orderitems.update(item, { where: { id: item.id } },transaction);
+          }
 
           // If all items have sufficient stock, update them
           await Promise.all(
@@ -139,6 +142,7 @@ class OrdersService {
                   transaction: t, // Use the transaction
                 }
               );
+              await db.orderitems.update(item)
             })
           );
         });
