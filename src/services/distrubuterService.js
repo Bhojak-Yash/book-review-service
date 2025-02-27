@@ -223,7 +223,9 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
+            let ids = []
             const updatedStock = await stocks.map((item) => {
+                ids.push(item.SId)
                 if (manufacturer.status === 'Approved') {
                     return {
                         "SId": item.SId,
@@ -258,9 +260,17 @@ class DistributorService {
                     }
                 }
             })
+            // console.log(ids)
             const totalCount = await db.products.count({ where: whereCondition })
-
+            const cart = await db.usercarts.findAll({where:{stockId:{[db.Op.in]:ids},orderFrom:id,orderTo:Number(manufacturerId)}})
             // const totalCount = updatedStock.length
+            const updatedStockWithQuantity = updatedStock.map(stockItem => {
+                const cartItem = cart.find(c => c.stockId === stockItem.SId);
+                return {
+                    ...stockItem,
+                    quantity: cartItem ? cartItem.quantity : 0  // Add quantity if found, else 0
+                };
+            });
             const totalPage = Math.ceil(totalCount / Limit)
             return {
                 status: message.code200,
@@ -269,7 +279,7 @@ class DistributorService {
                 totalPage: totalPage,
                 totalData: totalCount,
                 limit: Limit,
-                apiData: { manufacturer, stocks: updatedStock }
+                apiData: { manufacturer, stocks: updatedStockWithQuantity }
             }
         } catch (error) {
             console.log('getStocksByManufacturer service error:', error.message)
