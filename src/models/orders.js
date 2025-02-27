@@ -73,6 +73,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         invUrl:{
           type:Sequelize.STRING
+        },
+        deliveryType:{
+          type:Sequelize.STRING
         }
       },
       {
