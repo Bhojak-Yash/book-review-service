@@ -171,8 +171,9 @@ class DistributorService {
                     message: 'Manufacturer not found'
                 }
             }
-
-            const [manufacturer] = await db.sequelize.query(
+            let manufacturer={}
+            if(id){
+            const [eee] = await db.sequelize.query(
                 `SELECT 
                     mn.manufacturerId, 
                     mn.companyName,
@@ -203,6 +204,37 @@ class DistributorService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+        manufacturer=eee
+        }else{
+            const [eee] = await db.sequelize.query(
+                `SELECT 
+                    mn.manufacturerId, 
+                    mn.companyName,
+                    mn.logo,
+                    JSON_ARRAYAGG(
+                      JSON_OBJECT(
+                        'addressType', ad.addressType, 
+                        'name', ad.name, 
+                        'mobile', ad.mobile, 
+                        'city', ad.city, 
+                        'state', ad.state
+                      )
+                    ) AS addresses
+                 FROM manufacturers AS mn
+                 LEFT JOIN \`address\` AS ad
+                   ON ad.userId = mn.manufacturerId
+                 WHERE mn.manufacturerId = :manufacturerId
+                 GROUP BY mn.manufacturerId, mn.companyName`,
+                {
+                    replacements: {
+                        manufacturerId: Number(manufacturerId),
+                        // id: Number(id),
+                    },
+                    type: db.Sequelize.QueryTypes.SELECT,
+                }
+            );
+            manufacturer={...eee,authorizationId:null,status:'Not Send'}
+        }
             // if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
             //     return {
             //         status: 400,
@@ -223,6 +255,7 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
+// console.log(stocks)
             let ids = []
             const updatedStock = await stocks.map((item) => {
                 ids.push(item.SId)
@@ -262,15 +295,19 @@ class DistributorService {
             })
             // console.log(ids)
             const totalCount = await db.products.count({ where: whereCondition })
-            const cart = await db.usercarts.findAll({where:{stockId:{[db.Op.in]:ids},orderFrom:id,orderTo:Number(manufacturerId)}})
-            // const totalCount = updatedStock.length
-            const updatedStockWithQuantity = updatedStock.map(stockItem => {
-                const cartItem = cart.find(c => c.stockId === stockItem.SId);
-                return {
-                    ...stockItem,
-                    quantity: cartItem ? cartItem.quantity : 0  // Add quantity if found, else 0
-                };
-            });
+            let updatedStockWithQuantity = []
+            if (id) {
+                // console.log('[[][][]]')
+                const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(manufacturerId) } })
+                // const totalCount = updatedStock.length
+                updatedStockWithQuantity = updatedStock.map(stockItem => {
+                    const cartItem = cart.find(c => c.stockId === stockItem.SId);
+                    return {
+                        ...stockItem,
+                        quantity: cartItem ? cartItem.quantity : 0  // Add quantity if found, else 0
+                    };
+                });
+            }
             const totalPage = Math.ceil(totalCount / Limit)
             return {
                 status: message.code200,
@@ -279,7 +316,7 @@ class DistributorService {
                 totalPage: totalPage,
                 totalData: totalCount,
                 limit: Limit,
-                apiData: { manufacturer, stocks: updatedStockWithQuantity }
+                apiData: { manufacturer, stocks: updatedStockWithQuantity.length>0?updatedStockWithQuantity: updatedStock }
             }
         } catch (error) {
             console.log('getStocksByManufacturer service error:', error.message)
@@ -306,16 +343,16 @@ class DistributorService {
             });
 
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:{
+                status: message.code200,
+                message: message.message200,
+                apiData: {
                     "totalOrders": result.totalOrders,
                     "completedOrders": Number(result.completedOrders),
-                    "pendingOrders":Number(result.totalOrders)-Number(result.completedOrders),
+                    "pendingOrders": Number(result.totalOrders) - Number(result.completedOrders),
                     "totalDueAmtOrders": result.totalDueAmtOrders,
                     "totalDueAmount": result.totalDueAmount
                 }
-             }
+            }
         } catch (error) {
             console.log('po_page_data service error:', error.message)
         }
@@ -363,25 +400,275 @@ class DistributorService {
                 },
                 raw: true
             });
-            
-            
 
+
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: {
+                    "totalOrders": result.totalOrders,
+                    "completedOrders": Number(result.completedOrders),
+                    "pendingOrders": Number(result.totalOrders) - Number(result.completedOrders),
+                    "totalDueAmtOrders": result.totalDueAmtOrders,
+                    "totalDueAmount": result.totalDueAmount,
+                    "totalDistribuor": users.totalDistributors || 0,
+                    "totalRetailer": users.totalRetailers || 0,
+                    "totalPending": users.totalPending || 0
+                }
+            }
+        } catch (error) {
+            console.log('so_page_data service error:', error.message)
+        }
+    }
+    async distributor_profile(data) {
+        try {
+            const { id } = data
+
+            const [aa] = await db.sequelize.query(
+                `SELECT documentName FROM documentCategory WHERE category = 'Distributor'`
+            );
+            const document = await db.documentCategory.findAll({
+                attributes: ['id', 'documentName'],
+                include: [
+                    {
+                        model: db.documents,
+                        as: "documnets",
+                        attributes: ['image', "status", 'updatedAt'],
+                        where: {
+                            userId: Number(id)
+                        },
+                        required: false,
+                    },
+                ],
+                where: { category: "Distributor" }
+            })
+            let columns = [];
+            if (aa) {
+                columns = aa.map((item) => item.documentName);
+            }
+
+            const documentColumns = columns.length > 0 ? columns.map(col => `doc.\`${col}\``).join(", ") : '';
+
+            const documentColumnsQuery = documentColumns ? `, ${documentColumns}` : '';
+
+            const query = `
+            SELECT 
+              mn.companyName, 
+        mn.ownerName, 
+        mn.profilePic, 
+        mn.createdAt, 
+        mn.updatedAt, 
+        mn.address, 
+        mn.phone, 
+        mn.email, 
+        mn.GST as gst, 
+        mn.distributorId, 
+        mn.licence,
+        mn.PAN as pan, 
+        mn.CIN as cin,
+              us.*, 
+              ad.*
+            FROM crm_db.distributors AS mn
+            LEFT JOIN crm_db.users AS us 
+              ON mn.distributorId = us.id
+            LEFT JOIN crm_db.address AS ad
+              ON mn.distributorId = ad.userId
+            WHERE mn.distributorId = ${id};
+          `;
+
+            const [dataa] = await db.sequelize.query(query);
+            const transformedData = {};
+            // console.log(dataa)
+            dataa.forEach((row) => {
+                const distributorId = row.distributorId;
+
+                if (!transformedData[distributorId]) {
+                    transformedData[distributorId] = {
+                        distributor: {
+                            companyName: row.companyName,
+                            ownerName: row.ownerName,
+                            logo: row.profilePic,
+                            createdAt: row.createdAt,
+                            updatedAt: row.updatedAt,
+                            address: row.address,
+                            phone: row.phone,
+                            email: row.email,
+                            GST: row.gst,
+                            distributorId: row.distributorId,
+                            PAN: row.pan,
+                            CIN: row.cin,
+                        },
+                        user: {
+                            id: row.id,
+                            userName: row.userName,
+                            password: row.password,
+                            userType: row.userType,
+                            status: row.status,
+                            deletedAt: row.deletedAt,
+                            isPasswordChangeRequired: row.isPasswordChangeRequired,
+                        },
+                        addresses: {},
+                        documents: {},
+                    };
+                }
+
+                // Add addresses with addressType as key
+                if (row.addressType) {
+                    transformedData[distributorId].addresses[row.addressType] = {
+                        addressId: row.addressId,
+                        userId: row.userId,
+                        name: row.name,
+                        email: row.email,
+                        mobile: row.mobile,
+                        webURL: row.webURL,
+                        addLine1: row.addLine1,
+                        addLine2: row.addLine2,
+                        city: row.city,
+                        State: row.State,
+                        country: row.country,
+                        pinCode: row.pinCode,
+                    };
+                }
+
+                transformedData[distributorId].documents = document
+                // Add documents (only specific columns that were dynamically added)
+                // columns.forEach((col) => {
+                //   if (row[col] !== undefined) {
+                //     transformedData[manufacturerId].documents[col] = row[col];
+                //   }
+                // });
+            });
+
+            // Convert transformedData object to an array
+            const result = Object.values(transformedData);
             return {
                 status:message.code200,
                 message:message.message200,
-                apiData:{
-                    "totalOrders": result.totalOrders,
-                    "completedOrders": Number(result.completedOrders),
-                    "pendingOrders":Number(result.totalOrders)-Number(result.completedOrders),
-                    "totalDueAmtOrders": result.totalDueAmtOrders,
-                    "totalDueAmount": result.totalDueAmount,
-                    "totalDistribuor":users.totalDistributors ||0,
-                    "totalRetailer":users.totalRetailers ||0,
-                    "totalPending":users.totalPending ||0
-                }
-             }
+                apiData:result[0]
+            }
         } catch (error) {
-            console.log('so_page_data service error:', error.message)
+            console.log('distributor_profile service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+    async update_distributor(data) {
+            let transaction;
+            try {
+              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, licence, PAN, CIN, businessAdd, billingAdd, documents } = data;
+        
+              if (!distributorId) {
+                return {
+                  status: message.code400,
+                  message: "Distributor ID is required",
+                }
+              }
+              transaction = await db.sequelize.transaction();
+              const distributor = await db.sequelize.query(
+                `SELECT 
+                     *
+                   FROM distributors
+                   WHERE distributorId = :distributorId`,
+                {
+                  replacements: { distributorId },
+                  type: db.Sequelize.QueryTypes.SELECT, // Ensures the query returns plain data
+                  transaction, // Pass the transaction if needed
+                }
+              );
+        
+              // Ensure you get a single object, not an array
+              const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
+        
+              if (!distributor) {
+                return {
+                  status: 404,
+                  message: "Manufacturer not found",
+                }
+              }
+        
+              // Update manufacturer details
+              await db.sequelize.query(
+                `UPDATE distributors 
+                   SET 
+                      profilePic = COALESCE(:profilePic, profilePic),
+                      companyName = COALESCE(:companyName, companyName),
+                      ownerName = COALESCE(:ownerName, ownerName),
+                      email = COALESCE(:email, email),
+                      phone = COALESCE(:phone, phone),
+                      address = COALESCE(:address, address),
+                      GST = COALESCE(:GST, GST),
+                      licence = COALESCE(:licence, licence),
+                      PAN = COALESCE(:PAN, PAN),
+                      CIN = COALESCE(:CIN, CIN),
+                      updatedAt = NOW() -- Automatically update the timestamp
+                   WHERE distributorId = :distributorId`,
+                {
+                  replacements: {
+                    distributorId,
+                    profilePic,
+                    companyName,
+                    ownerName,
+                    email,
+                    phone,
+                    address,
+                    GST,
+                    licence,
+                    PAN,
+                    CIN,
+                  },
+                  transaction, // Pass the transaction here
+                }
+              );
+        
+              const existingAddresses = await db.address.findAll({
+                where: { userId: distributorId },
+                transaction,
+              });
+        
+              if (existingAddresses.length) {
+                // Update existing addresses
+                await Promise.all(
+                  existingAddresses.map(async (existingAddress) => {
+                    const updateData =
+                      existingAddress.addressType === "Business" ? businessAdd : billingAdd;
+                    await existingAddress.update(updateData, { transaction });
+                  })
+                );
+              } else {
+                // Insert new addresses
+                let dataToInsert = [
+                  { ...businessAdd, userId: distributorId, addressType: "Business" },
+                  { ...billingAdd, userId: distributorId, addressType: "Billing" },
+                ];
+                await db.address.bulkCreate(dataToInsert, { transaction });
+              }
+        
+              const documentsData = documents.map((doc) => ({
+                categoryId: doc.id,
+                image: doc.image,
+                status: 'Verified',
+                userId: Number(distributorId)
+              }));
+        
+              await db.documents.bulkCreate(documentsData, {
+                updateOnDuplicate: ["image", 'status'],
+                conflictFields: ["categoryId", "userId"]
+              });
+        
+              await transaction.commit();
+              return {
+                status: message.code200,
+                message: "Distributor details updated successfully",
+              };
+        } catch (error) {
+            console.log('update_distributor service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
         }
     }
 }

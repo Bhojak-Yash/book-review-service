@@ -494,7 +494,7 @@ class ManufacturerService {
       // console.log(whereCondition)
       const totalData = await db.orders.count({ where: whereCondition })
       const result = await db.orders.findAll({
-        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile'],
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile','deliveryType'],
         where: whereCondition,
         include: [
           {
@@ -507,16 +507,16 @@ class ManufacturerService {
         offset: Skip
       })
 
-      const updateResult = result.map((item) => {
-        const plainItem = item.toJSON(); // Convert to plain object
+      // const updateResult = result.map((item) => {
+      //   const plainItem = item.toJSON(); // Convert to plain object
 
-        let deliveryType =
-          plainItem.orderStatus === 'Ready to ship' ? 'Shipped' :
-            plainItem.orderStatus === 'Ready to pickup' ? 'Pickup' :
-              null;
+      //   let deliveryType =
+      //     plainItem.orderStatus === 'Ready to ship' ? 'Shipped' :
+      //       plainItem.orderStatus === 'Ready to pickup' ? 'Pickup' :
+      //         null;
 
-        return { ...plainItem, deliveryType };
-      })
+      //   return { ...plainItem, deliveryType };
+      // })
       const totalPage = Math.ceil(Number(totalData) / Limit)
 
       return {
@@ -525,7 +525,7 @@ class ManufacturerService {
         currentPage: Page,
         totalPage: totalPage,
         totalData: totalData,
-        apiData: updateResult || null
+        apiData: result || null
       }
     } catch (error) {
       console.log('prchaseOrders service error:', error.message)

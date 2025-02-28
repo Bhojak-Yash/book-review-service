@@ -71,7 +71,7 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    // console.log(orderId,updates,loggedInUserId,';;lllll')
+    console.log(orderId,updates,loggedInUserId,';;lllll')
     const order = await this.db.orders.findByPk(orderId);
     const orderItems = await db.orderitems.findAll({
       where: { orderId: orderId },

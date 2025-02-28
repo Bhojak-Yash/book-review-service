@@ -96,3 +96,26 @@ exports.so_page_data = async (req, res) => {
     return res.status(500).json({ status:message.code500,message: error.message });
   }
 };
+exports.distributor_profile = async (req,res) => {
+  try {
+    const data = {...req.user,...req.query}
+    const distributor = await DistributorService.distributor_profile(data);
+
+    return res.json(distributor);
+  } catch (error) {
+    console.error("distributor_profile Error:", error.message);
+    return res.status(500).json({ status:message.code500,message: error.message });
+  }
+}
+
+exports.update_distributor = async (req,res) => {
+  try {
+    const data = {...req.user,...req.body}
+    const distributor = await DistributorService.update_distributor(data);
+
+    return res.json(distributor);
+  } catch (error) {
+    console.error("update_distributor Error:", error.message);
+    return res.status(500).json({ status:message.code500,message: error.message });
+  }
+}
