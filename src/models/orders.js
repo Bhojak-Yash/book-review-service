@@ -76,6 +76,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         deliveryType:{
           type:Sequelize.STRING
+        },
+        dispatchDate:{
+          type:Sequelize.DATE
         }
       },
       {

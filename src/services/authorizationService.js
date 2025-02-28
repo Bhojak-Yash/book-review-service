@@ -73,26 +73,30 @@ class AuthService {
                     whereClause.status = data.status
                 }
             }
-            if (start_date && end_date) {
-                whereClause.createdAt = {
-                  [Op.between]: [
-                    new Date(start_date + " 00:00:00"),
-                    new Date(end_date + " 23:59:59"),
-                  ],
-                };
-              }
+            // if (start_date && end_date) {
+            //     whereClause.createdAt = {
+            //       [Op.between]: [
+            //         new Date(start_date),
+            //         new Date(end_date),
+            //       ],
+            //     };
+            //   }
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
+            console.log(whereClause)
             const { count, rows } = await db.authorizations.findAndCountAll({
                 include: [
                     {
                         model: db.distributors,
                         as: "distributers",
                         required: true,
-                        where: data.search
-                            ? { companyName: { [Op.like]: `%${data.search}%` } }
-                            : undefined,
+                        where: {
+                            ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
+                            ...(start_date && end_date
+                                ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
+                                : {}),
+                        },
                     }
                 ],
                 where: whereClause,

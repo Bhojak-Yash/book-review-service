@@ -541,7 +541,7 @@ class ManufacturerService {
       const id = Number(data.distributorId)
 
       const result = await db.distributors.findOne({
-        attributes: ['distributorId', 'status', "phone", "email", "GST"],
+        attributes: ['distributorId', 'status', "phone", "email", "GST","CIN"],
         include: [
           {
             model: db.address,
@@ -569,7 +569,9 @@ class ManufacturerService {
         raw: true
       });
       const sumOfOrders = await db.orders.findOne({
-        attributes: [[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"]]
+        attributes: [[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"],
+                     [db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("balance")), 0), "pendingPayment"]
+      ],where:{orderFrom:Number(id)}
       })
       // console.log(orders)
       return {
