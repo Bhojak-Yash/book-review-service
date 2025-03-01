@@ -373,7 +373,8 @@ class OrdersService {
           "orderTo",
           "orderTotal",
           "invNo",
-          "balance"
+          "balance",
+          "deliveryType"
         ],
         include: [
           {
@@ -402,7 +403,8 @@ class OrdersService {
           "orderTotal": order.orderTotal,
           "invNo": order.invNo,
           "balance":order.balance,
-          "orderTo":order.manufacturer.companyName
+          "orderTo":order.manufacturer.companyName,
+          "deliveryType":order.deliveryType
         }
       })
 
