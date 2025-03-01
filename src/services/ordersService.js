@@ -71,8 +71,9 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    console.log(orderId,updates,loggedInUserId,';;lllll')
-    const order = await this.db.orders.findByPk(orderId);
+    // console.log(orderId,updates,loggedInUserId,';;lllll')
+    try {
+      const order = await this.db.orders.findByPk(orderId);
     const orderItems = await db.orderitems.findAll({
       where: { orderId: orderId },
     });
@@ -118,7 +119,7 @@ class OrdersService {
                 transaction: t, // Use the transaction
               }
             );
-console.log('ppppp',updates)
+// console.log('ppppp',updates)
             if (!stock || stock.Stock < item.quantity) {
               throw new Error(
                 `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
@@ -254,6 +255,9 @@ console.log('ppppp',updates)
     await this.db.orders.update(updates, { where: { id: orderId } });
 
     return this.db.orders.findByPk(orderId);
+    } catch (error) {
+      console.log('update oreder servcie error:',error.message)
+    }
   }
 
   // async updateOrder(data) {
