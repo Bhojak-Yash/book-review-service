@@ -593,6 +593,10 @@ class OrdersService {
                 attributes:['SId','BatchNo']
               }
             ]
+          },
+          {
+            model:db.payments,
+            as:'payments',
           }
         ]
       })

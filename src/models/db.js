@@ -115,7 +115,8 @@ db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authori
 db.users.hasMany(db.address,{foreignKey: "userId", as: "address"})
 db.orderitems.belongsTo(db.products, { foreignKey: "PId", as: "product" });
 db.orderitems.belongsTo(db.stocks, { foreignKey: "stockId", as: "stock" });
-db.orders.hasMany(db.payments,{ foreignKey: "id", as: "payments" })
+db.orders.hasMany(db.payments,{ foreignKey: "orderId", as: "payments" })
+
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 
