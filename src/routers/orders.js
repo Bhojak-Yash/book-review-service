@@ -12,5 +12,6 @@ router.get('/getOrderBytype',verifyToken,ordersc.getOrdersByType)
 router.get('/distributer-purchase-order',verifyToken,ordersc.distributer_purchase_orders)
 router.get('/distributer-sales-order',verifyToken,ordersc.distributer_sales_orders)
 router.get('/purchase-order-summary',verifyToken,ordersc.purchase_order_summary)
+router.get('/confirm-payment',verifyToken,ordersc.confirm_payment)
 
 module.exports =router

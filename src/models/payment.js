@@ -17,6 +17,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "image":{
             type:Sequelize.STRING
+        },
+        "status":{
+            type:Sequelize.ENUM('Pending','Confirmed')
         }
     },
 

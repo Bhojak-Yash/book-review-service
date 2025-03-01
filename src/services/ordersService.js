@@ -85,7 +85,8 @@ class OrdersService {
         orderId:Number(orderId),
         amount:Number(amount),
         mode:mode,
-        image:image
+        image:image,
+        status:'Pending'
       })
       const data = await db.orders.findOne({where:{id:Number(orderId)}})
       let oStatus = 'Paid'
@@ -654,6 +655,26 @@ return {
         status: message.code500,
         message: message.message500,
         // apiData: null
+      }
+    }
+  }
+
+  async confirm_payment(data) {
+    try {
+      const {id,paymentId} = data
+      await db.payments.update(
+        { status: 'Confirmed' }, 
+        { where: { id: Number(paymentId) } }
+    );
+    return {
+      status:message.code200,
+      message:message.code200
+    }
+    } catch (error) {
+      console.log('confirm_payment service error:',error.message)
+      return {
+        status:message.code500,
+        message:message.message500
       }
     }
   }

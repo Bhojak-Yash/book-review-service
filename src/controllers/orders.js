@@ -135,6 +135,20 @@ class OrdersController {
     }
   }
 
+  static async confirm_payment(req,res) {
+    try {
+      const data ={...req.user,...req.query }
+      const ordersList = await ordersService.confirm_payment(data);
+      res.json(ordersList)
+    } catch (error) {
+      console.log('confirm_payment error:',error.message)
+      res.json({
+        status:message.code500,
+        message:error.message
+      })
+    }
+  }
+
 }
 
 module.exports = OrdersController;
