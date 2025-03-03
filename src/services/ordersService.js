@@ -263,6 +263,7 @@ class OrdersService {
     return this.db.orders.findByPk(orderId);
     } catch (error) {
       console.log('update oreder servcie error:',error.message)
+      throw new Error(error.message);
     }
   }
 
