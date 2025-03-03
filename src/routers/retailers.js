@@ -4,6 +4,7 @@ const {verifyToken} = require('../middlewares/auth')
 
 
 router.post('/createRetailer',retailerc.createRetailer)
+router.get('/get-distributor-list',retailerc.get_distributors_list)
 // router.get('/getPharmacies',verifyToken,pharmacyc.getPharmacies)
 // router.get('/pharmacyDetails',verifyToken,pharmacyc.pharmacyDetails)
 // router.post('/pharmacy-sales',verifyToken,pharmacyc.pharmacy_sales)

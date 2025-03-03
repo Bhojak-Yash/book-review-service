@@ -33,3 +33,19 @@ exports.createRetailer = async (req,res) => {
         return res.status(500).json({ status:message.code500,message: "Failed to create retailers", error: error.message });
       }
 };
+
+exports.get_distributors_list = async (req,res) => {
+  try {
+    const data = {...req.query}
+    const distributors = await RetailerService.get_distributors_list(data);
+    
+    // if (!distributor) {
+      return res.json(distributors);
+  } catch (error) {
+    console.log('get_distributors_list error:',error.message)
+    res.status(500).json({
+      status:message.code500,
+      message:message.message500,
+    })
+  }
+}

@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const Users = db.users;
 const Retailers = db.retailers;
+const Op= db.Op
 
 
 async function hashPassword(password) {
@@ -65,6 +66,25 @@ class RetailerService {
             }
         }
 
+    }
+
+    async get_distributors_list(data) {
+        try {
+            const {search} = data
+            let whereClause = {userType: ['distributor', 'cnfs']}
+            if(search){
+                whereClause.userName = { [Op.like]: `%${search}%` }
+            }
+            const Data = await db.users.findAll({attributes:['id','userName'],where:whereClause})
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:Data
+            }
+        } catch (error) {
+            console.log('get_distributors_list service error:',error.message)
+            throw new Error(error.message);
+        }
     }
 }
 
