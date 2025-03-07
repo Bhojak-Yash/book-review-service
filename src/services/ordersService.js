@@ -592,7 +592,7 @@ class OrdersService {
               {
                 model:db.stocks,
                 as:'stock',
-                attributes:['SId','BatchNo']
+                attributes:['SId','BatchNo','stock']
               }
             ]
           },

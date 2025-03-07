@@ -17,7 +17,7 @@ class UsersCartService {
                 }
             }
 
-            let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) } })
+            let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
             if (check) {
                 await db.usercarts.update(
                     { quantity: Number(quantity) },
@@ -157,7 +157,7 @@ class UsersCartService {
                     {
                         model:db.stocks,
                         as:"stockDetails",
-                        attributes:['MRP','PTR','BatchNo',"Scheme"]
+                        attributes:['MRP','PTR','BatchNo',"Scheme",'Stock']
                     }
                 ],
             });
@@ -180,6 +180,7 @@ class UsersCartService {
                     "PTR":item.stockDetails.PTR,
                     "scheme":item.stockDetails.Scheme || null,
                     "BatchNo":item.stockDetails.BatchNo,
+                    "stock":item.stockDetails.Stock
                     // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
                 }
             })

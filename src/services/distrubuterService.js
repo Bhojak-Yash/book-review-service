@@ -423,6 +423,7 @@ class DistributorService {
     }
     async distributor_profile(data) {
         try {
+            console.log(data)
             const { id } = data
 
             const [aa] = await db.sequelize.query(
@@ -560,6 +561,7 @@ class DistributorService {
     }
     async update_distributor(data) {
             let transaction;
+            console.log(data)
             try {
               const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents } = data;
         
@@ -569,7 +571,8 @@ class DistributorService {
                   message: "Distributor ID is required",
                 }
               }
-              transaction = await db.sequelize.transaction();
+              transaction = await db.sequelize.transaction({timeout:30000});
+              console.log(';;;;')
               const distributor = await db.sequelize.query(
                 `SELECT 
                      *
@@ -581,9 +584,9 @@ class DistributorService {
                   transaction, // Pass the transaction if needed
                 }
               );
-        
+        console.log('gffxchbjknk',distributor)
               // Ensure you get a single object, not an array
-              const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
+            //   const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
         
               if (!distributor) {
                 return {
@@ -593,7 +596,27 @@ class DistributorService {
               }
         
               // Update manufacturer details
-              await db.sequelize.query(
+            //   await db.distributors.update(
+            //     {
+            //       profilePic: profilePic ?? db.sequelize.col("profilePic"),
+            //       companyName: companyName ?? db.sequelize.col("companyName"),
+            //       ownerName: ownerName ?? db.sequelize.col("ownerName"),
+            //     //   email: email ?? db.sequelize.col("email"),
+            //       phone: phone ?? db.sequelize.col("phone"),
+            //       address: address ?? db.sequelize.col("address"),
+            //       GST: GST ?? db.sequelize.col("GST"),
+            //       wholeSaleDrugLicence: wholeSaleDrugLicence ?? db.sequelize.col("wholeSaleDrugLicence"),
+            //       PAN: PAN ?? db.sequelize.col("PAN"),
+            //       FSSAI: FSSAI ?? db.sequelize.col("FSSAI"),
+            //       CIN: CIN ?? db.sequelize.col("CIN"),
+            //       updatedAt: db.sequelize.literal("NOW()"), // Update timestamp
+            //     },
+            //     {
+            //       where: { distributorId },
+            //       transaction, // Pass the transaction here
+            //     }
+            //   )
+            await db.sequelize.query(
                 `UPDATE distributors 
                    SET 
                       profilePic = COALESCE(:profilePic, profilePic),
@@ -606,12 +629,10 @@ class DistributorService {
                       wholeSaleDrugLicence = COALESCE(:wholeSaleDrugLicence, wholeSaleDrugLicence),
                       PAN = COALESCE(:PAN, PAN),
                       FSSAI = COALESCE(:FSSAI, FSSAI),
-                      CIN = COALESCE(:CIN, CIN),
-                      updatedAt = NOW() -- Automatically update the timestamp
+                      CIN = COALESCE(:CIN, CIN)
                    WHERE distributorId = :distributorId`,
                 {
                   replacements: {
-                    distributorId,
                     profilePic,
                     companyName,
                     ownerName,
@@ -623,14 +644,15 @@ class DistributorService {
                     PAN,
                     FSSAI,
                     CIN,
+                    distributorId
                   },
                   transaction, // Pass the transaction here
                 }
               );
-        
+              
+        console.log('[[[[[')
               const existingAddresses = await db.address.findAll({
                 where: { userId: distributorId },
-                transaction,
               });
         
               if (existingAddresses.length) {

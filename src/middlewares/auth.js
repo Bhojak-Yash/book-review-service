@@ -31,7 +31,7 @@ exports.verifyToken = async(req, res, next) => {
         // console.log('1')
         return res.status(401).json({ status:401,message: 'Invalid or expired token.' });
       }
-       if(check.dataValues.isExpired){
+       if(check?.dataValues?.isExpired){
         // console.log('2')
         return res.status(401).json({ status:401,message: 'Invalid or expired token.' });
       }
