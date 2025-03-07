@@ -74,6 +74,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "manufacturerId":{
             type:Sequelize.BIGINT
+        },
+        "HSN":{
+            type:Sequelize.INTEGER
         }
     },
     {

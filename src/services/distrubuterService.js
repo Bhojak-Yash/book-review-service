@@ -464,7 +464,8 @@ class DistributorService {
         mn.email, 
         mn.GST as gst, 
         mn.distributorId, 
-        mn.licence,
+        mn.wholeSaleDrugLicence,
+        mn.FSSAI,
         mn.PAN as pan, 
         mn.CIN as cin,
               us.*, 
@@ -495,6 +496,8 @@ class DistributorService {
                             phone: row.phone,
                             email: row.email,
                             GST: row.gst,
+                            wholeSaleDrugLicence:row.wholeSaleDrugLicence,
+                            FSSAI:row.FSSAI,
                             distributorId: row.distributorId,
                             PAN: row.pan,
                             CIN: row.cin,
@@ -558,7 +561,7 @@ class DistributorService {
     async update_distributor(data) {
             let transaction;
             try {
-              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, licence, PAN, CIN, businessAdd, billingAdd, documents } = data;
+              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents } = data;
         
               if (!distributorId) {
                 return {
@@ -600,8 +603,9 @@ class DistributorService {
                       phone = COALESCE(:phone, phone),
                       address = COALESCE(:address, address),
                       GST = COALESCE(:GST, GST),
-                      licence = COALESCE(:licence, licence),
+                      wholeSaleDrugLicence = COALESCE(:wholeSaleDrugLicence, wholeSaleDrugLicence),
                       PAN = COALESCE(:PAN, PAN),
+                      FSSAI = COALESCE(:FSSAI, FSSAI),
                       CIN = COALESCE(:CIN, CIN),
                       updatedAt = NOW() -- Automatically update the timestamp
                    WHERE distributorId = :distributorId`,
@@ -615,8 +619,9 @@ class DistributorService {
                     phone,
                     address,
                     GST,
-                    licence,
+                    wholeSaleDrugLicence,
                     PAN,
+                    FSSAI,
                     CIN,
                   },
                   transaction, // Pass the transaction here

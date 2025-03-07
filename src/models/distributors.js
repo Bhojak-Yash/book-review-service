@@ -38,6 +38,12 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "PAN":{
             type:Sequelize.STRING
+        },
+        "FSSAI":{
+            type:Sequelize.STRING
+        },
+        "wholeSaleDrugLicence":{
+            type:Sequelize.STRING
         }
     },
 
