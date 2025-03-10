@@ -77,6 +77,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "HSN":{
             type:Sequelize.INTEGER
+        },
+        "Quantity":{
+            type:Sequelize.INTEGER
         }
     },
     {

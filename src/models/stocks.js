@@ -42,6 +42,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "location":{
             type:Sequelize.STRING
+        },
+        "PTS":{
+            type:Sequelize.DOUBLE
         }
     },
     {
