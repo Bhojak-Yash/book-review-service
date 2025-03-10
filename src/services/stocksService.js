@@ -170,7 +170,7 @@ class StocksService {
     }
     
     // Step 3: Fetch the paginated stock data
-    const stocks = await db.stocks.findAll({
+    const {rows:stocks,count} = await db.stocks.findAndCountAll({
       include: [
         {
           model: db.products,
@@ -213,7 +213,7 @@ class StocksService {
     // console.log(enrichedStocks);
     
     
-    const result = stockSums.length
+    const result = count
     const totalData = result;
     const totalPage = Math.ceil(result / Number(Limit));
     const currentPage = Page;
