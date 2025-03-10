@@ -2,6 +2,19 @@ const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
 
+const getData = async(userType,id)=>{
+    // console.log(userType,id)
+if(userType==='Manufacturer'){
+    return await db.manufacturers.findOne({attributes:['manufacturerId','companyName'],where:{manufacturerId:Number(id)}})
+}else if(userType === 'Distributor'){
+    return await db.distributors.findOne({attributes:['distributorId','companyName'],where:{distributorId:Number(id)}})
+}else if(userType === 'Retailer'){
+    return await db.retailers.findOne({attributes:['retailerId','firmName'],where:{retailerId:Number(id)}})
+}else if(userType === 'Employee'){
+    return await db.employees.findOne({attributes:['employeeId','firstName','lastName'],where:{employeeId:Number(id)}})
+}
+}
+
 class UsersCartService {
     constructor(db) {
         this.db = db;
@@ -115,6 +128,7 @@ class UsersCartService {
     async getUserCart(data) {
         try {
             const { id,manufacturerId } = data
+            console.log(data)
             // Fetch all items in the cart for the logged-in user
             const [manufacturer] = await db.sequelize.query(
                 `SELECT 
@@ -143,6 +157,7 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+            let orderFromData =await getData(data?.userType,id)
             const cartItems = await db.usercarts.findAll({
                 where: {
                     orderFrom: Number(id),
@@ -200,6 +215,8 @@ class UsersCartService {
                 message: "Cart fetched successfully.",
                 manufacturer:manufacturer,
                 cart: updateCart,
+                userType:data?.userType,
+                orderFrom:orderFromData
             };
         } catch (error) {
             console.error("getUserCart servcie error:", error);
