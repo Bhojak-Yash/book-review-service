@@ -157,6 +157,9 @@ class OrdersService {
         });
       }
     }
+    // if(updates.orderStatus === "Rejected"){
+
+    // }
 
     if (updates.orderStatus === 'Dispatched') {
       // if (orderItems && orderItems.length > 0) {
@@ -263,7 +266,10 @@ class OrdersService {
     return this.db.orders.findByPk(orderId);
     } catch (error) {
       console.log('update oreder servcie error:',error.message)
-      throw new Error(error.message);
+     return {
+      status:message.code500,
+      message:error.message
+     }
     }
   }
 
