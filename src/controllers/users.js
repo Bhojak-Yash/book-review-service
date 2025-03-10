@@ -154,6 +154,7 @@ exports.login = async(req,res)=>{
                     status:message.code200,
                     message:message.message200,
                     apiToken:token,
+                    loginId:loginlogs.id,
                     apiData:checkUser.dataValues,
                     data:data?.dataValues || null
                 })
