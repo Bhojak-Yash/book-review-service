@@ -23,9 +23,9 @@ module.exports =(sequelize,Sequelize)=>{
         "status":{
             type:Sequelize.STRING
         },
-        "entityId":{
-            type:Sequelize.INTEGER
-        }
+        // "entityId":{
+        //     type:Sequelize.INTEGER
+        // }
     },
 
     {

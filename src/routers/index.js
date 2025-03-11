@@ -11,9 +11,13 @@ const distributorRouter = require('./distributors')
 const usercartRouter = require('./usercarts')
 const entityRouter = require('./entities')
 const rolesRouter = require('./roles')
+const empolyeeRouter = require('./employee')
+const authRouter = require('./authorization')
+const manufacturerDashboard = require('./manufacturerDashboard')
+const distributorPanelRouter = require('./distributorPanelRoutes')
 
 
 
 
 module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryRouter,productRouter,manufacturerRouter,
-    retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter}
+    retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter}

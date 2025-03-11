@@ -27,14 +27,17 @@ module.exports =(sequelize,Sequelize)=>{
         "employeeOf":{
             type:Sequelize.STRING
         },
-        "divisionId":{
-            type:Sequelize.STRING
-        },
-        "roleId":{
-            type:Sequelize.BIGINT
-        },
+        // "divisionId":{
+        //     type:Sequelize.STRING
+        // },
+        // "roleId":{
+        //     type:Sequelize.BIGINT
+        // },
        "employeeStatus":{
             type:Sequelize.STRING
+        },
+        "entityId":{
+            type:Sequelize.BIGINT
         },
 
     },

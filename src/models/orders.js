@@ -8,9 +8,9 @@ module.exports = (sequelize, Sequelize) => {
           autoIncrement: true, // Automatically increment the ID
           allowNull: false,
         },
-        orderNo: {
-          type: Sequelize.STRING,
-        },
+        // orderNo: {
+        //   type: Sequelize.STRING,
+        // },
         orderDate: {
           type: Sequelize.DATE, // Corrected data type
         },
@@ -62,12 +62,24 @@ module.exports = (sequelize, Sequelize) => {
         deliveredAt: {
           type: Sequelize.DATE, // Corrected data type
         },
-        divisionId: {
-          type: Sequelize.BIGINT, // Corrected data type
+        // divisionId: {
+        //   type: Sequelize.BIGINT, // Corrected data type
+        // },
+        orderTotal:{
+          type:Sequelize.BIGINT
         },
         reason: {
           type: Sequelize.STRING, // Corrected data type
         },
+        invUrl:{
+          type:Sequelize.STRING
+        },
+        deliveryType:{
+          type:Sequelize.STRING
+        },
+        dispatchDate:{
+          type:Sequelize.DATE
+        }
       },
       {
         tableName: "orders",
