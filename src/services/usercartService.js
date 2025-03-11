@@ -32,6 +32,13 @@ class UsersCartService {
 
             let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
             if (check) {
+                if(quantity==0){
+                    await db.usercarts.destroy({
+                        where: {
+                            id: Number(check.id),
+                        },
+                    });
+                }
                 await db.usercarts.update(
                     { quantity: Number(quantity) },
                     { where: { id: check.id } }
