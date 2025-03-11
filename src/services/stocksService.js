@@ -132,7 +132,7 @@ class StocksService {
         {
           model: db.products,
           as: "product",
-          attributes: [],
+          // attributes: [],
           where: search
             ? {
                 [Op.or]: [
@@ -147,6 +147,17 @@ class StocksService {
       group: ["PId"],
       raw: true,
     });
+    // const test = db.products.findAll({
+    //   where: search
+    //   ? {
+    //       [Op.or]: [
+    //         { PCode: { [Op.like]: `%${search}%` } },
+    //         { PName: { [Op.like]: `%${search}%` } },
+    //         { SaltComposition: { [Op.like]: `%${search}%` } },
+    //       ],
+    //     }
+    //   : undefined,
+    // })
     
     // Convert the result into a lookup object
     const stockSumMap = stockSums.reduce((acc, item) => {
@@ -170,40 +181,78 @@ class StocksService {
     }
     
     // Step 3: Fetch the paginated stock data
-    const {rows:stocks,count} = await db.stocks.findAndCountAll({
+    // const {rows:stocks,count} = await db.stocks.findAndCountAll({
+    //   include: [
+    //     {
+    //       model: db.products,
+    //       as: "product",
+    //       attributes: [
+    //         "PId",
+    //         "PCode",
+    //         "PName",
+    //         "PackagingDetails",
+    //         "SaltComposition",
+    //         "LOCKED",
+    //       ],
+    //       where: search
+    //         ? {
+    //             [Op.or]: [
+    //               { PCode: { [Op.like]: `%${search}%` } },
+    //               { PName: { [Op.like]: `%${search}%` } },
+    //               { SaltComposition: { [Op.like]: `%${search}%` } },
+    //             ],
+    //           }
+    //         : undefined,
+    //     },
+    //   ],
+    //   where: {
+    //     ...whereCondition,
+    //     ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
+    //   },
+    //   offset: skip,
+    //   limit: Number(Limit),
+    //   raw: true,
+    //   nest: true,
+    // })
+    const { rows: stocks, count } = await db.products.findAndCountAll({
+      attributes: [
+          "PId",
+          "PCode",
+          "PName",
+          "PackagingDetails",
+          "SaltComposition",
+          "LOCKED",
+          "manufacturerId"
+      ],
       include: [
-        {
-          model: db.products,
-          as: "product",
-          attributes: [
-            "PId",
-            "PCode",
-            "PName",
-            "PackagingDetails",
-            "SaltComposition",
-            "LOCKED",
-          ],
-          where: search
-            ? {
-                [Op.or]: [
-                  { PCode: { [Op.like]: `%${search}%` } },
-                  { PName: { [Op.like]: `%${search}%` } },
-                  { SaltComposition: { [Op.like]: `%${search}%` } },
-                ],
-              }
-            : undefined,
-        },
+          {
+              model: db.stocks,
+              as: "stocks", // Adjust alias as per your association
+              required: false, // LEFT JOIN: include products even if stock is not available
+              ...(whereCondition || {}), // Additional conditions from stocks query
+              ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), 
+          },
       ],
       where: {
-        ...whereCondition,
-        ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
+        manufacturerId: manufacturerId, // Filter by manufacturer
+          ...(search
+              ? {
+                    [Op.or]: [
+                        { PCode: { [Op.like]: `%${search}%` } },
+                        { PName: { [Op.like]: `%${search}%` } },
+                        { SaltComposition: { [Op.like]: `%${search}%` } },
+                    ],
+                }
+              : {}),
+         // Apply stockStatus filter
       },
       offset: skip,
       limit: Number(Limit),
       raw: true,
       nest: true,
-    });
-    
+  });
+  
+  return {stocks}
     // Step 4: Attach sumOfStocks to each stock object
     const enrichedStocks = stocks.map((stock) => ({
       ...stock,

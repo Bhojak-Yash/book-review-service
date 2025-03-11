@@ -698,6 +698,30 @@ class DistributorService {
             }
         }
     }
+
+    async check_profile (data) {
+        try {
+            const {id} = data
+            const check = await db.authorizations.findAll({where:{authorizedId:Number(id)}})
+            if(check.length>0){
+                return {
+                    status:message.code200,
+                    message:message.message200
+                }
+            }else{
+                return {
+                    status:message.code400,
+                    message:message.message400
+                }
+            }
+        } catch (error) {
+            console.log('check_profile error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
 }
 
 module.exports = new DistributorService(db);
