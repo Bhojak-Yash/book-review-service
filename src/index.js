@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 const db = require('./models/db')
 const Sequelize = db.sequelize
 const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
-  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter, distributorPanelRouter} = require('./routers/index')
+  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter} = require('./routers/index')
 const cors = require('cors')
 app.use(cors());
 const dbConnection = async () => {
