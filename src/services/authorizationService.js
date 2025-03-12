@@ -100,7 +100,7 @@ class AuthService {
                     }
                 ],
                 where: whereClause,
-                order:["id",DESC],
+                order:[["id","DESC"]],
                 offset: skip,
                 limit: Limit
             })

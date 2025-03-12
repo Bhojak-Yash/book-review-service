@@ -89,3 +89,35 @@ exports.getproducts = async (req, res) => {
     return res.status(500).json({ status: message.code500, message: message.message500 });
   }
 }
+
+
+exports.bulk_product_update = async (req, res) => {
+  try {
+    const data = req.body
+    const Product = await ProductsService.bulk_product_update(data);
+
+    // if (!distributor) {
+    return res.json(Product);
+    // }
+
+    // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+  } catch (error) {
+    console.error("Error fetching bulk_product_update:", error.message);
+    return res.status(500).json({ status: message.code500, message: message.message500 });
+  }
+}
+exports.product_page_data = async (req, res) => {
+  try {
+    const data = {...req.user}
+    const Product = await ProductsService.product_page_data(data);
+
+    // if (!distributor) {
+    return res.json(Product);
+    // }
+
+    // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+  } catch (error) {
+    console.error("Error fetching product_page_data:", error.message);
+    return res.status(500).json({ status: message.code500, message: message.message500 });
+  }
+}

@@ -23,14 +23,16 @@ class UsersCartService {
     async addToCart(data) {
         try {
             const { id, quantity, SId, orderTo,PId } = data
-            if (!id || !quantity || !SId || !orderTo) {
+            conso/le.log(id,quantity,SId,orderTo,';;;;;;;')
+            if (!id || !String(quantity) || !SId || !orderTo) {
                 return {
                     status: message.code400,
                     message: 'Invalid data'
                 }
             }
-
+// console.log(data)
             let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
+            console.log(check)
             if (check) {
                 if(quantity==0){
                     await db.usercarts.destroy({

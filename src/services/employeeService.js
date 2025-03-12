@@ -51,11 +51,11 @@ class EmployeeService {
           await Employees.create(
               {
                   employeeId: user.id,
-                  firstName: req.body.firstName,
-                  lastName:  req.body.lastName,
+                  firstName: data?.firstName,
+                  lastName:  data?.lastName,
                   employeeCode: "EMP"+user.id,
-                  employeeOf: req.body.employeeOf,
-                  entityId:req.body.entityId,
+                  employeeOf: data?.employeeOf,
+                  entityId:data?.entityId,
                   // divisionId: req.body.divisionId,
                   // roleId: req.body.roleId,
                   employeeStatus: "Active",
