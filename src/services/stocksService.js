@@ -181,76 +181,76 @@ class StocksService {
     }
     
     // Step 3: Fetch the paginated stock data
-    // const {rows:stocks,count} = await db.stocks.findAndCountAll({
-    //   include: [
-    //     {
-    //       model: db.products,
-    //       as: "product",
-    //       attributes: [
-    //         "PId",
-    //         "PCode",
-    //         "PName",
-    //         "PackagingDetails",
-    //         "SaltComposition",
-    //         "LOCKED",
-    //       ],
-    //       where: search
-    //         ? {
-    //             [Op.or]: [
-    //               { PCode: { [Op.like]: `%${search}%` } },
-    //               { PName: { [Op.like]: `%${search}%` } },
-    //               { SaltComposition: { [Op.like]: `%${search}%` } },
-    //             ],
-    //           }
-    //         : undefined,
-    //     },
-    //   ],
-    //   where: {
-    //     ...whereCondition,
-    //     ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
-    //   },
-    //   offset: skip,
-    //   limit: Number(Limit),
-    //   raw: true,
-    //   nest: true,
-    // })
-    const { rows: stocks, count } = await db.products.findAndCountAll({
-      attributes: [
-          "PId",
-          "PCode",
-          "PName",
-          "PackagingDetails",
-          "SaltComposition",
-          "LOCKED",
-          "manufacturerId"
-      ],
+    const {rows:stocks,count} = await db.stocks.findAndCountAll({
       include: [
-          {
-              model: db.stocks,
-              as: "stocks", // Adjust alias as per your association
-              required: false, // LEFT JOIN: include products even if stock is not available
-              ...(whereCondition || {}), // Additional conditions from stocks query
-              ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), 
-          },
+        {
+          model: db.products,
+          as: "product",
+          attributes: [
+            "PId",
+            "PCode",
+            "PName",
+            "PackagingDetails",
+            "SaltComposition",
+            "LOCKED",
+          ],
+          where: search
+            ? {
+                [Op.or]: [
+                  { PCode: { [Op.like]: `%${search}%` } },
+                  { PName: { [Op.like]: `%${search}%` } },
+                  { SaltComposition: { [Op.like]: `%${search}%` } },
+                ],
+              }
+            : undefined,
+        },
       ],
       where: {
-        manufacturerId: manufacturerId, // Filter by manufacturer
-          ...(search
-              ? {
-                    [Op.or]: [
-                        { PCode: { [Op.like]: `%${search}%` } },
-                        { PName: { [Op.like]: `%${search}%` } },
-                        { SaltComposition: { [Op.like]: `%${search}%` } },
-                    ],
-                }
-              : {}),
-         // Apply stockStatus filter
+        ...whereCondition,
+        ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
       },
       offset: skip,
       limit: Number(Limit),
       raw: true,
       nest: true,
-  });
+    })
+  //   const { rows: stocks, count } = await db.products.findAndCountAll({
+  //     attributes: [
+  //         "PId",
+  //         "PCode",
+  //         "PName",
+  //         "PackagingDetails",
+  //         "SaltComposition",
+  //         "LOCKED",
+  //         "manufacturerId"
+  //     ],
+  //     include: [
+  //         {
+  //             model: db.stocks,
+  //             as: "stocks", // Adjust alias as per your association
+  //             required: false, // LEFT JOIN: include products even if stock is not available
+  //             ...(whereCondition || {}), // Additional conditions from stocks query
+  //             ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), 
+  //         },
+  //     ],
+  //     where: {
+  //       manufacturerId: manufacturerId, // Filter by manufacturer
+  //         ...(search
+  //             ? {
+  //                   [Op.or]: [
+  //                       { PCode: { [Op.like]: `%${search}%` } },
+  //                       { PName: { [Op.like]: `%${search}%` } },
+  //                       { SaltComposition: { [Op.like]: `%${search}%` } },
+  //                   ],
+  //               }
+  //             : {}),
+  //        // Apply stockStatus filter
+  //     },
+  //     offset: skip,
+  //     limit: Number(Limit),
+  //     raw: true,
+  //     nest: true,
+  // });
   
   // return {stocks}
     // Step 4: Attach sumOfStocks to each stock object
