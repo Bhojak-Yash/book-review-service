@@ -252,7 +252,7 @@ class StocksService {
       nest: true,
   });
   
-  return {stocks}
+  // return {stocks}
     // Step 4: Attach sumOfStocks to each stock object
     const enrichedStocks = stocks.map((stock) => ({
       ...stock,
