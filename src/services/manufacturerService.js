@@ -503,6 +503,7 @@ class ManufacturerService {
             attributes: ['distributorId', 'companyName']
           }
         ],
+        order: [['id', 'DESC']],
         limit: Limit,
         offset: Skip
       })
