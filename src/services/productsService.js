@@ -231,7 +231,7 @@ class ProductsService {
                 apiData:{
                     productCount,lockedCount,
                     unlockCount:productCount-lockedCount,
-                    lastUpdatedDate:lastDate.createdAt
+                    lastUpdatedDate:lastDate?.createdAt || null
                 }
             }
         } catch (error) {
