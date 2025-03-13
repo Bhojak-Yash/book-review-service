@@ -243,7 +243,7 @@ class DistributorService {
             // }
 
             const stocks = await db.stocks.findAll({
-                attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP'],
+                attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP','PTS'],
                 include: [
                     {
                         model: db.products,
