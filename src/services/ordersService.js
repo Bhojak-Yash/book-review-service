@@ -180,8 +180,8 @@ class OrdersService {
           for (const item of updates.items) {
             // console.log(item,';;;;;;')
             db.orderitems.update({
-              BoxQty: item?.BoxQty,
-              loose: item?.loose
+              BoxQty: item?.BoxQty || 0,
+              loose: item?.loose || 0
             }, { where: { id: Number(item.id) } }), { transaction: t }
           }
 
