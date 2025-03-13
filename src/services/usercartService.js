@@ -23,7 +23,7 @@ class UsersCartService {
     async addToCart(data) {
         try {
             const { id, quantity, SId, orderTo,PId } = data
-            conso/le.log(id,quantity,SId,orderTo,';;;;;;;')
+            // console.log(id,quantity,SId,orderTo,';;;;;;;')
             if (!id || !String(quantity) || !SId || !orderTo) {
                 return {
                     status: message.code400,
