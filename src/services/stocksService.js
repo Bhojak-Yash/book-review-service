@@ -80,21 +80,35 @@ class StocksService {
     // Handle expiration status filter
     if (expStatus) {
       const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-
+  
+      // Ensure ExpDate is present (not null)
+      whereCondition.ExpDate = { [db.Sequelize.Op.ne]: null };
+  
       if (expStatus === "expired") {
-        whereCondition.ExpDate = { [db.Sequelize.Op.lt]: today }; // Expired (before today)
+          whereCondition.ExpDate = {
+              [db.Sequelize.Op.ne]: null,  // Ensure ExpDate is not null
+              [db.Sequelize.Op.lt]: today, // Expired (before today)
+          };
       } else if (expStatus === "nearToExp") {
-        nearToExpDate.setDate(nearToExpDate.getDate() + Number(lowStockDays));
-        // console.log(nearToExpDate)
-        whereCondition.ExpDate = {
-          [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
-        }; // Between today and 90 days from now
+          const nearToExpDate = new Date();
+          nearToExpDate.setDate(nearToExpDate.getDate() + Number(lowStockDays));
+  
+          whereCondition.ExpDate = {
+              [db.Sequelize.Op.ne]: null,  // Ensure ExpDate is not null
+              [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
+          }; // Between today and `lowStockDays` from now
       } else if (expStatus === "upToDate") {
-        const upToDateThreshold = new Date();
-        upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(lowStockDays));
-        whereCondition.ExpDate = { [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0] }; // More than 90 days from today
+          const upToDateThreshold = new Date();
+          upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(lowStockDays));
+  
+          whereCondition.ExpDate = {
+              [db.Sequelize.Op.ne]: null,  // Ensure ExpDate is not null
+              [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0], // More than `lowStockDays` from today
+          };
       }
-    }
+  }
+  
+  
 
     let skip = (Page - 1) * Number(Limit);
 
@@ -214,6 +228,7 @@ class StocksService {
     //   raw: true,
     //   nest: true,
     // })
+    // console.log(whereCondition)
     const { rows: stocks, count } = await db.products.findAndCountAll({
       attributes: [
           "PId",
@@ -251,34 +266,69 @@ class StocksService {
       // nest: true,
   })
 
-  const transformedStocks = stocks.flatMap(product => 
-    product.stocks.map(stock => ({
-        SId: stock.SId,
-        PId: stock.PId,
-        BatchNo: stock.BatchNo,
-        ExpDate: stock.ExpDate,
-        MRP: stock.MRP,
-        PTR: stock.PTR,
-        Scheme: stock.Scheme,
-        BoxQty: stock.BoxQty,
-        Loose: stock.Loose,
-        Stock: stock.Stock,
-        organisationId: stock.organisationId,
-        entityId: stock.entityId,
-        location: stock.location,
-        PTS: stock.PTS,
-        createdAt: stock.createdAt,
-        updatedAt: stock.updatedAt,
-        product: {
-            PId: product.PId,
-            PCode: product.PCode,
-            PName: product.PName,
-            PackagingDetails: product.PackagingDetails,
-            SaltComposition: product.SaltComposition,
-            LOCKED: product.LOCKED
-        }
-    }))
-);
+  const transformedStocks = stocks.flatMap(product => {
+    const filteredStocks = expStatus 
+        ? product.stocks.filter(stock => stock.Stock > 0) // Only include stocks with available quantity
+        : product.stocks;
+
+    return filteredStocks.length > 0 
+        ? filteredStocks.map(stock => ({
+            SId: stock.SId,
+            PId: stock.PId,
+            BatchNo: stock.BatchNo,
+            ExpDate: stock.ExpDate,
+            MRP: stock.MRP,
+            PTR: stock.PTR,
+            Scheme: stock.Scheme,
+            BoxQty: stock.BoxQty,
+            Loose: stock.Loose,
+            Stock: stock.Stock,
+            organisationId: stock.organisationId,
+            entityId: stock.entityId,
+            location: stock.location,
+            PTS: stock.PTS,
+            createdAt: stock.createdAt,
+            updatedAt: stock.updatedAt,
+            product: {
+                PId: product.PId,
+                PCode: product.PCode,
+                PName: product.PName,
+                PackagingDetails: product.PackagingDetails,
+                SaltComposition: product.SaltComposition,
+                LOCKED: product.LOCKED
+            }
+        }))
+        : (expStatus ? [] : [{ // If expStatus exists and no stock is found, return an empty array
+            SId: null,
+            PId: null,
+            BatchNo: null,
+            ExpDate: null,
+            MRP: null,
+            PTR: null,
+            Scheme: null,
+            BoxQty: null,
+            Loose: null,
+            Stock: null,
+            organisationId: null,
+            entityId: null,
+            location: null,
+            PTS: null,
+            createdAt: null,
+            updatedAt: null,
+            product: {
+                PId: product.PId,
+                PCode: product.PCode,
+                PName: product.PName,
+                PackagingDetails: product.PackagingDetails,
+                SaltComposition: product.SaltComposition,
+                LOCKED: product.LOCKED
+            }
+        }]);
+});
+
+
+// console.log(transformedStocks);
+
 
 // console.log(transformedStocks);
 
@@ -480,42 +530,105 @@ class StocksService {
       }
       
       // Step 3: Fetch the paginated stock data
-      const stocks = await db.stocks.findAll({
+      const { rows: stocks, count } = await db.products.findAndCountAll({
+        attributes: [
+            "PId",
+            "PCode",
+            "PName",
+            "PackagingDetails",
+            "SaltComposition",
+            "LOCKED",
+            "manufacturerId"
+        ],
         include: [
-          {
-            model: db.products,
-            as: "product",
-            attributes: [
-              "PId",
-              "PCode",
-              "PName",
-              "PackagingDetails",
-              "SaltComposition",
-              "LOCKED",
-            ],
-            // where: search
-            //   ? {
-            //       [Op.or]: [
-            //         { PCode: { [Op.like]: `%${search}%` } },
-            //         { PName: { [Op.like]: `%${search}%` } },
-            //         { SaltComposition: { [Op.like]: `%${search}%` } },
-            //       ],
-            //     }
-            //   : undefined,
-          },
+            {
+                model: db.stocks,
+                as: "stocks", // Adjust alias as per your association
+                required: false, // LEFT JOIN: include products even if stock is not available
+                where:whereCondition
+            },
         ],
         where: {
-          ...whereCondition,
-          ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
+          manufacturerId: id,
+            ...(search
+                ? {
+                      [Op.or]: [
+                          { PCode: { [Op.like]: `%${search}%` } },
+                          { PName: { [Op.like]: `%${search}%` } },
+                          { SaltComposition: { [Op.like]: `%${search}%` } },
+                      ],
+                  }
+                : {}),
         },
-        // offset: skip,
-        // limit: Number(Limit),
-        raw: true,
-        nest: true,
-      });
+        offset: skip,
+        limit: Number(Limit),
+        subQuery: false,
+        // raw: true,
+        // nest: true,
+    })
+  
+    const transformedStocks = stocks.flatMap(product => {
+      const filteredStocks = expStatus 
+          ? product.stocks.filter(stock => stock.Stock > 0) // Only include stocks with available quantity
+          : product.stocks;
+  
+      return filteredStocks.length > 0 
+          ? filteredStocks.map(stock => ({
+              SId: stock.SId,
+              PId: stock.PId,
+              BatchNo: stock.BatchNo,
+              ExpDate: stock.ExpDate,
+              MRP: stock.MRP,
+              PTR: stock.PTR,
+              Scheme: stock.Scheme,
+              BoxQty: stock.BoxQty,
+              Loose: stock.Loose,
+              Stock: stock.Stock,
+              organisationId: stock.organisationId,
+              entityId: stock.entityId,
+              location: stock.location,
+              PTS: stock.PTS,
+              createdAt: stock.createdAt,
+              updatedAt: stock.updatedAt,
+              product: {
+                  PId: product.PId,
+                  PCode: product.PCode,
+                  PName: product.PName,
+                  PackagingDetails: product.PackagingDetails,
+                  SaltComposition: product.SaltComposition,
+                  LOCKED: product.LOCKED
+              }
+          }))
+          : (expStatus ? [] : [{ // If expStatus exists and no stock is found, return an empty array
+              SId: null,
+              PId: null,
+              BatchNo: null,
+              ExpDate: null,
+              MRP: null,
+              PTR: null,
+              Scheme: null,
+              BoxQty: null,
+              Loose: null,
+              Stock: null,
+              organisationId: null,
+              entityId: null,
+              location: null,
+              PTS: null,
+              createdAt: null,
+              updatedAt: null,
+              product: {
+                  PId: product.PId,
+                  PCode: product.PCode,
+                  PName: product.PName,
+                  PackagingDetails: product.PackagingDetails,
+                  SaltComposition: product.SaltComposition,
+                  LOCKED: product.LOCKED
+              }
+          }]);
+  });
       
       // Step 4: Attach sumOfStocks to each stock object
-      const enrichedStocks = stocks.map((stock) => ({
+      const enrichedStocks = transformedStocks.map((stock) => ({
         ...stock,
         sumOfStocks: stockSumMap[stock.product.PId] || 0,
       }));
@@ -523,7 +636,7 @@ class StocksService {
       // console.log(enrichedStocks);
       
       
-      const result = stockSums.length
+      const result = count
       const totalData = result;
       const totalPage = Math.ceil(result / Number(Limit));
       const currentPage = Page;
