@@ -17,6 +17,22 @@ class StocksService {
 
   async addStock(organisationId, stocksData) {
     // console.log(stocksData,'gfhjkl',organisationId)
+    const check = await db.stocks.findOne({where:{PId:stocksData.PId,BatchNo:stocksData.BatchNo,organisationId:organisationId}})
+    if(check){
+      const updatedStock = Number(check.Stock) + Number(stocksData?.Stock);
+
+    // Update the stock value
+    await db.stocks.update(
+        { Stock: updatedStock },
+        { where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId } }
+    );
+
+    // Return the updated record
+    return {
+        ...check.toJSON(), // Convert Sequelize object to plain JSON
+        Stock: updatedStock // Update stock in the returned object
+    };
+    }
     return await db.stocks.create({
       PId: stocksData.PId,
       BatchNo: stocksData.BatchNo,

@@ -166,6 +166,33 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+            const [distributor] = await db.sequelize.query(
+                `SELECT 
+                    mn.distributorId, 
+                    mn.companyName,
+                    mn.profilePic,
+                    JSON_ARRAYAGG(
+                      JSON_OBJECT(
+                        'addressType', ad.addressType, 
+                        'name', ad.name, 
+                        'mobile', ad.mobile, 
+                        'city', ad.city, 
+                        'state', ad.state
+                      )
+                    ) AS addresses
+                 FROM distributors AS mn
+                 LEFT JOIN \`address\` AS ad
+                   ON ad.userId = mn.distributorId
+                 WHERE mn.distributorId = :id
+                 GROUP BY mn.distributorId, mn.companyName`,
+                {
+                    replacements: {
+                        manufacturerId: Number(manufacturerId),
+                        id: Number(id),
+                    },
+                    type: db.Sequelize.QueryTypes.SELECT,
+                }
+            );
             let orderFromData =await getData(data?.userType,id)
             const cartItems = await db.usercarts.findAll({
                 where: {
@@ -224,6 +251,7 @@ class UsersCartService {
                 status: message.code200,
                 message: "Cart fetched successfully.",
                 manufacturer:manufacturer,
+                distributor,
                 cart: updateCart,
                 userType:data?.userType,
                 orderFrom:orderFromData
