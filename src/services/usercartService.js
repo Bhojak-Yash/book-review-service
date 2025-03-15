@@ -181,7 +181,7 @@ class UsersCartService {
                     {
                         model:db.stocks,
                         as:"stockDetails",
-                        attributes:['MRP','PTR','BatchNo',"Scheme",'Stock']
+                        attributes:['MRP','PTR','BatchNo',"Scheme",'Stock','PTS']
                     }
                 ],
             });
@@ -201,7 +201,8 @@ class UsersCartService {
                     "PName":item.productDetails.PName,
                     "SaltComposition":item.productDetails.SaltComposition,
                     "MRP":item.stockDetails.MRP,
-                    "PTR":item.stockDetails.PTR,
+                    "PTR":item.stockDetails.PTR || 0,
+                    "PTS":item.stockDetails.PTS || 0,
                     "scheme":item.stockDetails.Scheme || null,
                     "BatchNo":item.stockDetails.BatchNo,
                     "stock":item.stockDetails.Stock
