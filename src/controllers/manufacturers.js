@@ -91,3 +91,16 @@ exports.distributers_cnf_summary = async (req, res) => {
     return res.status(500).json({ status:message.code500,message:error.message });
   }
 };
+
+exports.po_page_card_data = async (req, res) => {
+  try {
+    const data = {...req.query,...req.user};
+    const cnf = await ManufacturerService.po_page_card_data(data);
+
+      return res.json(cnf);
+   
+  } catch (error) {
+    console.error("Error po_page_card_data:", error);
+    return res.status(500).json({ status:message.code500,message:error.message });
+  }
+};

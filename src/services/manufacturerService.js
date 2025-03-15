@@ -1,6 +1,7 @@
 const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
+const { where } = require('sequelize');
 const Users = db.users;
 const sequelize = db.sequelize
 const Manufacturers = db.manufacturers;
@@ -494,7 +495,7 @@ class ManufacturerService {
       // console.log(whereCondition)
       const totalData = await db.orders.count({ where: whereCondition })
       const result = await db.orders.findAll({
-        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile','deliveryType'],
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType'],
         where: whereCondition,
         include: [
           {
@@ -542,7 +543,7 @@ class ManufacturerService {
       const id = Number(data.distributorId)
 
       const result = await db.distributors.findOne({
-        attributes: ['distributorId', 'status', "phone", "email", "GST","CIN"],
+        attributes: ['distributorId', 'status', "phone", "email", "GST", "CIN"],
         include: [
           {
             model: db.address,
@@ -571,8 +572,8 @@ class ManufacturerService {
       });
       const sumOfOrders = await db.orders.findOne({
         attributes: [[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"],
-                     [db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("balance")), 0), "pendingPayment"]
-      ],where:{orderFrom:Number(id)}
+        [db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("balance")), 0), "pendingPayment"]
+        ], where: { orderFrom: Number(id) }
       })
       // console.log(orders)
       return {
@@ -603,37 +604,37 @@ class ManufacturerService {
           ],
         };
       }
-      
+
 
       // Current period result
-      let currentResult =await getcurrentResult(whereClause)
+      let currentResult = await getcurrentResult(whereClause)
       let previousWhereClause = { authorizedBy: Number(id) };
-    
+
       if (start_date && end_date) {
-          let previousStartDate = new Date(start_date);
-          let previousEndDate = new Date(end_date);
+        let previousStartDate = new Date(start_date);
+        let previousEndDate = new Date(end_date);
 
-          // Calculate previous period range
-          const diff = previousEndDate.getTime() - previousStartDate.getTime();
-          previousStartDate.setTime(previousStartDate.getTime() - diff);
-          previousEndDate.setTime(previousEndDate.getTime() - diff);
+        // Calculate previous period range
+        const diff = previousEndDate.getTime() - previousStartDate.getTime();
+        previousStartDate.setTime(previousStartDate.getTime() - diff);
+        previousEndDate.setTime(previousEndDate.getTime() - diff);
 
-          previousWhereClause.createdAt = {
-              [Op.between]: [previousStartDate, previousEndDate],
-          };
+        previousWhereClause.createdAt = {
+          [Op.between]: [previousStartDate, previousEndDate],
+        };
       }
 
-      let previousResult =await getcurrentResult(previousWhereClause)
+      let previousResult = await getcurrentResult(previousWhereClause)
 
       let changes = {
-        disChange : (Number(Number(currentResult.dis || 0)-Number(previousResult.dis || 0))/Number(previousResult.dis && previousResult.dis>0?previousResult.dis:1))*100,
-        cnfChange : (Number(Number(currentResult.cnf || 0)-Number(previousResult.cnf || 0))/Number(previousResult.cnf && previousResult.cnf>0?previousResult.cnf:1))*100,
-        PendingCountChange: (Number(Number(currentResult.pendingCount || 0)-Number(previousResult.pendingCount || 0))/Number(previousResult.pendingCount && previousResult.pendingCount>0?previousResult.pendingCount:1))*100
+        disChange: (Number(Number(currentResult.dis || 0) - Number(previousResult.dis || 0)) / Number(previousResult.dis && previousResult.dis > 0 ? previousResult.dis : 1)) * 100,
+        cnfChange: (Number(Number(currentResult.cnf || 0) - Number(previousResult.cnf || 0)) / Number(previousResult.cnf && previousResult.cnf > 0 ? previousResult.cnf : 1)) * 100,
+        PendingCountChange: (Number(Number(currentResult.pendingCount || 0) - Number(previousResult.pendingCount || 0)) / Number(previousResult.pendingCount && previousResult.pendingCount > 0 ? previousResult.pendingCount : 1)) * 100
       }
 
-      const orders = await db.orders.count({where:{orderTo:Number(id)}})
+      const orders = await db.orders.count({ where: { orderTo: Number(id) } })
 
-      let finalResult = {...currentResult,...changes,totalOrders:orders}
+      let finalResult = { ...currentResult, ...changes, totalOrders: orders }
 
       return {
         status: message.code200,
@@ -648,9 +649,77 @@ class ManufacturerService {
       }
     }
   }
+
+  async po_page_card_data(data) {
+    try {
+      const { id, userType } = data;
+      const checkId = userType === "Manufacturer" ? data?.data?.employeeOf || id : id;
+
+      // Parallelizing queries for better performance
+      const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
+        db.orders.count({ where: { orderTo: Number(checkId) } }),
+        db.orders.count({
+          where: {
+            orderTo: Number(checkId),
+            orderStatus: { [Op.notIn]: ["Paid", "Received", "Partially paid"] },
+          },
+        }),
+        db.authorizations.findAll({
+          attributes: [
+            "distributers.type",
+            [db.sequelize.fn("COUNT", db.sequelize.col("authorizedId")), "count"],
+          ],
+          where: { authorizedBy: Number(id), status: "Approved" },
+          include: [
+            {
+              model: db.distributors,
+              as: "distributers",
+              attributes: ["type"],
+            },
+          ],
+          group: ["distributers.type"],
+          raw: true,
+        }),
+        db.authorizations.count({ where: { authorizedBy: Number(checkId), status: "Pending" } }),
+        db.orders.findOne({
+          attributes: [
+            [db.sequelize.fn("SUM", db.sequelize.col("balance")), "totalBalance"],
+            [db.sequelize.fn("COUNT", db.sequelize.col("balance")), "totalCount"],
+          ],
+          where: { balance: { [db.Op.gt]: 0 } },
+          raw: true,
+        }),
+      ]);
+
+      const cnfCount = counts.find((item) => item["distributers.type"] === "CNF")?.count || 0;
+      const distributorCount = counts.find((item) => item["distributers.type"] === "Distributor")?.count || 0;
+
+      return {
+        status: 200,
+        message: "Data fetched successfully",
+        data: {
+          ordersCount,
+          pendingCount,
+          cnfCount,
+          distributorCount,
+          pendingRequest,
+          totalBalance: balanceData?.totalBalance || 0,
+          totalCount: balanceData?.totalCount || 0,
+        },
+      };
+    } catch (error) {
+      console.error("po_page_card_data service error:", error.message);
+      return {
+        status: 500,
+        message: "Internal server error",
+      };
+    }
+  }
+
+
 }
 
-async function getcurrentResult (whereClause){
+async function getcurrentResult(whereClause) {
   let currentResult = await db.authorizations.findOne({
     attributes: [
       // [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalCount"],
@@ -662,7 +731,7 @@ async function getcurrentResult (whereClause){
     raw: true,
   }) || {};
 
- let whereCondition={...whereClause,status:'Approved'}
+  let whereCondition = { ...whereClause, status: 'Approved' }
   const counts = await db.authorizations.findAll({
     attributes: [
       "distributers.type",
@@ -695,6 +764,8 @@ async function getcurrentResult (whereClause){
   currentResult.dis = distributorCount
   return currentResult
 }
+
+
 
 // module.exports = ManufacturerService;
 module.exports = new ManufacturerService(db);
