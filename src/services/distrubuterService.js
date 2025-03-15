@@ -565,7 +565,7 @@ class DistributorService {
             let transaction;
             console.log(data)
             try {
-              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents } = data;
+              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents,manufactureres } = data;
         
               if (!distributorId) {
                 return {
@@ -574,7 +574,7 @@ class DistributorService {
                 }
               }
               transaction = await db.sequelize.transaction({timeout:30000});
-              console.log(';;;;')
+            //   console.log(';;;;')
               const distributor = await db.sequelize.query(
                 `SELECT 
                      *
@@ -596,6 +596,51 @@ class DistributorService {
                   message: "Manufacturer not found",
                 }
               }
+              
+        // const authhh = manufactureres?.map((item)=>{
+        //     return {
+        //         authorizedBy:Number(item),
+        //         authorizedId:Number(distributorId),
+        //         status:'Pending'
+        //     }
+        // })
+
+        // await db.authorizations.bulkCreate(authhh)
+        const authhh = manufactureres.map((item) => ({
+            authorizedBy: Number(item),
+            authorizedId: Number(distributorId),
+            status: "Pending",
+        }));
+        
+        // Find existing records where status is 'Not Send'
+        const existingRecords = await db.authorizations.findAll({
+            where: {
+                authorizedBy: authhh.map((a) => a.authorizedBy),
+                authorizedId: authhh.map((a) => a.authorizedId),
+                status: {[db.Op.in]:['Not Send','Pending']},
+            },
+            raw: true,
+        });
+        
+        // Get the records that need updates
+        const toUpdate = existingRecords.map((rec) => rec.id);
+        
+        // Update existing records
+        if (toUpdate.length > 0) {
+            await db.authorizations.update(
+                { status: "Pending" },
+                { where: { id: toUpdate } }
+            );
+        }
+        
+        // Filter out records that already exist to avoid duplicate inserts
+        const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
+        const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
+        
+        // Insert new records if any
+        if (newRecords.length > 0) {
+            await db.authorizations.bulkCreate(newRecords);
+        }
         
               // Update manufacturer details
             //   await db.distributors.update(
