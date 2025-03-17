@@ -20,6 +20,8 @@ const documentCategory = require('./documentCategory')
 const documents = require('./documents')
 const payments = require('./payment')
 const ss = require('sequelize')
+const states = require('./states')
+const cities = require('./cities')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -65,7 +67,9 @@ const db = {
   address:address(sequelize,Sequelize),
   documentCategory:documentCategory(sequelize,Sequelize),
   documents:documents(sequelize,Sequelize),
-  payments:payments(sequelize,Sequelize)
+  payments:payments(sequelize,Sequelize),
+  states: states(sequelize, Sequelize),
+  cities: cities(sequelize, Sequelize)
 };
 
 
