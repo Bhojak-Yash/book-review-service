@@ -7,13 +7,16 @@ module.exports = (sequelize, Sequelize) => {
             autoIncrement: true,
         },
         "userId": {
-            type: Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "categoryId": {
-            type: Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "image":{
-            type: Sequelize.TEXT
+            type: Sequelize.TEXT,
+            allowNull: false
         },
         "status": {
             type: Sequelize.STRING

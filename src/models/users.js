@@ -13,15 +13,18 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.STRING
         },
         "userType":{
-            type:Sequelize.STRING
+            type: Sequelize.ENUM('Manufacturer', 'Distributor', 'Retailer', 'Admin', 'Employee')
         },
         "isPasswordChangeRequired":{
             type:Sequelize.INTEGER,
             allowNull: false,
             defaultValue: 1,
         },
-        "status":{
-            type:Sequelize.STRING
+        "status": {
+            type: Sequelize.ENUM(
+                "Active",
+                "Inactive"
+            )
         },
         // "entityId":{
         //     type:Sequelize.INTEGER

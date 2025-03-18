@@ -7,5 +7,6 @@ router.get('/statistics_two', verifyToken, distributorPanelController.getStatist
 router.get('/statistics_three', verifyToken, distributorPanelController.Statistics_three)
 router.get('/Statistics_four', verifyToken, distributorPanelController.Statistics_four)
 router.get('/Statistics_five', verifyToken, distributorPanelController.Statistics_five)
+router.get('/notifications', verifyToken, distributorPanelController.notifications)
 
 module.exports =router
