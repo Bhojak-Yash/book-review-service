@@ -1,7 +1,8 @@
 module.exports =(sequelize,Sequelize)=>{
     const items = sequelize.define("loginlogs",{
         "userId":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "token":{
             type:Sequelize.TEXT

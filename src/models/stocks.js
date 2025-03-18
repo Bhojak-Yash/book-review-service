@@ -10,15 +10,21 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.INTEGER
         },
         "BatchNo":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "ExpDate":{
-            type:Sequelize.DATE
+            type: Sequelize.DATE,
+            allowNull: false
         },
         "MRP":{
-            type:Sequelize.DOUBLE
+            type: Sequelize.DOUBLE,
+            allowNull: false
         },
         "PTR":{
+            type:Sequelize.DOUBLE
+        },
+        "PTS":{
             type:Sequelize.DOUBLE
         },
         "Scheme":{
@@ -31,21 +37,21 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.INTEGER
         },
         "Stock":{
-            type:Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "organisationId":{
-            type:Sequelize.BIGINT
+            type: Sequelize.BIGINT,
+            allowNull: false
         }
         ,
         "entityId":{
             type:Sequelize.BIGINT
         },
         "location":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
-        "PTS":{
-            type:Sequelize.DOUBLE
-        }
     },
     {
         tableName: "stocks"

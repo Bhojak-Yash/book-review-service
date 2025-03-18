@@ -23,7 +23,7 @@ module.exports =(sequelize,Sequelize)=>{
           },
           MRP: {
             type: Sequelize.DECIMAL,
-            allowNull: true,
+            allowNull: false,
           },
           PTR: {
             type: Sequelize.DECIMAL,
@@ -120,8 +120,3 @@ module.exports =(sequelize,Sequelize)=>{
       })
     return orderitems
 }
-// OrderId
-// Item Name
-// Price
-// Quantity
-// Total amount

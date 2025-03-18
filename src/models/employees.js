@@ -7,10 +7,12 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "employeeCode":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "firstName":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "lastName":{
             type:Sequelize.STRING
@@ -22,10 +24,14 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.BIGINT
         },
        "email":{
-            type:Sequelize.STRING
+           type: Sequelize.STRING,
+           allowNull: false
         },
         "employeeOf":{
             type:Sequelize.STRING
+        },
+        "entityId": {
+            type: Sequelize.BIGINT
         },
         // "divisionId":{
         //     type:Sequelize.STRING
@@ -36,9 +42,7 @@ module.exports =(sequelize,Sequelize)=>{
        "employeeStatus":{
             type:Sequelize.STRING
         },
-        "entityId":{
-            type:Sequelize.BIGINT
-        },
+        
 
     },
 

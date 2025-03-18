@@ -52,3 +52,13 @@ exports.Statistics_five = async(req, res) => {
         return res.status(500).json({message: "Internal Server Error"});
     }
 };
+
+exports.notifications = async(req, res) => {
+    try{
+        const stats = await distributorDashboard.notifications(req.user);
+        return res.status(stats.status).json(stats);
+    }catch (error){
+        console.log("Error in notifications Controller:", error);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+};

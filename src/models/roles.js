@@ -20,7 +20,8 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false, 
         },
         "ownerId":{
-            type:Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         }
     },
 

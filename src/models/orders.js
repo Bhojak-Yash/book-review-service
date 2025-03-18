@@ -51,7 +51,9 @@ module.exports = (sequelize, Sequelize) => {
           type: Sequelize.STRING,
         },
         orderStatus: {
-          type: Sequelize.STRING,
+          type: Sequelize.ENUM(
+            'Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 
+            'Received', 'Paid', 'Partially paid', 'Canceled'),
         },
         orderFrom: {
           type: Sequelize.BIGINT,
@@ -59,14 +61,18 @@ module.exports = (sequelize, Sequelize) => {
         orderTo: {
           type: Sequelize.BIGINT,
         },
+        orderTotal: {
+          type: Sequelize.BIGINT
+        },
         deliveredAt: {
           type: Sequelize.DATE, // Corrected data type
         },
         // divisionId: {
         //   type: Sequelize.BIGINT, // Corrected data type
         // },
-        orderTotal:{
-          type:Sequelize.BIGINT
+        
+        entityId: {
+          type: Sequelize.INTEGER,
         },
         reason: {
           type: Sequelize.STRING, // Corrected data type
