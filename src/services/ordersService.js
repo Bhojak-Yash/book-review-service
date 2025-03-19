@@ -2,6 +2,8 @@ const { where } = require('sequelize');
 const message = require('../helpers/message');
 const db = require('../models/db');
 const StocksService = require('./stocksService');
+const notificationsService = require('../services/notificationsService');
+
 const Op = db.Op;
 const moment = require("moment");
 
@@ -54,6 +56,18 @@ class OrdersService {
           orderTo: Number(orderData.orderData.orderTo)
         },
       }, { transaction })
+
+      
+      // Calling the notificationService.............................................................................
+      await notificationsService.createNotification({
+          organisationId: orderData.orderData.orderTo,
+          category: "PO Received",
+          title: "New Purchase Order Received",
+          description: `You have received a new purchase order from user ${orderby}.`
+      }, transaction);
+
+
+
       await transaction.commit();
       return {
         status: message.code200,
@@ -73,12 +87,15 @@ class OrdersService {
   async updateOrder(orderId, updates, loggedInUserId) {
     // console.log(orderId,updates,loggedInUserId,';;lllll')
     try {
+
       const order = await this.db.orders.findByPk(orderId);
     const orderItems = await db.orderitems.findAll({
       where: { orderId: orderId },
     });
     // console.log(order,orderItems,';pppppp')
-    if (!order) throw new Error("Order not found.");
+      if (!orderItems) {
+        throw new Error("Order items not found.");
+      }
     if(updates?.payment){
       const {amount,mode,image} = updates?.payment
       await db.payments.create({
@@ -111,6 +128,7 @@ class OrdersService {
     }
 
     if (updates.orderStatus === "Confirmed") {
+     
       updates.confirmationDate = new Date();
       if (orderItems && orderItems.length > 0) {
 
@@ -125,13 +143,15 @@ class OrdersService {
                 transaction: t, // Use the transaction
               }
             );
-// console.log('ppppp',updates)
+            // console.log('ppppp',updates)
             if (!stock || stock.Stock < item.quantity) {
               throw new Error(
                 `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
               );
             }
           }
+          console.log(updates?.items);
+
           for (let item of updates?.items) {
             console.log('dwekjh')
             await db.orderitems.update(item, { where: { id: item.id } },{transaction:t});
@@ -156,6 +176,14 @@ class OrdersService {
           );
         });
       }
+      console.log("testttttt");
+      // Sending notification for PO Received
+      await notificationsService.createNotification({
+        organisationId: order.orderFrom,
+        category: "PO Status update",
+        title: "Purchase Order: Confirmed",
+        description: `Your purchase order has been confirmed for orderId ${orderId}.`
+      });
     }
     // if(updates.orderStatus === "Rejected"){
 
@@ -265,7 +293,7 @@ class OrdersService {
 
     return this.db.orders.findByPk(orderId);
     } catch (error) {
-      console.log('update oreder servcie error:',error.message)
+      console.log('update order servcie error:',error.message)
      return {
       status:message.code500,
       message:error.message

@@ -22,6 +22,7 @@ const payments = require('./payment')
 const ss = require('sequelize')
 const states = require('./states')
 const cities = require('./cities')
+const notifications = require('./notifications')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -69,7 +70,8 @@ const db = {
   documents:documents(sequelize,Sequelize),
   payments:payments(sequelize,Sequelize),
   states: states(sequelize, Sequelize),
-  cities: cities(sequelize, Sequelize)
+  cities: cities(sequelize, Sequelize),
+  notifications: notifications(sequelize, Sequelize),
 };
 
 
