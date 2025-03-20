@@ -1,0 +1,13 @@
+#Notifications table....................................................
+
+CREATE TABLE`notifications`(
+    `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `organisationId` INT,
+    `category` varchar(255),
+    `title` VARCHAR(255),
+    `description` VARCHAR(255),
+    `status` ENUM('Read', 'Unread'),
+    `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `destroyTime` TIMESTAMP NULL
+);

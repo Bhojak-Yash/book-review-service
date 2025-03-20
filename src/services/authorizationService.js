@@ -1,7 +1,7 @@
 const db = require('../models/db');
 const message = require('../helpers/message')
 const Op = db.Op
-
+const notificationsService = require('../services/notificationsService')
 class AuthService {
     constructor(db) {
         this.db = db;
@@ -41,6 +41,17 @@ class AuthService {
                 authorizedId: Number(authorizedId),
                 status: 'Pending'
             })
+
+
+            // Calling the notificationService for Authorization Request
+            await notificationsService.createNotification({
+                organisationId: authorizedBy,
+                category: "Authorization Request",
+                title: "Authorization Request Pending",
+                description: `You Received an authorization request & is pending approval.`
+            });
+
+
             return {
                 status: message.code200,
                 message: 'Authorization request sent',
@@ -345,6 +356,22 @@ class AuthService {
                 }
             }
             await db.authorizations.update({status:status},{where:{authorizedId:userId,authorizedBy:id}})
+
+
+            const statusMessage = data.status || "Pending"; 
+            const newNotification = await notificationsService.createNotification({
+                organisationId: userId,
+                category: "Authorization Request",
+                title: `Authorization Request: ${statusMessage}`, 
+                description: `An authorization request has been ${statusMessage}.`
+            });
+
+            // Check if notification was created successfully before updating the status
+            if (newNotification.status === 200 && newNotification.data) {
+                await notificationsService.updateNotificationStatus(newNotification.data.id, "Unread");
+            }
+
+
             return {
                 status:message.code200,
                 message:message.message200,
