@@ -16,11 +16,20 @@ module.exports =(sequelize,Sequelize)=>{
         "ownerName":{
             type:Sequelize.STRING
         },
+        "profilePic":{
+            type:Sequelize.STRING
+        },
         "address":{
             type:Sequelize.STRING
         },
         "phone":{
             type:Sequelize.BIGINT
+        },
+        "FSSAI":{
+            type:Sequelize.STRING
+        },
+        "drugLicense":{
+            type:Sequelize.STRING
         },
         "licence":{
             type:Sequelize.STRING

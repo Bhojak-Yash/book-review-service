@@ -49,3 +49,28 @@ exports.get_distributors_list = async (req,res) => {
     })
   }
 }
+
+// exports.retailer_profile_update = async (req, res) => {
+//   try {
+//     const data = { ...req.user, ...req.body }
+//     const distributor = await RetailerService.retailer_profile_update(data);
+
+//     return res.json(distributor);
+//   } catch (error) {
+//     console.error("retailer_profile_update Error:", error.message);
+//     return res.status(500).json({ status: message.code500, message: error.message });
+//   }
+// }
+
+exports.retailer_profile_update = async (req, res) => {
+  try {
+    console.log("Decoded User from Token:", req.user); // Debugging userId
+
+    const response = await RetailerService.retailer_profile_update(req);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("Retailer Profile Update Error:", error.message);
+    return res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};

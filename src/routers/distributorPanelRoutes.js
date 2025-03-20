@@ -2,11 +2,10 @@ const router = require('express').Router()
 const distributorPanelController = require('../controllers/distributorPanelController')
 const {verifyToken} = require('../middlewares/auth')
 
-router.get('/statistics_one', verifyToken, distributorPanelController.getStatistics_one)
-router.get('/statistics_two', verifyToken, distributorPanelController.getStatistics_two)
-router.get('/statistics_three', verifyToken, distributorPanelController.Statistics_three)
-router.get('/Statistics_four', verifyToken, distributorPanelController.Statistics_four)
-router.get('/Statistics_five', verifyToken, distributorPanelController.Statistics_five)
-router.get('/notifications', verifyToken, distributorPanelController.notifications)
+router.get('/distProductInfo', verifyToken, distributorPanelController.distProductInfo)
+router.get('/distributorRequest', verifyToken, distributorPanelController.distributorRequest)
+router.get('/stockRunningLow', verifyToken, distributorPanelController.stockRunningLow)
+router.get('/topProducts', verifyToken, distributorPanelController.topProducts)
+router.get('/topDistributors', verifyToken, distributorPanelController.topDistributors)
 
 module.exports =router

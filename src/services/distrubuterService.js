@@ -255,7 +255,7 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
-// console.log(stocks)
+            // console.log(stocks)
             let ids = []
             const updatedStock = await stocks.map((item) => {
                 ids.push(item.SId)

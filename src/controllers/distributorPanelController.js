@@ -1,8 +1,8 @@
 const distributorDashboard = require('../services/distributorPanelService');
 
-exports.getStatistics_one = async (req, res) => {
+exports.distProductInfo = async (req, res) => {
     try {
-        const stats = await distributorDashboard.Statistics_one(req.user);
+        const stats = await distributorDashboard.distProductInfo(req.user);
         return res.status(stats.status).json(stats);
     } catch (error) {
         console.error('Error in getStatistics_one controller:', error);
@@ -10,10 +10,10 @@ exports.getStatistics_one = async (req, res) => {
     }
 };
 
-exports.getStatistics_two = async (req, res) => {
+exports.distributorRequest = async (req, res) => {
     try {
         const { statusFilter = 'All' } = req.query;
-        const stats = await distributorDashboard.Statistics_two(req.user, statusFilter);
+        const stats = await distributorDashboard.distributorRequest(req.user, statusFilter);
         return res.status(stats.status).json(stats);
     } catch (error) {
         console.error('Error in getStatistics_two controller:', error);
@@ -21,9 +21,9 @@ exports.getStatistics_two = async (req, res) => {
     }
 };
 
-exports.Statistics_three = async (req, res) => {
+exports.stockRunningLow = async (req, res) => {
     try {
-        const stats = await distributorDashboard.Statistics_three(req.user);
+        const stats = await distributorDashboard.stockRunningLow(req.user);
         return res.status(stats.status).json(stats);
     } catch (error) {
         console.error('Error in Statistics_three controller:', error);
@@ -31,10 +31,10 @@ exports.Statistics_three = async (req, res) => {
     }
 };
 
-exports.Statistics_four = async(req, res) => {
+exports.topProducts = async(req, res) => {
     try{
         const {filterType} = req.query;
-        const stats = await distributorDashboard.Statistics_four(req.user, filterType);
+        const stats = await distributorDashboard.topProducts(req.user, filterType);
         return res.status(stats.status).json(stats);
     }catch (error){
         console.log("Error in Statistics_four Controller:", error);
@@ -42,23 +42,13 @@ exports.Statistics_four = async(req, res) => {
     }
 };
 
-exports.Statistics_five = async(req, res) => {
+exports.topDistributors = async(req, res) => {
     try{
         const {filterType} = req.query;
-        const stats = await distributorDashboard.Statistics_five(req.user, filterType);
+        const stats = await distributorDashboard.topDistributors(req.user, filterType);
         return res.status(stats.status).json(stats);
     }catch (error){
         console.log("Error in Statistics_four Controller:", error);
-        return res.status(500).json({message: "Internal Server Error"});
-    }
-};
-
-exports.notifications = async(req, res) => {
-    try{
-        const stats = await distributorDashboard.notifications(req.user);
-        return res.status(stats.status).json(stats);
-    }catch (error){
-        console.log("Error in notifications Controller:", error);
         return res.status(500).json({message: "Internal Server Error"});
     }
 };
