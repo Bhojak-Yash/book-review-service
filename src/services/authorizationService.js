@@ -48,7 +48,7 @@ class AuthService {
                 organisationId: authorizedBy,
                 category: "Authorization Request",
                 title: "Authorization Request Pending",
-                description: `An authorization request has been submitted by user ${authorizedId} and is pending approval.`
+                description: `You Received an authorization request & is pending approval.`
             });
 
 
@@ -363,7 +363,7 @@ class AuthService {
                 organisationId: userId,
                 category: "Authorization Request",
                 title: `Authorization Request: ${statusMessage}`, 
-                description: `An authorization request has been ${statusMessage} by user ${id}.`
+                description: `An authorization request has been ${statusMessage}.`
             });
 
             // Check if notification was created successfully before updating the status

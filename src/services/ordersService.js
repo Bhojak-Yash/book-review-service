@@ -63,7 +63,7 @@ class OrdersService {
           organisationId: orderData.orderData.orderTo,
           category: "PO Received",
           title: "New Purchase Order Received",
-          description: `You have received a new purchase order from user ${orderby}.`
+          description: `You have received a new purchase order.`
       }, transaction);
 
 
