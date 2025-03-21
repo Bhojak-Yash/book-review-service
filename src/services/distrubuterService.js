@@ -40,11 +40,13 @@ class DistributorService {
                 },
                 { transaction }
             );
+            const distributorCode = `DIST-${user.id}`;
 
             await Distributors.create(
                 {
                     distributorId: user.id,
                     companyName: companyName,
+                    distributorCode: distributorCode
                 },
                 { transaction }
             );

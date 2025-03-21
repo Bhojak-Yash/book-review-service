@@ -55,7 +55,7 @@ module.exports =(sequelize,Sequelize)=>{
 
         "companyType":{
             type: Sequelize.ENUM('Sole Proprietorship', 'Partnership Firm', 'Limited Liability Partnership (LLP)', 'Private Limited Company', 'Public Limited Company', 'One Person Company (OPC)', 'Section 8 Company', 'Producer Company', 'Nidhi Company', 'Unlimited Company', 'Other'),
-            allowNull: false
+            // allowNull: false
         },
         "PAN":{
             type:Sequelize.STRING

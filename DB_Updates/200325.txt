@@ -9,4 +9,7 @@ ALTER TABLE `retailers`
 ALTER TABLE `retailers`
     ADD COLUMN `drugLicense` date AFTER `FSSAI`;
 
-................
+
+................DocumentCategory table.............................................
+1. Added documentname for the Retailer Category -> Drug Liscense
+                                                -> ISO 
