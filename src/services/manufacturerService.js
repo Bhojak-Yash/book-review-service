@@ -85,10 +85,13 @@ class ManufacturerService {
         { transaction }
       );
 
+      const manufacturerCode = `MAN-${user.id}`;
+
       await sequelize.query(
-        'INSERT INTO manufacturers (manufacturerId, companyName, createdAt, updatedAt) VALUES (:manufacturerId, :companyName, :createdAt, :updatedAt)',
+        'INSERT INTO manufacturers (manufacturerCode, manufacturerId, companyName, createdAt, updatedAt) VALUES (:manufacturerCode, :manufacturerId, :companyName, :createdAt, :updatedAt)',
         {
           replacements: {
+            manufacturerCode: manufacturerCode,
             manufacturerId: user.id,
             companyName: companyName,
             createdAt: new Date(), // Set the current timestamp
@@ -294,6 +297,7 @@ class ManufacturerService {
       };
     }
   }
+
   async getManufacturer(data) {
     try {
       const { manufacturerId } = data;

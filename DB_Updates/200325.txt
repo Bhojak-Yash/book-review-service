@@ -1,0 +1,15 @@
+................Altering retailers table, adding profile pic column.................
+
+ALTER TABLE `retailers`
+    ADD COLUMN `profilePic` date AFTER `ownerName`;
+
+ALTER TABLE `retailers`
+    ADD COLUMN `FSSAI` date AFTER `phone`;
+
+ALTER TABLE `retailers`
+    ADD COLUMN `drugLicense` date AFTER `FSSAI`;
+
+
+................DocumentCategory table.............................................
+1. Added documentname for the Retailer Category -> Drug Liscense
+                                                -> ISO 

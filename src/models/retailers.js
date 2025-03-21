@@ -16,11 +16,20 @@ module.exports =(sequelize,Sequelize)=>{
         "ownerName":{
             type:Sequelize.STRING
         },
+        "profilePic":{
+            type:Sequelize.STRING
+        },
         "address":{
             type:Sequelize.STRING
         },
         "phone":{
             type:Sequelize.BIGINT
+        },
+        "FSSAI":{
+            type:Sequelize.STRING
+        },
+        "drugLicense":{
+            type:Sequelize.STRING
         },
         "licence":{
             type:Sequelize.STRING
@@ -46,7 +55,7 @@ module.exports =(sequelize,Sequelize)=>{
 
         "companyType":{
             type: Sequelize.ENUM('Sole Proprietorship', 'Partnership Firm', 'Limited Liability Partnership (LLP)', 'Private Limited Company', 'Public Limited Company', 'One Person Company (OPC)', 'Section 8 Company', 'Producer Company', 'Nidhi Company', 'Unlimited Company', 'Other'),
-            allowNull: false
+            // allowNull: false
         },
         "PAN":{
             type:Sequelize.STRING

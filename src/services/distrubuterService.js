@@ -40,11 +40,13 @@ class DistributorService {
                 },
                 { transaction }
             );
+            const distributorCode = `DIST-${user.id}`;
 
             await Distributors.create(
                 {
                     distributorId: user.id,
                     companyName: companyName,
+                    distributorCode: distributorCode
                 },
                 { transaction }
             );
@@ -255,7 +257,7 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
-// console.log(stocks)
+            // console.log(stocks)
             let ids = []
             const updatedStock = await stocks.map((item) => {
                 ids.push(item.SId)

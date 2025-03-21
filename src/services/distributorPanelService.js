@@ -1,13 +1,14 @@
 const message = require('../helpers/message');
 const db = require('../models/db');
 const { Op } = require('sequelize');
+const notificationsService = require('./notificationsService')
 
 class distributorDashboard {
     constructor(db) {
         this.db = db;
     }
 
-    async Statistics_one(tokenData) {
+    async distProductInfo(tokenData) {
         try {
             let ownerId;
 
@@ -74,7 +75,7 @@ class distributorDashboard {
         }
     }
 
-    async Statistics_two(tokenData, statusFilter = 'All') {
+    async distributorRequest(tokenData, statusFilter = 'All') {
         try {
             let ownerId;
 
@@ -147,7 +148,7 @@ class distributorDashboard {
     }
 
     //Stock running Low
-    async Statistics_three(tokenData) {
+    async stockRunningLow(tokenData) {
         try {
             let ownerId;
 
@@ -201,6 +202,15 @@ class distributorDashboard {
                     PName: product ? product.PName : 'Unknown',
                     Stock: stock.Stock
                 };
+            });
+
+            //notification..................................................................................
+            notificationsService.createNotification({
+                organisationId: ownerId,
+                category: "Stock Alert!!",
+                title: "Low Stock Warning!!",
+                description: `Your ${lowStockMedicines.length} medicines are running low. Please restock soon.`,
+                status: "Unread",
             });
 
             return {
@@ -287,7 +297,7 @@ class distributorDashboard {
     //     }
     // }
 
-    async Statistics_four(tokenData, filterType) {
+    async topProducts(tokenData, filterType) {
         try {
             let ownerId;
 
@@ -365,7 +375,7 @@ class distributorDashboard {
         }
     }
 
-    async Statistics_five(tokenData) {
+    async topDistributors(tokenData) {
         try {
             let ownerId;
 
@@ -408,86 +418,6 @@ class distributorDashboard {
             };
         } catch (error) {
             console.error('Error in Statistics_five:', error);
-            return {
-                status: message.code500,
-                message: message.message500
-            };
-        }
-    }
-
-    async notifications(tokenData) {
-        try {
-            let ownerId;
-
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
-            }
-
-            // console.log('..........................', ownerId);
-
-            if (!db.stocks) {
-                throw new Error('Stocks model is not loaded correctly');
-            }
-
-            const [orderReceivedTodayResult] = await Promise.all([
-                db.sequelize.query(
-                    `SELECT COUNT(*) AS orderReceived
-                    FROM orders
-                    WHERE orderTo = :ownerId
-                    AND createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY);`,
-                    {
-                        replacements: { ownerId: Number(ownerId) },
-                        type: db.Sequelize.QueryTypes.SELECT,
-                    }
-                ),
-                db.sequelize.query(
-                    `SELECT COUNT(*) AS orderReceivedToday
-                    FROM orders
-                    WHERE orderTo = :ownerId
-                    AND DATE(createdAt) = CURDATE();`,
-                    {
-                        replacements: { ownerId: Number(ownerId) },
-                        type: db.Sequelize.QueryTypes.SELECT,
-                    }
-                )
-            ]);
-            const PO_Received = orderReceivedTodayResult[0]?.orderReceivedToday || 0;
-            // console.log(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;", totalProducts ) 
-
-            // Fetch count of pending authorization requests
-            const RequestPending = await db.authorizations.count({
-                where: db.sequelize.literal(`authorizedBy = ${ownerId} AND status = 'Pending'`)
-            });
-
-
-            // Get low stock threshold from the environment (default to 10 if not set)
-            const lowStockThreshold = process.env.aboutToEmpty || 10;
-
-            // Fetch the count of low-stock items
-            const lowStockCount = await db.stocks.count({
-                where: {
-                    organisationId: Number(ownerId),
-                    Stock: { [db.Sequelize.Op.lt]: Number(lowStockThreshold) }
-                }
-            });
-
-            // console.log("Low Stock Count:", lowStockCount); // Debugging
-
-            return {
-                status: message.code200,
-                message: message.message200,
-                apiData: { PO_Received, RequestPending, lowStockCount }
-            };      
-        } catch (error) {
-            console.error('Statistics_One service error:', error.message);
             return {
                 status: message.code500,
                 message: message.message500
