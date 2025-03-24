@@ -384,6 +384,12 @@ class StocksService {
     });
 
     // console.log(updatedStocks);
+    // console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,", updatedStocks);
+    console.log("Stock Sum Map:", stockSumMap);
+    console.log("Filtered PIds:", filteredPIds);
+    console.log("Transformed Stocks Before Filtering:", transformedStocks);
+    console.log("Filtered Stocks (expStatus):", transformedStocks.filter(s => s.Stock > 0));
+
 
     return {
       stocks: updatedStocks, totalData, totalPage, currentPage: Number(currentPage)
