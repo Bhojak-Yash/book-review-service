@@ -733,12 +733,26 @@ class DistributorService {
                 updateOnDuplicate: ["image", 'status'],
                 conflictFields: ["categoryId", "userId"]
               });
-        
-              await transaction.commit();
-              return {
-                status: message.code200,
-                message: "Distributor details updated successfully",
-              };
+
+                // Fetch manufacturer names for the provided manufacturer IDs
+                const manufacturerNames = await db.manufacturers.findAll({
+                    where: { manufacturerId: manufactureres },
+                    attributes: ['manufacturerId', 'companyName'],
+                    raw: true
+                });
+
+                // Format the response to include manufacturer names
+                const manufacturerList = manufacturerNames.map(manu => ({
+                    manufacturerId: manu.manufacturerId,
+                    companyName: manu.companyName
+                }));
+
+                return {
+                    status: message.code200,
+                    message: "Distributor details updated successfully",
+                    manufacturers: manufacturerList,
+                    documents: documentsData
+                };
         } catch (error) {
             console.log('update_distributor service error:',error.message)
             return {
