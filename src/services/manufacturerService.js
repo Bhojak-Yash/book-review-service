@@ -505,13 +505,54 @@ class ManufacturerService {
           {
             model: db.distributors,
             as: 'distributer',
-            attributes: ['distributorId', 'companyName']
+            attributes: ['distributorId', 'companyName'],
+            include:{
+              model:db.authorizations,
+              as:'auth',
+              where:{authorizedBy:Number(data.id)},
+              attributes:['creditCycle']
+            }
           }
         ],
         order: [['id', 'DESC']],
         limit: Limit,
         offset: Skip
       })
+      const formattedResult = result.map(order => {
+        const distributer = order.distributer;
+        const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
+        const creditCycle = distributer && distributer.auth.length > 0 ? distributer.auth[0].creditCycle : 0;
+      
+        // Calculate due date by adding `creditCycle` days to `deliveredAt`
+        let dueDate = null;
+        let overdue = false;
+      
+        if (deliveredAt) {
+          dueDate = new Date(deliveredAt);
+          dueDate.setDate(dueDate.getDate() + creditCycle); // Add credit cycle days
+      
+          // Check if the due date is before today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Normalize today's date
+      
+          overdue = dueDate < today;
+        }
+      
+        return {
+          ...order.toJSON(),
+          distributer: distributer
+            ? {
+            "companyName":  distributer.companyName,
+            "distributorId":distributer.distributorId
+              }
+            : null,
+          dueDate: dueDate ? dueDate.toISOString().slice(0, 10) : null, // Format YYYY-MM-DD
+          overdue,
+        };
+      });
+      
+      // console.log(formattedResult);
+      
 
       // const updateResult = result.map((item) => {
       //   const plainItem = item.toJSON(); // Convert to plain object
@@ -531,7 +572,7 @@ class ManufacturerService {
         currentPage: Page,
         totalPage: totalPage,
         totalData: totalData,
-        apiData: result || null
+        apiData: formattedResult || null
       }
     } catch (error) {
       console.log('prchaseOrders service error:', error.message)

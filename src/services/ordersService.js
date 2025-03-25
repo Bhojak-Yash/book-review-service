@@ -407,6 +407,7 @@ class OrdersService {
           "invAmt",
           "orderStatus",
           "orderTo",
+          "orderFrom",
           "orderTotal",
           "invNo",
           "balance",
@@ -419,30 +420,49 @@ class OrdersService {
             attributes: ["companyName"],
             required: false, // Ensure manufacturer is included even if no match is found
           },
+          {
+            model:db.authorizations,
+            where:{authorizedId:Number(59)},
+            as:"auth",
+            attributes:['creditCycle'],
+            required:false
+          }
         ],
         where: whereClause,
         offset: skip,
         limit: Limit,
-        order: [["createdAt", "DESC"]]
+        order: [["orderDate", "DESC"]]
       });
       // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
-      const upadtesResult = await orders?.map((order) => {
-        return {
-          "id": order.id,
-          "orderDate": order.orderDate,
-          "dueDate": order.dueDate,
-          "deliveredAt": order.deliveredAt,
-          "invAmt": order.invAmt,
-          "status": order.orderStatus,
-          // "deliveryStatus":orderStatus=='Ready to pickup'?"Pickup":orderStatus=='Ready to pickup'?
-          "orderTo": order.orderTo,
-          "orderTotal": order.orderTotal,
-          "invNo": order.invNo,
-          "balance":order.balance,
-          "orderTo":order.manufacturer.companyName,
-          "deliveryType":order.deliveryType
+      const updatesResult = orders?.map((order) => {
+        let overdue = false;
+    
+        if (order.deliveredAt && order.auth?.creditCycle) {
+            const deliveredDate = new Date(order.deliveredAt);
+    
+            deliveredDate.setDate(deliveredDate.getDate() + order.auth.creditCycle);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            overdue = deliveredDate < today;
         }
-      })
+    
+        return {
+            "id": order.id,
+            "orderDate": order.orderDate,
+            "dueDate": order.dueDate,
+            "deliveredAt": order.deliveredAt,
+            "invAmt": order.invAmt,
+            "status": order.orderStatus,
+            "orderTotal": order.orderTotal,
+            "invNo": order.invNo,
+            "balance": order.balance,
+            "orderTo": order.manufacturer?.companyName || order.orderTo,
+            "deliveryType": order.deliveryType,
+            // "auth": order.auth,
+            "overdue": overdue 
+        };
+    });
+    
 
       return {
         status: message.code200,
@@ -450,7 +470,7 @@ class OrdersService {
         totalItems: count,
         currentPage: Page,
         totalPage: Math.ceil(count / Limit),
-        apiData: upadtesResult,
+        apiData: updatesResult,
       };
     } catch (error) {
       console.log("distributer_purchase_orders service error:", error.message);

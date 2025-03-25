@@ -355,7 +355,11 @@ class AuthService {
                     message:'Invalid params'
                 }
             }
-            await db.authorizations.update({status:status},{where:{authorizedId:userId,authorizedBy:id}})
+            let creditCycle = 0
+            if(status==='Approved'){
+                creditCycle = 7
+            }
+            await db.authorizations.update({status:status,creditCycle:creditCycle},{where:{authorizedId:userId,authorizedBy:id}})
 
 
             const statusMessage = data.status || "Pending"; 
