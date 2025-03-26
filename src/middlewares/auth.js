@@ -27,7 +27,7 @@ exports.verifyToken = async(req, res, next) => {
     try {
       const check =await Logs.findOne({where:{token:token}})
       // console.log(check.dataValues)
-      if(!check.dataValues){
+      if(!check?.dataValues){
         // console.log('1')
         return res.status(401).json({ status:401,message: 'Invalid or expired token.' });
       }
