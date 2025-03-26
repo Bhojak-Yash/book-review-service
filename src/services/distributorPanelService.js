@@ -8,138 +8,263 @@ class distributorDashboard {
         this.db = db;
     }
 
+    // async distProductInfo(tokenData) {
+    //     try {
+    //         let ownerId = tokenData.id;
+    //         if (tokenData.userType === 'Employee') {
+    //             ownerId = tokenData.data.employeeOf;
+    //         } else {
+    //             throw new Error('Invalid user type');
+    //         }
+            
+    //         // console.log('..........................', ownerId);
+            
+    //         if (!db.stocks) {
+    //             throw new Error('Stocks model is not loaded correctly');
+    //         }
+            
+    //         const [productStats, retailerStats, orderStats] = await Promise.all([
+    //             db.stocks.findAll({
+    //                 attributes: [
+    //                     [db.Sequelize.fn('COUNT', db.Sequelize.col('productId')), 'totalProducts'],
+    //                     'organisationId'
+    //                 ],
+    //                 where: { organisationId: Number(ownerId) },
+    //                 group: ['organisationId'],
+    //                 raw: true,
+    //             }),
+    //             db.authorizations.findAll({
+    //                 attributes: [
+    //                     [db.Sequelize.fn('COUNT', db.Sequelize.col('authorizedId')), 'retailersApproved'],
+    //                     'authorizedBy'
+    //                 ],
+    //                 where: { authorizedBy: Number(ownerId) },
+    //                 group: ['authorizedBy'],
+    //                 raw: true,
+    //             }),
+    //             db.sequelize.query(
+    //             `SELECT 
+    //                 COUNT(*) AS orderReceived,
+    //                 SUM(CASE WHEN DATE(createdAt) = CURDATE() THEN 1 ELSE 0 END) AS orderReceivedToday
+    //                 FROM orders 
+    //                 WHERE orderTo = :ownerId 
+    //                 AND createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    //                 GROUP BY orderTo;`,
+    //                 {
+    //                     replacements: { ownerId: Number(ownerId) },
+    //                     type: db.Sequelize.QueryTypes.SELECT,
+    //                 }
+    //             )
+    //         ]);
+
+    //         // Extract results
+    //         const totalProducts = productStats.length ? productStats[0].totalProducts : 0;
+    //         const retailersApproved = retailerStats.length ? retailerStats[0].retailersApproved : 0;
+    //         const orderReceived = orderStats.length ? orderStats[0].orderReceived : 0;
+    //         const orderReceivedToday = orderStats.length ? orderStats[0].orderReceivedToday : 0;
+
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             apiData: { orderReceived, totalProducts, retailersApproved, orderReceivedToday }
+    //         };
+    //     } catch (error) {
+    //         console.error('Statistics_One service error:', error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500
+    //         };
+    //     }
+    // }
+
+    // async distributorRequest(tokenData, statusFilter = 'All') {
+    //     try {
+    //         let ownerId;
+
+    //         if (tokenData.userType === 'Distributor') {
+    //             ownerId = tokenData.data.distributorId;
+    //         } else if (tokenData.userType === 'Employee') {
+    //             const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
+    //             if (!employeeRecord) {
+    //                 throw new Error('Employee not found');
+    //             }
+    //             ownerId = employeeRecord.employeeOf;
+    //         } else {
+    //             throw new Error('Invalid user type');
+    //         }
+
+    //         // Validate and apply the status filter
+    //         const validStatuses = ['Pending', 'Approved', 'Rejected'];
+    //         const statusCondition = statusFilter !== 'All' && validStatuses.includes(statusFilter)
+    //             ? { status: statusFilter }
+    //             : {};
+
+    //         console.log('OwnerId:', ownerId);
+    //         console.log('Status Filter Applied:', statusCondition);
+
+    //         // Fetch authorized retailers with status filter
+    //         const authorizedRetailers = await db.authorizations.findAll({
+    //             where: { authorizedBy: Number(ownerId), ...statusCondition },
+    //             attributes: ['authorizedId', 'status'],
+    //         });
+
+    //         if (!authorizedRetailers.length) {
+    //             return {
+    //                 status: message.code200,
+    //                 message: 'No authorized retailers found',
+    //                 apiData: { retailersApproved: [] },
+    //             };
+    //         }
+
+    //         const authorizedIds = authorizedRetailers.map(item => item.authorizedId);
+
+    //         // Fetch retailer details
+    //         const retailerDetails = await db.retailers.findAll({
+    //             where: { retailerId: authorizedIds },
+    //             attributes: ['retailerId', 'firmName', 'phone'],
+    //         });
+
+    //         // Merge authorization -> retailer details
+    //         const retailersApproved = authorizedRetailers.map(auth => {
+    //             const retailer = retailerDetails.find(ret => ret.retailerId === auth.authorizedId);
+    //             return {
+    //                 retailerId: auth.authorizedId,
+    //                 firmName: retailer ? retailer.firmName : null,
+    //                 phone: retailer ? retailer.phone : null,
+    //                 status: auth.status,
+    //             };
+    //         });
+
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             apiData: { retailersApproved },
+    //         };
+    //     } catch (error) {
+    //         console.error('Statistics_Two service error:', error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500,
+    //         };
+    //     }
+    // }
     async distProductInfo(tokenData) {
         try {
-            let ownerId;
-
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
+            let ownerId = tokenData.id;
+            // console.log(tokenData, "..............................................");
+            if (tokenData?.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
             }
-            
-            // console.log('..........................', ownerId);
-            
             if (!db.stocks) {
                 throw new Error('Stocks model is not loaded correctly');
             }
-            
-            const totalProducts = await db.stocks.count({ where: { organisationId: Number(ownerId) } });
-            const retailersApproved = await db.authorizations.count({ where: {authorizedBy: Number(ownerId)}});
-            const [orderReceivedResult, orderReceivedTodayResult] = await Promise.all([
-                db.sequelize.query(
-                    `SELECT COUNT(*) AS orderReceived
-                    FROM orders
-                    WHERE orderTo = :ownerId
-                    AND createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY);`,
-                    {
-                        replacements: { ownerId: Number(ownerId) },
-                        type: db.Sequelize.QueryTypes.SELECT,
-                    }
-                ),
-                db.sequelize.query(
-                    `SELECT COUNT(*) AS orderReceivedToday
-                    FROM orders
-                    WHERE orderTo = :ownerId
-                    AND DATE(createdAt) = CURDATE();`,
-                    {
-                        replacements: { ownerId: Number(ownerId) },
-                        type: db.Sequelize.QueryTypes.SELECT,
-                    }
-                )
+
+            // Fetch product count, retailer count, and order stats using Sequelize ORM
+            const [productStats, retailerStats, orderStats] = await Promise.all([
+                db.stocks.count({
+                    where: { organisationId: Number(ownerId) },
+                }),
+
+                db.authorizations.count({
+                    where: { authorizedBy: Number(ownerId) },
+                }),
+
+                db.orders.findAll({
+                    attributes: [
+                        [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'orderReceived'],
+                        [db.Sequelize.fn('SUM',
+                            db.Sequelize.literal(`CASE WHEN DATE(createdAt) = CURDATE() THEN 1 ELSE 0 END`)
+                        ), 'orderReceivedToday'],
+                    ],
+                    where: {
+                        orderTo: Number(ownerId),
+                        createdAt: {
+                            [db.Sequelize.Op.gte]: db.Sequelize.literal('DATE_SUB(NOW(), INTERVAL 30 DAY)'),
+                        },
+                    },
+                    raw: true,
+                }),
             ]);
 
-            const orderReceived = orderReceivedResult[0]?.orderReceived || 0;
-            const orderReceivedToday = orderReceivedTodayResult[0]?.orderReceivedToday || 0;
+            // Extract values with default fallback
+            const totalProducts = productStats || 0;
+            const retailersApproved = retailerStats || 0;
+            const orderReceived = orderStats?.[0]?.orderReceived || 0;
+            const orderReceivedToday = Number(orderStats?.[0]?.orderReceivedToday) || 0;
 
-
-            // console.log(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;", totalProducts );
-            
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: { orderReceived, totalProducts, retailersApproved, orderReceivedToday }
+                apiData: { totalProducts, retailersApproved, orderReceived, orderReceivedToday },
             };
         } catch (error) {
-            console.error('Statistics_One service error:', error.message);
+            console.error('distProductInfo service error:', error.message);
             return {
                 status: message.code500,
-                message: message.message500
+                message: message.message500,
             };
         }
     }
 
     async distributorRequest(tokenData, statusFilter = 'All') {
         try {
-            let ownerId;
+            let ownerId = tokenData.id;
 
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
+            if (tokenData?.userType === 'Employee'){
+                ownerId = tokenData.data.employeeOf;
             }
 
-            // Validate and apply the status filter
             const validStatuses = ['Pending', 'Approved', 'Rejected'];
-            const statusCondition = statusFilter !== 'All' && validStatuses.includes(statusFilter)
-                ? { status: statusFilter }
-                : {};
+            if (statusFilter !== 'All' && !validStatuses.includes(statusFilter)) {
+                throw new Error('Invalid status filter provided');
+            }
 
             console.log('OwnerId:', ownerId);
-            console.log('Status Filter Applied:', statusCondition);
+            // console.log('Status Filter Applied:', statusFilter !== 'All' ? statusFilter : 'No Filter');
 
-            // Fetch authorized retailers with status filter
-            const authorizedRetailers = await db.authorizations.findAll({
-                where: { authorizedBy: Number(ownerId), ...statusCondition },
+            // Fetch authorized distributors & retailers in a single query
+            const authorizedEntities = await db.authorizations.findAll({
+                where: {
+                    authorizedBy: Number(ownerId),
+                    ...(statusFilter !== 'All' ? { status: statusFilter } : {})
+                },
                 attributes: ['authorizedId', 'status'],
+                include: [
+                    {
+                        model: db.distributors,
+                        as: 'distributors',
+                        attributes: [
+                            'distributorId', 'companyName', 
+                            'address','phone' 
+                        ]
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'retailers',
+                        attributes: [
+                            'retailerId', 'firmName', 
+                            'address', 'phone'
+                        ]
+                    }
+                ],
+                raw: true
             });
 
-            if (!authorizedRetailers.length) {
-                return {
-                    status: message.code200,
-                    message: 'No authorized retailers found',
-                    apiData: { retailersApproved: [] },
-                };
-            }
-
-            const authorizedIds = authorizedRetailers.map(item => item.authorizedId);
-
-            // Fetch retailer details
-            const retailerDetails = await db.retailers.findAll({
-                where: { retailerId: authorizedIds },
-                attributes: ['retailerId', 'firmName', 'phone'],
-            });
-
-            // Merge authorization -> retailer details
-            const retailersApproved = authorizedRetailers.map(auth => {
-                const retailer = retailerDetails.find(ret => ret.retailerId === auth.authorizedId);
-                return {
-                    retailerId: auth.authorizedId,
-                    firmName: retailer ? retailer.firmName : null,
-                    phone: retailer ? retailer.phone : null,
-                    status: auth.status,
-                };
-            });
+            const retailersApproved = authorizedEntities.map(entity => ({
+                authorizedId: entity.distributorId || entity.retailerId,
+                companyName: entity.companyName || entity.firmName,
+                address: entity.address || entity.address,
+                phone: entity.phone || entity.phone,
+                status: entity.status
+            }));
 
             return {
                 status: message.code200,
-                message: message.message200,
+                message: retailersApproved.length ? message.message200 : 'No authorized retailers or distributors found',
                 apiData: { retailersApproved },
             };
         } catch (error) {
-            console.error('Statistics_Two service error:', error.message);
+            console.error('Distributor Request Error:', error.message);
             return {
                 status: message.code500,
                 message: message.message500,
@@ -150,19 +275,10 @@ class distributorDashboard {
     //Stock running Low
     async stockRunningLow(tokenData) {
         try {
-            let ownerId;
+            let ownerId = tokenData.id;
 
-            // Identify the ownerId based on userType
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
+            if (tokenData.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
             }
 
             // Get low stock threshold from the environment (default to 10 if not set)
@@ -212,7 +328,7 @@ class distributorDashboard {
                 description: `Your ${lowStockMedicines.length} medicines are running low. Please restock soon.`,
                 status: "Unread",
             });
-
+            // console.log(lowStockMedicines, "...............................")
             return {
                 status: message.code200,
                 message: message.message200,
@@ -227,91 +343,12 @@ class distributorDashboard {
         }
     }
 
-    // async Statistics_four(tokenData, filterType) {
-    //     try {
-    //         let ownerId;
-
-    //         // Extracting the ownerId based on userType
-    //         if (tokenData.userType === 'Distributor') {
-    //             ownerId = tokenData.data.distributorId;
-    //         } else if (tokenData.userType === 'Employee') {
-    //             const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-    //             if (!employeeRecord) {
-    //                 throw new Error('Employee not found');
-    //             }
-    //             ownerId = employeeRecord.employeeOf;
-    //         } else {
-    //             throw new Error('Invalid user type');
-    //         }
-
-    //         // Validate filterType
-    //         if (!['Revenue', 'Quantity'].includes(filterType)) {
-    //             throw new Error('Invalid filter type. Use "Revenue" or "Quantity".');
-    //         }
-
-    //         let query;
-
-    //         // Query for Revenue
-    //         if (filterType === 'Revenue') {
-    //             query = `
-    //             SELECT p.PId, p.PName, SUM(oi.quantity * oi.price) AS total_revenue
-    //             FROM orderitems oi
-    //             JOIN products p ON oi.PId = p.PId
-    //             JOIN orders o ON oi.orderId = o.id
-    //             WHERE o.orderTo = :ownerId
-    //             GROUP BY p.PId, p.PName
-    //             ORDER BY total_revenue DESC;
-    //         `;
-    //         }
-    //         // Query for Quantity in the last 6 months
-    //         else if (filterType === 'Quantity') {
-    //             query = `
-    //             SELECT p.PId, p.PName, SUM(oi.quantity) AS total_quantity_sold
-    //             FROM orderitems oi
-    //             JOIN products p ON oi.PId = p.PId
-    //             JOIN orders o ON oi.orderId = o.id
-    //             WHERE o.orderTo = :ownerId
-    //             AND o.createdAt >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-    //             GROUP BY p.PId, p.PName
-    //             ORDER BY total_quantity_sold DESC;
-    //         `;
-    //         }
-
-    //         // Execute the query with ownerId
-    //         const results = await db.sequelize.query(query, {
-    //             replacements: { ownerId },
-    //             type: db.Sequelize.QueryTypes.SELECT
-    //         });
-
-    //         return {
-    //             status: message.code200,
-    //             message: message.message200,
-    //             apiData: results
-    //         };
-    //     } catch (error) {
-    //         console.error('Error in Statistics_four:', error.message);
-    //         return {
-    //             status: message.code500,
-    //             message: message.message500
-    //         };
-    //     }
-    // }
-
     async topProducts(tokenData, filterType) {
         try {
-            let ownerId;
+            let ownerId = tokenData.id;
 
-            // Determine ownerId from userType
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
+            if (tokenData.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
             }
 
             // Validate filterType
@@ -375,34 +412,27 @@ class distributorDashboard {
         }
     }
 
-    async topDistributors(tokenData) {
+    // Finding top retailers for Distributors
+    async topRetailers(tokenData) {
         try {
-            let ownerId;
+            let ownerId = tokenData.id;
 
-            if (tokenData.userType === 'Distributor') {
-                ownerId = tokenData.data.distributorId;
-            } else if (tokenData.userType === 'Employee') {
-                const employeeRecord = await db.employees.findOne({ where: { employeeId: tokenData.id } });
-                if (!employeeRecord) {
-                    throw new Error('Employee not found');
-                }
-                ownerId = employeeRecord.employeeOf;
-            } else {
-                throw new Error('Invalid user type');
+            if (tokenData.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
             }
 
             // console.log("Owner ID: ", ownerId);
 
             // SQL query to get top retailers by invAmt for a specific ownerId
             const query = `
-            SELECT r.retailerId, r.firmName, SUM(o.invAmt) AS total_invAmt
-            FROM orders o
-            JOIN retailers r ON o.orderFrom = r.retailerId
-            WHERE o.orderTo = :ownerId
-            GROUP BY r.retailerId, r.firmName
-            HAVING total_invAmt > 0
-            ORDER BY total_invAmt DESC;
-        `;
+                SELECT r.retailerId, r.firmName, SUM(o.invAmt) AS total_invAmt
+                FROM orders o
+                JOIN retailers r ON o.orderFrom = r.retailerId
+                WHERE o.orderTo = :ownerId
+                GROUP BY r.retailerId, r.firmName
+                HAVING total_invAmt > 0
+                ORDER BY total_invAmt DESC;
+            `;
 
             const results = await db.sequelize.query(query, {
                 type: db.Sequelize.QueryTypes.SELECT,
@@ -424,6 +454,53 @@ class distributorDashboard {
             };
         }
     }
+
+    //Finding top distributors for Manufacturers
+    async topDistributors(tokenData) {
+        try {
+            let ownerId = tokenData.id;
+
+            if (tokenData.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
+            }
+
+            const results = await db.orders.findAll({
+                attributes: [
+                    'orderFrom',
+                    [db.Sequelize.col('distributer.companyName'), 'companyName'],
+                    [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'total_invAmt']
+                ],
+                include: [
+                    {
+                        model: db.distributors,
+                        as: 'distributer', // <-- Use the correct alias
+                        attributes: []
+                    }
+                ],
+                where: { orderTo: ownerId },
+                group: ['orderFrom', 'distributer.companyName'],
+                having: db.Sequelize.literal('total_invAmt > 0'),
+                order: [[db.Sequelize.literal('total_invAmt'), 'DESC']],
+                raw: true
+            });
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: results
+            };
+        } catch (error) {
+            console.error('Error in topDistributors:', error);
+            return {
+                status: message.code500,
+                message: message.message500
+            };
+        }
+    }
+
+
+
+
 }
 
 module.exports = new distributorDashboard(db);
