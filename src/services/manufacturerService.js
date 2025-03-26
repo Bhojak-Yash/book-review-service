@@ -712,7 +712,7 @@ class ManufacturerService {
         db.authorizations.findAll({
           attributes: [
             "distributers.type",
-            [db.sequelize.fn("COUNT", db.sequelize.col("authorizedId")), "count"],
+            [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
           ],
           where: { authorizedBy: Number(id), status: "Approved" },
           include: [

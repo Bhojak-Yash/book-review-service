@@ -8,4 +8,7 @@ router.get('/stockRunningLow', verifyToken, distributorPanelController.stockRunn
 router.get('/topProducts', verifyToken, distributorPanelController.topProducts)
 router.get('/topDistributors', verifyToken, distributorPanelController.topDistributors)
 
+router.get('/distributor-request-test', verifyToken, distributorPanelController.distributorRequest)// test 
+router.get('/stock-runningLow-test', verifyToken, distributorPanelController.stockRunningLow)// test
+
 module.exports =router
