@@ -160,7 +160,7 @@ class OrdersService {
           // If all items have sufficient stock, update them
           await Promise.all(
             updates?.items?.map(async (item) => {
-              console.log(item.dataValues.stockId)
+              // console.log(item?.stockId)
               await db.sequelize.query(
                 `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
                 {
