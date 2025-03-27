@@ -19,3 +19,19 @@ exports.expire_product_list = async (req, res) => {
         return res.status(500).json({ status:message.code500,message:error.message });
       }
 }
+
+exports.expiry_page_card_data = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const expiry = await expiryService.expiry_page_card_data(data);
+  
+      // if (!distributor) {
+        return res.json(expiry);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error fetching expiry_page_card_data:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}

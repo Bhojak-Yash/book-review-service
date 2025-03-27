@@ -88,7 +88,8 @@ class expiryService {
                     totalAmt: item?.products?.reduce((stockSum, product) => {
                         return stockSum + product.stocks?.reduce((sum, stock) => sum + (Number(stock.Stock) * Number(stock.PTS)), 0);
                     }, 0),
-                    returnStatus: item?.returnHeader.length ? "Pending" : "Not Returned"
+                    returnStatus: item?.returnHeader.length ? "Pending" : "Not Returned",
+                    returnId:item?.returnHeader.length ? item?.returnHeader[0]?.id : null
                 };
             });
 
@@ -103,6 +104,20 @@ class expiryService {
             return {
                 status: message.code500,
                 message: message.message500
+            }
+        }
+    }
+
+    async expiry_page_card_data(data) {
+        try {
+            const {id} = data
+            const checkId = Number(id)
+            
+        } catch (error) {
+            console.log('expiry_page_card_data service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
             }
         }
     }

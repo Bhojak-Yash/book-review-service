@@ -134,7 +134,7 @@ class OrdersService {
 
         await db.sequelize.transaction(async (t) => {
           // First, check if all items have enough stock before making any updates
-          for (const item of orderItems) {
+          for (const item of updates.items) {
             const [stock] = await db.sequelize.query(
               `SELECT Stock FROM stocks WHERE SId = :stockId`,
               {
