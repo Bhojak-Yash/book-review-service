@@ -42,13 +42,24 @@ exports.topProducts = async(req, res) => {
     }
 };
 
+exports.topRetailers = async(req, res) => {
+    try{
+        const {filterType} = req.query;
+        const stats = await distributorDashboard.topRetailers(req.user, filterType);
+        return res.status(stats.status).json(stats);
+    }catch (error){
+        console.log("Error in topRetailer Controller:", error);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+};
+
 exports.topDistributors = async(req, res) => {
     try{
         const {filterType} = req.query;
         const stats = await distributorDashboard.topDistributors(req.user, filterType);
         return res.status(stats.status).json(stats);
     }catch (error){
-        console.log("Error in Statistics_four Controller:", error);
+        console.log("Error in topDistributors Controller:", error);
         return res.status(500).json({message: "Internal Server Error"});
     }
 };
