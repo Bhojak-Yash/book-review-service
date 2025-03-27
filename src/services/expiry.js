@@ -112,44 +112,63 @@ class expiryService {
         try {
             const {id} = data
             const checkId = Number(id)
-            const { count, rows } = await db.manufacturers.findAndCountAll({
-                attributes: ["manufacturerId", "companyName"],
-                include: [
+            // const { count, rows } = await db.manufacturers.findAndCountAll({
+            //     attributes: ["manufacturerId", "companyName"],
+            //     include: [
+            //         {
+            //             model: db.products,
+            //             as: "products",
+            //             attributes: ["PId", "PName"],
+            //             include: [
+            //                 {
+            //                     model: db.stocks,
+            //                     as: "stocks",
+            //                     attributes: ["SId", "organisationId", 'PTS', 'PTR', 'Stock', 'ExpDate'],
+            //                     where: {
+            //                         Stock: { [db.Sequelize.Op.gt]: 0 },
+            //                         organisationId: Number(id),
+            //                         [db.Op.and]: [
+            //                             { ExpDate: { [db.Op.lt]: after90Days } },
+            //                             { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+            //                         ]
+            //                     },
+            //                     required: true
+            //                 }
+            //             ],
+            //             required: true
+            //         },
+            //         {
+            //             model: db.returnHeader,
+            //             as: "returnHeader",
+            //             attributes: ['id'],
+            //             where: { returnFrom: Number(id),returnStatus:'Pending' },
+            //             required: false
+            //         }
+            //     ],
+            //     distinct: true,
+            //     limit,
+            //     offset,
+            //     order: [["companyName", "ASC"]],
+            // })
+            const Data = await db.stocks.findAndCountAll({
+                attributes:['SId','Stock','PId'],
+                where:{'organisationId':checkId,
+                    [db.Op.and]: [
+                        { ExpDate: { [db.Op.lt]: after90Days } },
+                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+                    ]
+                },
+                include:[
                     {
-                        model: db.products,
-                        as: "products",
-                        attributes: ["PId", "PName"],
-                        include: [
-                            {
-                                model: db.stocks,
-                                as: "stocks",
-                                attributes: ["SId", "organisationId", 'PTS', 'PTR', 'Stock', 'ExpDate'],
-                                where: {
-                                    Stock: { [db.Sequelize.Op.gt]: 0 },
-                                    organisationId: Number(id),
-                                    [db.Op.and]: [
-                                        { ExpDate: { [db.Op.lt]: after90Days } },
-                                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
-                                    ]
-                                },
-                                required: true
-                            }
-                        ],
-                        required: true
-                    },
-                    {
-                        model: db.returnHeader,
-                        as: "returnHeader",
-                        attributes: ['id'],
-                        where: { returnFrom: Number(id),returnStatus:'Pending' },
-                        required: false
+                        model:db.products,
+                        as:'product',
+                        attributes:['PId','PName'],
+                        // where:{'manufacturerId':62},
+                        required:true
                     }
-                ],
-                distinct: true,
-                limit,
-                offset,
-                order: [["companyName", "ASC"]],
+                ]
             })
+            return {Data}
         } catch (error) {
             console.log('expiry_page_card_data service error:',error.message)
             return {

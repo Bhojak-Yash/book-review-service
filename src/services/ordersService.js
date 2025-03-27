@@ -110,7 +110,11 @@ class OrdersService {
       if(Number(data.dataValues.balance)>Number(amount)){
         oStatus = 'Partially paid'
       }
-      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amount)}`),orderStatus:oStatus },{where:{id:Number(orderId)}})
+      let amtUpdate = amount;
+      if(Number(data.dataValues.balance)<=Number(amount)){
+        amtUpdate=Number(data.dataValues.balance)
+      }
+      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`),orderStatus:oStatus },{where:{id:Number(orderId)}})
       return {
         status:message.code200,
         message:message.message200
