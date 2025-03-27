@@ -738,7 +738,7 @@ console.log(checkId)
 
       const cnfCount = counts.find((item) => item["user.userType"] === "CNF")?.count || 0;
       const distributorCount = counts.find((item) => item["user.userType"] === "Distributor")?.count || 0;
-      console.log(counts)
+      // console.log(counts)
       return {
         status: 200,
         message: "Data fetched successfully",
