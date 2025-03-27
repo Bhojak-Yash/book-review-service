@@ -698,8 +698,8 @@ class ManufacturerService {
   async po_page_card_data(data) {
     try {
       const { id, userType } = data;
-      const checkId = userType === "Manufacturer" ? data?.data?.employeeOf || id : id;
-
+      const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
+console.log(checkId)
       // Parallelizing queries for better performance
       const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
         db.orders.count({ where: { orderTo: Number(checkId) } }),
@@ -711,18 +711,18 @@ class ManufacturerService {
         }),
         db.authorizations.findAll({
           attributes: [
-            "distributers.type",
+            "user.userType",
             [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
           ],
           where: { authorizedBy: Number(id), status: "Approved" },
           include: [
             {
-              model: db.distributors,
-              as: "distributers",
-              attributes: ["type"],
+              model: db.users,
+              as: "user",
+              attributes: ["userType"],
             },
           ],
-          group: ["distributers.type"],
+          group: ["user.userType"],
           raw: true,
         }),
         db.authorizations.count({ where: { authorizedBy: Number(checkId), status: "Pending" } }),
@@ -731,14 +731,14 @@ class ManufacturerService {
             [db.sequelize.fn("SUM", db.sequelize.col("balance")), "totalBalance"],
             [db.sequelize.fn("COUNT", db.sequelize.col("balance")), "totalCount"],
           ],
-          where: { balance: { [db.Op.gt]: 0 } },
+          where: { balance: { [db.Op.gt]: 0,[db.Op.ne]: null },orderTo:Number(checkId)  },
           raw: true,
         }),
       ]);
 
-      const cnfCount = counts.find((item) => item["distributers.type"] === "CNF")?.count || 0;
-      const distributorCount = counts.find((item) => item["distributers.type"] === "Distributor")?.count || 0;
-
+      const cnfCount = counts.find((item) => item["user.userType"] === "CNF")?.count || 0;
+      const distributorCount = counts.find((item) => item["user.userType"] === "Distributor")?.count || 0;
+      console.log(counts)
       return {
         status: 200,
         message: "Data fetched successfully",
