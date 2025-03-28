@@ -50,7 +50,7 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "location":{
             type: Sequelize.STRING,
-            allowNull: false
+            // allowNull: false
         },
     },
     {

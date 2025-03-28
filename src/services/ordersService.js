@@ -661,6 +661,8 @@ class OrdersService {
         ]
       })
 
+      order.balance = parseFloat(order.balance).toFixed(2);
+
       const Op = db.Op
 
 const users = await db.users.findAll({
