@@ -150,7 +150,8 @@ class UsersCartService {
                         'name', ad.name, 
                         'mobile', ad.mobile, 
                         'city', ad.city, 
-                        'state', ad.state
+                        'state', ad.state,
+                        'email', ad.email
                       )
                     ) AS addresses
                  FROM manufacturers AS mn
@@ -177,7 +178,8 @@ class UsersCartService {
                         'name', ad.name, 
                         'mobile', ad.mobile, 
                         'city', ad.city, 
-                        'state', ad.state
+                        'state', ad.state,
+                        'email', ad.email
                       )
                     ) AS addresses
                  FROM distributors AS mn

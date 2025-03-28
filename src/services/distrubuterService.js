@@ -331,36 +331,103 @@ class DistributorService {
         }
     }
 
+    // async po_page_data(data) {
+    //     try {
+    //         const id = Number(data.id)
+    //         // console.log(id)
+    //         const result = await db.orders.findOne({
+    //             attributes: [
+    //                 [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
+    //                 [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+    //                 [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+    //                 [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+    //             ],
+    //             where: { orderFrom: id },
+    //             raw: true
+    //         });
+
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             apiData: {
+    //                 "totalOrders": result.totalOrders,
+    //                 "completedOrders": Number(result.completedOrders),
+    //                 "pendingOrders": Number(result.totalOrders) - Number(result.completedOrders),
+    //                 "totalDueAmtOrders": result.totalDueAmtOrders,
+    //                 "totalDueAmount": result.totalDueAmount
+    //             }
+    //         }
+    //     } catch (error) {
+    //         console.log('po_page_data service error:', error.message)
+    //     }
+    // }
+
     async po_page_data(data) {
         try {
-            const id = Number(data.id)
-            // console.log(id)
-            const result = await db.orders.findOne({
-                attributes: [
-                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
-                    [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
-                ],
-                where: { orderFrom: id },
-                raw: true
-            });
+            const { id } = data;
+            const userId = Number(id);
+
+            // Parallelizing queries for better performance
+            const [orderStats, retailerCounts, pendingAuthorizations] = await Promise.all([
+                db.orders.findOne({
+                    attributes: [
+                        [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                        [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+                    ],
+                    where: { orderFrom: userId },
+                    raw: true,
+                }),
+
+                // Fetch total retailers grouped by companyType
+                db.authorizations.findAll({
+                    attributes: [
+                        "retailers.companyType",
+                        [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
+                    ],
+                    where: { authorizedBy: userId, status: "Approved" },
+                    include: [
+                        {
+                            model: db.retailers,
+                            as: "retailers", // Ensure alias matches the association
+                            attributes: ["companyType"],
+                        },
+                    ],
+                    group: ["retailers.companyType"],
+                    raw: true,
+                }),
+
+                // Count pending authorizations
+                db.authorizations.count({ where: { authorizedBy: userId, status: "Pending" } }),
+            ]);
+            
+
+            // Extract retailer counts based on companyType
+            const totalRetailersCount = retailerCounts.length > 0 ? Number(retailerCounts[0]?.totalRetailers) || 0 : 0;
 
             return {
-                status: message.code200,
-                message: message.message200,
-                apiData: {
-                    "totalOrders": result.totalOrders,
-                    "completedOrders": Number(result.completedOrders),
-                    "pendingOrders": Number(result.totalOrders) - Number(result.completedOrders),
-                    "totalDueAmtOrders": result.totalDueAmtOrders,
-                    "totalDueAmount": result.totalDueAmount
-                }
-            }
+                status: 200,
+                message: "Data fetched successfully",
+                data: {
+                    totalOrders: Number(orderStats?.totalOrders) || 0,
+                    completedOrders: Number(orderStats?.completedOrders) || 0,
+                    pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
+                    totalDueAmtOrders: Number(orderStats?.totalDueAmtOrders) || 0,
+                    totalDueAmount: Number(orderStats?.totalDueAmount) || 0,
+                    totalRetailersCount: totalRetailersCount,
+                    pendingAuthorizations,
+                },
+            };
         } catch (error) {
-            console.log('po_page_data service error:', error.message)
+            console.error("po_page_data service error:", error.message);
+            return {
+                status: 500,
+                message: "Internal server error",
+            };
         }
     }
+
     async so_page_data(data) {
         try {
             const id = Number(data.id)
@@ -563,11 +630,12 @@ class DistributorService {
             }
         }
     }
+
     async update_distributor(data) {
             let transaction;
             console.log(data)
             try {
-              const { distributorId, profilePic, companyName, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents,manufactureres } = data;
+              const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence,FSSAI, PAN, CIN, businessAdd, billingAdd, documents,manufactureres } = data;
         
               if (!distributorId) {
                 return {
@@ -670,6 +738,7 @@ class DistributorService {
                    SET 
                       profilePic = COALESCE(:profilePic, profilePic),
                       companyName = COALESCE(:companyName, companyName),
+                      companyType = COALESCE(:companyType, companyType),
                       ownerName = COALESCE(:ownerName, ownerName),
                       email = COALESCE(:email, email),
                       phone = COALESCE(:phone, phone),
@@ -684,6 +753,7 @@ class DistributorService {
                   replacements: {
                     profilePic,
                     companyName,
+                    companyType,
                     ownerName,
                     email,
                     phone,
@@ -699,7 +769,7 @@ class DistributorService {
                 }
               );
               
-        console.log('[[[[[')
+            console.log('[[[[[')
               const existingAddresses = await db.address.findAll({
                 where: { userId: distributorId },
               });
@@ -746,7 +816,7 @@ class DistributorService {
                     manufacturerId: manu.manufacturerId,
                     companyName: manu.companyName
                 }));
-
+                console.log("Distributor details updated successfully");
                 return {
                     status: message.code200,
                     message: "Distributor details updated successfully",
@@ -761,6 +831,147 @@ class DistributorService {
             }
         }
     }
+    // async update_distributor(data) {
+    //     let transaction;
+    //     console.log(data);
+    //     try {
+    //         const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
+
+    //         if (!distributorId) {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "Distributor ID is required",
+    //             };
+    //         }
+    //         transaction = await db.sequelize.transaction({ timeout: 30000 });
+
+    //         // Fetch distributor
+    //         const distributor = await db.distributors.findOne({
+    //             where: { distributorId },
+    //             transaction
+    //         });
+
+    //         console.log('Fetched distributor:', distributor);
+
+    //         if (!distributor) {
+    //             return {
+    //                 status: 404,
+    //                 message: "Distributor not found",
+    //             };
+    //         }
+            
+    //         //auhtorizations update
+    //         const authhh = manufactureres.map((item) => ({
+    //             authorizedBy: Number(item),
+    //             authorizedId: Number(distributorId),
+    //             status: "Pending",
+    //         }));
+
+    //         const existingRecords = await db.authorizations.findAll({
+    //             where: {
+    //                 authorizedBy: authhh.map((a) => a.authorizedBy),
+    //                 authorizedId: authhh.map((a) => a.authorizedId),
+    //                 status: { [db.Sequelize.Op.in]: ['Not Send', 'Pending'] },
+    //             },
+    //             raw: true,
+    //             transaction
+    //         });
+
+    //         const toUpdate = existingRecords.map((rec) => rec.id);
+    //         if (toUpdate.length > 0) {
+    //             await db.authorizations.update(
+    //                 { status: "Pending" },
+    //                 { where: { id: toUpdate }, transaction }
+    //             );
+    //         }
+
+    //         const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
+    //         const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
+    //         if (newRecords.length > 0) {
+    //             await db.authorizations.bulkCreate(newRecords, { transaction });
+    //         }
+
+    //         // distributor table update
+    //         await db.distributors.update(
+    //             {
+    //                 profilePic,
+    //                 companyName,
+    //                 companyType,
+    //                 ownerName,
+    //                 email,
+    //                 phone,
+    //                 address,
+    //                 GST,
+    //                 wholeSaleDrugLicence,
+    //                 PAN,
+    //                 FSSAI,
+    //                 CIN,
+    //                 updatedAt: db.sequelize.literal("NOW()")
+    //             },
+    //             { where: { distributorId }, transaction }
+    //         );
+
+    //         console.log("Distributor updated successfully");
+
+    //         // address updates
+    //         const existingAddresses = await db.address.findAll({ where: { userId: distributorId }, transaction });
+    //         if (existingAddresses.length) {
+    //             await Promise.all(existingAddresses.map(async (existingAddress) => {
+    //                 const updateData =
+    //                     existingAddress.addressType === "Business" ? businessAdd : billingAdd;
+    //                 await existingAddress.update(updateData, { transaction });
+    //             }));
+    //         } else {
+    //             const dataToInsert = [
+    //                 { ...businessAdd, userId: distributorId, addressType: "Business" },
+    //                 { ...billingAdd, userId: distributorId, addressType: "Billing" },
+    //             ];
+    //             await db.address.bulkCreate(dataToInsert, { transaction });
+    //         }
+
+    //         // documents update
+    //         const documentsData = documents.map((doc) => ({
+    //             categoryId: doc.id,
+    //             image: doc.image,
+    //             status: 'Verified',
+    //             userId: Number(distributorId)
+    //         }));
+
+    //         await db.documents.bulkCreate(documentsData, {
+    //             updateOnDuplicate: ["image", "status"],
+    //             transaction
+    //         });
+
+    //         //Getting manufcturerName that is passed in the payLoad
+    //         const manufacturerNames = await db.manufacturers.findAll({
+    //             where: { manufacturerId: manufactureres },
+    //             attributes: ['manufacturerId', 'companyName'],
+    //             raw: true,
+    //             transaction
+    //         });
+
+    //         const manufacturerList = manufacturerNames.map(manu => ({
+    //             manufacturerId: manu.manufacturerId,
+    //             companyName: manu.companyName
+    //         }));
+
+    //         await transaction.commit();
+    //         console.log("Distributor details updated successfully");
+    //         return {
+    //             status: message.code200,
+    //             message: "Distributor details updated successfully",
+    //             manufacturers: manufacturerList,
+    //             documents: documentsData
+    //         };
+    //     } catch (error) {
+    //         if (transaction) await transaction.rollback();
+    //         console.log('update_distributor service error:', error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500
+    //         };
+    //     }
+    // }
 
     async check_profile (data) {
         try {

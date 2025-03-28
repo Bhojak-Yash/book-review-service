@@ -1,5 +1,5 @@
 module.exports =(sequelize,Sequelize)=>{
-    const documentCategory = sequelize.define("documentCategory",{
+    const documentCategory = sequelize.define("documentcategory",{
         "id":{
             type:Sequelize.INTEGER,
             primaryKey: true,
@@ -15,7 +15,7 @@ module.exports =(sequelize,Sequelize)=>{
     },
 
     {
-        tableName: "documentCategory", 
+        tableName: "documentcategory", 
     })
     return documentCategory
 }
