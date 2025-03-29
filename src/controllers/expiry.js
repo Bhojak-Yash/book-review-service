@@ -107,3 +107,29 @@ exports.expiry_list_card_data = async (req, res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 }
+
+exports.get_credit_notes = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const creditNote = await expiryService.get_credit_notes(data);
+  
+        return res.json(creditNote);
+      
+      } catch (error) {
+      console.error("Error fetching get_credit_note:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}
+
+exports.redeem_cn = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const creditNote = await expiryService.redeem_cn(data);
+  
+        return res.json(creditNote);
+      
+      } catch (error) {
+      console.error("Error fetching redeem_cn:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}

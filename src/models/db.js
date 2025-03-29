@@ -24,7 +24,8 @@ const states = require('./states')
 const cities = require('./cities')
 const notifications = require('./notifications')
 const returnHeader = require('./returnHeader');
-const returnDetails = require('./returnDetails')
+const returnDetails = require('./returnDetails');
+const creditNotes = require('./creditNotes');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -75,7 +76,8 @@ const db = {
   cities: cities(sequelize, Sequelize),
   notifications: notifications(sequelize, Sequelize),
   returnHeader:returnHeader(sequelize,Sequelize),
-  returnDetails: returnDetails(sequelize, Sequelize)
+  returnDetails: returnDetails(sequelize, Sequelize),
+  creditNotes: creditNotes(sequelize,Sequelize)
 };
 
 
@@ -145,6 +147,7 @@ db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnFrom", as: "return
 db.returnHeader.hasMany(db.returnDetails,{foreignKey: "returnId", as: "returnDetails" })
 db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
 db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
+db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);

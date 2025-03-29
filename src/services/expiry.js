@@ -29,6 +29,9 @@ class expiryService {
         // } 
         try {
             let { page, limit, id } = data;
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             // console.log(id)
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
@@ -114,6 +117,9 @@ class expiryService {
         try {
             let { id, manufacturerId, page, limit, search } = data
             // console.log(data)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
@@ -212,6 +218,9 @@ class expiryService {
         try {
             const { id, manufacturerId } = data
             const checkId = Number(id)
+            if (data?.userType === 'Employee') {
+                checkId = data.data.employeeOf
+            }
             const daysforexpiry = Number(process.env.lowStockDays)
             const today = moment().startOf("day");
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
@@ -292,6 +301,9 @@ class expiryService {
             transaction = await db.sequelize.transaction();
             const { manufacturerId, items, returnTotal, id } = data
             let userId = Number(id)
+            if (data?.userType === 'Employee') {
+                userId = data.data.employeeOf
+            }
             if (!manufacturerId || !userId || !items || !returnTotal) {
                 return {
                     status: message.code400,
@@ -345,7 +357,10 @@ class expiryService {
     async expiry_return_list(data) {
         try {
             let { id, page, limit, search, startDate, endDate } = data
-            console.log(data)
+            // console.log(data)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
@@ -404,7 +419,8 @@ class expiryService {
         let transaction;
         try {
             transaction = await db.sequelize.transaction();
-            const { status, returnId, returnAmt, items } = data
+            const { status, returnId, returnAmt, items, reason, cnUrl, returnFrom, returnTo } = data
+            const Reason = reason || ""
             if (!status || !returnId) {
                 return {
                     status: message.code400,
@@ -427,8 +443,8 @@ class expiryService {
                       SET quantity = CASE ${caseQuery} END
                       WHERE id IN (${ids});
                       `,
-                      { transaction }
-                    );
+                    { transaction }
+                );
                 const SIds = items.map(item => item.SId)
                 await db.stocks.update(
                     { Stock: 0 },
@@ -440,17 +456,31 @@ class expiryService {
                     { where: { returnId: Number(returnId) } },
                     { transaction }
                 )
+                if (cnUrl, returnAmt, returnFrom, returnTo) {
+                    await db.creditNotes.upsert({
+                        "amount": Number(returnAmt),
+                        "issuedBy": Number(returnTo),
+                        "issuedTo": Number(returnFrom),
+                        "url": cnUrl,
+                        "isSettled": false,
+                        "returnId": returnId,
+                        "balance":Number(returnAmt)
+                    },
+                        { transaction }
+                    )
+                }
             } else {
                 await db.returnHeader.update(
-                    { returnStatus: status },
+                    { returnStatus: status, reason: Reason },
                     { where: { returnId: Number(returnId) } },
                     { transaction }
                 )
             }
+
             await transaction.commit();
             return {
-                status:message.code200,
-                message:`Return request successfully ${status}`
+                status: message.code200,
+                message: `Return request successfully ${status}`
             }
         } catch (error) {
             if (transaction) await transaction.rollback();
@@ -464,9 +494,12 @@ class expiryService {
 
     async returned_details(data) {
         try {
-            const { id, returnId } = data
+            let { id, returnId } = data
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             const Data = await db.returnHeader.findOne({
-                attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo'],
+                attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo','returnStatus'],
                 where: { returnId: Number(returnId) },
                 include: [
                     {
@@ -490,6 +523,11 @@ class expiryService {
                         model: db.distributors,
                         as: 'returnFromUser',
                         attributes: ['companyName', 'distributorId']
+                    },
+                    {
+                        model:db.creditNotes,
+                        as:"creditnote",
+                        attributes:['id','createdAt']
                     }
                 ]
             })
@@ -510,9 +548,76 @@ class expiryService {
 
     async expiry_list_card_data(data) {
         try {
-            const { id } = data
+            const { id,startDate,endDate } = data
             const userId = Number(id)
-            // const Data = await db.
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            let wherereturn = {
+                returnFrom: Number(userId),
+            }
+            let wherecn= {
+                organisationId:Number(userId)
+            }
+            let wherecnv = {
+                returnFrom:Number(userId)
+            }
+            if (startDate && endDate) {
+                const formattedStartDate = startDate.split("-").reverse().join("-") + " 00:00:00";
+                const formattedEndDate = endDate.split("-").reverse().join("-") + " 23:59:59";
+                wherereturn.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecn.createdAt = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecnv.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+            }
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const [Returns] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("COUNT", db.Sequelize.col("returnId")), "totalReturnRaised"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN 1 ELSE 0 END")), "confirmedCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN 1 ELSE 0 END")), "pendingCount"]
+                ],
+                where: wherereturn
+            });
+            const [creditnote] = await db.stocks.findAll({
+                attributes: [
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN ExpDate < CURDATE() THEN 1 ELSE 0 END")), "ExpiredCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN ExpDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ${daysforexpiry} DAY) THEN 1 ELSE 0 END`)), "ExpiringSoonCount"]
+                ],
+                where:wherecn
+            });     
+            const [cnvalues] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("SUM", db.Sequelize.col("returnTotal")), "totalReturnTotal"], // Total returnTotal (all statuses)
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN returnTotal ELSE 0 END")), "pendingReturnTotal"], // Sum of returnTotal for Pending
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN cNAmt ELSE 0 END")), "confirmedCNAmt"] // Sum of cNAmt for Confirmed
+                ],
+                where:wherecnv
+            });
+             return {
+                status:message.code200,
+                message:message.message200,
+                Returns: {
+                    totalReturnRaised: Returns?.dataValues?.totalReturnRaised ?? 0,
+                    confirmedCount: Returns?.dataValues?.confirmedCount ?? 0,
+                    pendingCount: Returns?.dataValues?.pendingCount ?? 0
+                },
+                creditnote: {
+                    ExpiredCount: creditnote?.dataValues?.ExpiredCount ?? 0,
+                    ExpiringSoonCount: creditnote?.dataValues?.ExpiringSoonCount ?? 0
+                },
+                cnvalues: {
+                    totalReturnTotal: cnvalues?.dataValues?.totalReturnTotal ?? 0,
+                    pendingReturnTotal: cnvalues?.dataValues?.pendingReturnTotal ?? 0,
+                    confirmedCNAmt: cnvalues?.dataValues?.confirmedCNAmt ?? 0
+                }
+            };
+            
         } catch (error) {
             console.log('expiry_list_card_data service error:', error.message)
             return {
@@ -522,6 +627,50 @@ class expiryService {
         }
     }
 
+    async get_credit_notes(data) {
+        try {
+            const {id} = data
+            let userId = id
+            const Data = await db.creditNotes.findAll({where:{issuedTo:Number(userId)}})
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:Data || []
+            }
+         } catch (error) {
+            console.log('get_credit_note service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
+
+    async redeem_cn(data) {
+        try {
+            const {id,creditnoteId} = data
+            if(!creditnoteId){
+                return {
+                    status:message.code400,
+                    message:'Invalid input'
+                }
+            }
+            const creditNote = await db.creditNotes.findOne({where:{id:Number(creditnoteId)}})
+            return {
+                status:message.code200,
+                message:message.message200,
+                creditNote
+            }
+        } catch (error) {
+            console.log('redeem_cn service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+
 }
+
 
 module.exports = new expiryService(db);
