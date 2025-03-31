@@ -501,7 +501,7 @@ class ManufacturerService {
       const totalData = await db.orders.count({ where: whereCondition })
       console.log(whereCondition)
       const result = await db.orders.findAll({
-        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType'],
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'balance', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType'],
         where: whereCondition,
         include: [
           {
@@ -546,13 +546,17 @@ class ManufacturerService {
           ...order.toJSON(),
           distributer: distributer
             ? {
-            "companyName":  distributer.companyName,
-            "distributorId":distributer.distributorId
-              }
+              companyName: distributer.companyName,
+              distributorId: distributer.distributorId,
+            }
             : null,
+          orderTotal: order.orderTotal ? Number(order.orderTotal.toFixed(2)) : 0.0,
+          invAmt: order.invAmt ? Number(order.invAmt.toFixed(2)) : 0.0,
+          balance: order.balance ? Number(order.balance.toFixed(2)) : 0.0,
           dueDate: dueDate ? dueDate.toISOString().slice(0, 10) : null, // Format YYYY-MM-DD
           overdue,
         };
+
       });
       
       // console.log(result);

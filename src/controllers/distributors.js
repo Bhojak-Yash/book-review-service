@@ -131,3 +131,18 @@ exports.check_profile = async (req,res) => {
     return res.status(500).json({ status:message.code500,message: error.message });
   }
 }
+
+exports.update_distributorType = async (req, res) => {
+  try {
+    const userIdFromToken = req.user.id; 
+    const data = req.body; 
+
+    const distributor = await DistributorService.update_distributorType(data, userIdFromToken);
+
+    return res.json(distributor);
+  } catch (error) {
+    console.error("update_distributorType Error:", error.message);
+    return res.status(500).json({ status: message.code500, message: error.message });
+  }
+};
+

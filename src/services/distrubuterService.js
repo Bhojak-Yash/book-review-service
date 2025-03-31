@@ -36,7 +36,7 @@ class DistributorService {
                     userName: userName,
                     password: hashedPassword,
                     userType: 'Distributor',
-                    status: "Active"
+                    status: "Active",
                 },
                 { transaction }
             );
@@ -46,7 +46,9 @@ class DistributorService {
                 {
                     distributorId: user.id,
                     companyName: companyName,
-                    distributorCode: distributorCode
+                    distributorCode: distributorCode,
+                    type: "Distributor",
+                    status: "Active"
                 },
                 { transaction }
             );
@@ -413,8 +415,8 @@ class DistributorService {
                     totalOrders: Number(orderStats?.totalOrders) || 0,
                     completedOrders: Number(orderStats?.completedOrders) || 0,
                     pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
-                    totalDueAmtOrders: Number(orderStats?.totalDueAmtOrders) || 0,
-                    totalDueAmount: Number(orderStats?.totalDueAmount) || 0,
+                    totalDueAmtOrders: orderStats?.totalDueAmtOrders ? Number(orderStats.totalDueAmtOrders.toFixed(2)) : 0.0,
+                    totalDueAmount: orderStats?.totalDueAmount ? Number(orderStats.totalDueAmount.toFixed(2)) : 0.0,
                     totalRetailersCount: totalRetailersCount,
                     pendingAuthorizations,
                 },
@@ -996,6 +998,112 @@ class DistributorService {
             }
         }
     }
+
+    // async update_distributorType(data) {
+    //     let transaction;
+    //     try {
+    //         const { userId } = data;
+
+    //         if (!userId) {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "Distributor ID is required",
+    //             };
+    //         }
+
+    //         transaction = await db.sequelize.transaction();
+
+    //         // Check if the distributor exists
+    //         const distributor = await Distributors.findOne({
+    //             where: { distributorId: userId },
+    //             transaction
+    //         });
+
+    //         if (!distributor) {
+    //             await transaction.rollback();
+    //             return {
+    //                 status: message.code404,
+    //                 message: "Distributor not found",
+    //             };
+    //         }
+
+    //         // Update distributor type to CNF
+    //         await Distributors.update(
+    //             { type: "CNF" },
+    //             { where: { distributorId: userId }, transaction }
+    //         );
+
+    //         await transaction.commit();
+
+    //         return {
+    //             status: message.code200,
+    //             message: "Distributor type updated to CNF successfully",
+    //         };
+    //     } catch (error) {
+    //         if (transaction) await transaction.rollback();
+    //         console.error("update_distributorType error:", error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: error.message,
+    //         };
+    //     }
+    // }
+
+    async update_distributorType(data, userIdFromToken) {
+        let transaction;
+        try {
+            const { type } = data; // Extract type from the request body
+
+            if (type === undefined) {
+                return {
+                    status: message.code400,
+                    message: "Type is required (1 for CNF, 0 for Distributor)",
+                };
+            }
+
+            transaction = await db.sequelize.transaction();
+
+            // Check if the distributor exists
+            const distributor = await Distributors.findOne({
+                where: { distributorId: userIdFromToken },
+                transaction
+            });
+
+            if (!distributor) {
+                await transaction.rollback();
+                return {
+                    status: message.code404,
+                    message: "Distributor not found",
+                };
+            }
+
+            // Determine the new type based on input
+            const newType = type === 1 ? "CNF" : "Distributor";
+
+            // Update distributor type
+            await Distributors.update(
+                { type: newType },
+                { where: { distributorId: userIdFromToken }, transaction }
+            );
+
+            await transaction.commit();
+
+            return {
+                status: message.code200,
+                message: `Distributor type updated to ${newType} successfully`,
+            };
+        } catch (error) {
+            if (transaction) await transaction.rollback();
+            console.error("update_distributorType error:", error.message);
+            return {
+                status: message.code500,
+                message: error.message,
+            };
+        }
+    }
+
+
+
 }
 
 module.exports = new DistributorService(db);

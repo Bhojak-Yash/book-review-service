@@ -106,6 +106,11 @@ class OrdersService {
         status:'Pending'
       })
       const data = await db.orders.findOne({where:{id:Number(orderId)}})
+
+      if (Number(data.dataValues.balance) <= 0) {
+        throw new Error("Payment already completed for this order.");
+      }
+
       let oStatus = 'Paid'
       if(Number(data.dataValues.balance)>Number(amount)){
         oStatus = 'Partially paid'
