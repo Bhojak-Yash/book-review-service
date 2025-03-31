@@ -30,7 +30,7 @@ module.exports =(sequelize,Sequelize)=>{
              type:Sequelize.STRING
         },
         "ProductForm":{
-            type: Sequelize.ENUM('Capsule', 'Powder', 'Tablet', 'Syrup'),
+            type: Sequelize.ENUM('Capsule', 'Powder', 'Tablet', 'Syrup', 'Injection'),
             allowNull: false
         },
         "Quantity": {
