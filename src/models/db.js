@@ -24,7 +24,8 @@ const states = require('./states')
 const cities = require('./cities')
 const notifications = require('./notifications')
 const returnHeader = require('./returnHeader');
-const returnDetails = require('./returnDetails')
+const returnDetails = require('./returnDetails');
+const creditNotes = require('./creditNotes');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -75,7 +76,8 @@ const db = {
   cities: cities(sequelize, Sequelize),
   notifications: notifications(sequelize, Sequelize),
   returnHeader:returnHeader(sequelize,Sequelize),
-  returnDetails: returnDetails(sequelize, Sequelize)
+  returnDetails: returnDetails(sequelize, Sequelize),
+  creditNotes: creditNotes(sequelize,Sequelize)
 };
 
 
@@ -99,7 +101,7 @@ db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
 db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
 db.orders.belongsTo(db.distributors, {
-  foreignKey: 'orderFrom', // Ensure this is correct
+  foreignKey: 'orderFrom', 
   as: 'distributer'
 });
 db.orders.hasMany(db.orderitems,{foreignKey: "orderId", as: "orderItems"})
@@ -113,9 +115,9 @@ db.users.hasMany(db.distributors,{foreignKey:'distributorId',as:"disuser"})
 db.users.hasMany(db.retailers,{foreignKey:'retailerId',as:"reuser"})
 db.users.hasMany(db.manufacturers,{foreignKey:'manufacturerId',as:"manufacturer"})
 
-// In distributors model
+
 db.distributors.hasMany(db.orders, {
-  foreignKey: 'orderFrom', // Ensure this is correct
+  foreignKey: 'orderFrom', 
   as: 'distributer'
 });
 
@@ -124,8 +126,8 @@ db.distributors.hasMany(db.authorizations,{foreignKey:'authorizedId',as:"auth"})
 db.authorizations.belongsTo(db.users,{foreignKey:'authorizedId',as:"user"})
 db.address.belongsTo(db.distributors,{foreignKey:'userId',targetKey:'distributorId',as:'distributorAddress'})
 db.distributors.hasMany(db.address, {
-  foreignKey: "userId", // Ensure this matches the address table
-  sourceKey: "distributorId", // Ensure this matches the distributors table
+  foreignKey: "userId",
+  sourceKey: "distributorId",
   as: "addresses"
 });
 db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authorizedUser" });
@@ -140,6 +142,12 @@ db.manufacturers.hasMany(db.returnHeader, {
   targetKey:'manufacturerId',
   as: "returnHeader" 
 });
+db.products.belongsTo(db.manufacturers,{ foreignKey: "manufacturerId", as: "manufacturer" })
+db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnFrom", as: "returnFromUser" })
+db.returnHeader.hasMany(db.returnDetails,{foreignKey: "returnId", as: "returnDetails" })
+db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
+db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
+db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);

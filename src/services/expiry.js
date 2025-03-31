@@ -29,12 +29,15 @@ class expiryService {
         // } 
         try {
             let { page, limit, id } = data;
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             // console.log(id)
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
             const daysforexpiry = Number(process.env.lowStockDays)
-            const today = moment().startOf("day"); 
+            const today = moment().startOf("day");
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             // console.log(threeMonthsBefore,after90Days)
@@ -66,8 +69,8 @@ class expiryService {
                     {
                         model: db.returnHeader,
                         as: "returnHeader",
-                        attributes: ['id'],
-                        where: { returnFrom: Number(id),returnStatus:'Pending' },
+                        attributes: ['returnId'],
+                        where: { returnFrom: Number(id), returnStatus: 'Pending' },
                         required: false
                     }
                 ],
@@ -80,7 +83,7 @@ class expiryService {
             const result = rows?.map((item) => {
                 return {
                     returnTo: item?.companyName,
-                    returnToId:item.manufacturerId,
+                    returnToId: item.manufacturerId,
                     totalSKU: item?.products?.length,
                     totalStock: item?.products?.reduce((stockSum, product) => {
                         return stockSum + product.stocks?.reduce((sum, stock) => sum + stock.Stock, 0);
@@ -89,11 +92,13 @@ class expiryService {
                         return stockSum + product.stocks?.reduce((sum, stock) => sum + (Number(stock.Stock) * Number(stock.PTS)), 0);
                     }, 0),
                     returnStatus: item?.returnHeader.length ? "Pending" : "Not Returned",
-                    returnId:item?.returnHeader.length ? item?.returnHeader[0]?.id : null
+                    returnId: item?.returnHeader.length ? item?.returnHeader[0]?.returnId : null
                 };
             });
 
             return {
+                status: message.code200,
+                message: message.message200,
                 totalManufacturers: count,
                 totalPages: Math.ceil(count / limit),
                 currentPage: page,
@@ -108,69 +113,556 @@ class expiryService {
         }
     }
 
-    async expiry_page_card_data(data) {
+    async expire_details(data) {
         try {
-            const {id} = data
+            let { id, manufacturerId, page, limit, search } = data
+            // console.log(data)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            page = page ? parseInt(page) : 1;
+            limit = limit ? parseInt(limit) : 10;
+            const offset = (page - 1) * limit;
             const checkId = Number(id)
-            // const { count, rows } = await db.manufacturers.findAndCountAll({
-            //     attributes: ["manufacturerId", "companyName"],
-            //     include: [
-            //         {
-            //             model: db.products,
-            //             as: "products",
-            //             attributes: ["PId", "PName"],
-            //             include: [
-            //                 {
-            //                     model: db.stocks,
-            //                     as: "stocks",
-            //                     attributes: ["SId", "organisationId", 'PTS', 'PTR', 'Stock', 'ExpDate'],
-            //                     where: {
-            //                         Stock: { [db.Sequelize.Op.gt]: 0 },
-            //                         organisationId: Number(id),
-            //                         [db.Op.and]: [
-            //                             { ExpDate: { [db.Op.lt]: after90Days } },
-            //                             { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
-            //                         ]
-            //                     },
-            //                     required: true
-            //                 }
-            //             ],
-            //             required: true
-            //         },
-            //         {
-            //             model: db.returnHeader,
-            //             as: "returnHeader",
-            //             attributes: ['id'],
-            //             where: { returnFrom: Number(id),returnStatus:'Pending' },
-            //             required: false
-            //         }
-            //     ],
-            //     distinct: true,
-            //     limit,
-            //     offset,
-            //     order: [["companyName", "ASC"]],
-            // })
-            const Data = await db.stocks.findAndCountAll({
-                attributes:['SId','Stock','PId'],
-                where:{'organisationId':checkId,
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const today = moment().startOf("day").format("YYYY-MM-DD HH:mm:ss")
+            const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const whereCondition = {
+                organisationId: checkId,
+                [db.Op.and]: [
+                    { ExpDate: { [db.Op.lt]: after90Days } },
+                    { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+                ]
+            };
+
+            // Apply product filters only if searchKey is present
+            const productWhereCondition = {};
+            if (search && search.trim() !== "") {
+                productWhereCondition[db.Op.or] = [
+                    { PCode: { [db.Op.like]: `%${search}%` } },
+                    { PName: { [db.Op.like]: `%${search}%` } },
+                    { SaltComposition: { [db.Op.like]: `%${search}%` } }
+                ];
+            }
+            const { count, rows: Data } = await db.stocks.findAndCountAll({
+                attributes: ['SId', 'Stock', 'PId', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme'],
+                where: whereCondition,
+                include: [
+                    {
+                        model: db.products,
+                        as: 'product',
+                        attributes: ['PId', 'PName', 'PCode', 'manufacturerId', 'PackagingDetails', 'Package', 'ProductForm', 'Quantity', 'SaltComposition'],
+                        // where:Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
+                        where: productWhereCondition,
+                        required: true,
+                        include: {
+                            model: db.manufacturers,
+                            as: 'manufacturer',
+                            attributes: ['manufacturerId', 'companyName'],
+                            where: { "manufacturerId": Number(manufacturerId) },
+                            required: true
+                        }
+                    }
+                ],
+                limit,
+                offset
+            })
+            const result = Data?.map((item) => {
+                const currentDate = new Date();
+                let expiryStatus = "Near Expiry";
+                console.log(item.ExpDate, currentDate)
+                if (item.ExpDate < currentDate) {
+                    console.log('pppp')
+                    expiryStatus = "Expired";
+                }
+                return {
+                    "PName": item.product.PName,
+                    'PCode': item.product.PCode,
+                    "manufacturerId": item.product.manufacturer.manufacturerId,
+                    "companyName": item.product.manufacturer.companyName,
+                    "SId": item.SId,
+                    "Scheme": item.Scheme,
+                    "Stock": item.Stock,
+                    "PId": item.PId,
+                    "ExpDate": item.ExpDate,
+                    "PTS": item.PTS,
+                    "PTR": item.PTR,
+                    "MRP": item.MRP,
+                    "BoxQty": item.BoxQty,
+                    "location": item.location,
+                    "PackagingDetails": item.product.PackagingDetails,
+                    "Package": item.product.Package,
+                    "ProductForm": item.product.ProductForm,
+                    "Quantity": item.product.Quantity,
+                    "SaltComposition": item.product.SaltComposition,
+                    expiryStatus
+                }
+            })
+            return {
+                totalData: count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: page,
+                apiData: result
+            }
+        } catch (error) {
+            console.log('expire_details service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async expire_details_card_data(data) {
+        try {
+            const { id, manufacturerId } = data
+            const checkId = Number(id)
+            if (data?.userType === 'Employee') {
+                checkId = data.data.employeeOf
+            }
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const today = moment().startOf("day");
+            const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+            let unitCount = 0;
+            let totalExpiryValue = 0;
+            const Data = await db.stocks.findAll({
+                attributes: [
+                    [db.sequelize.fn("SUM", db.sequelize.col("Stock")), "unitCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal("Stock * PTS")), "totalExpiryValue"],
+                    "PId"
+                ],
+                include: [
+                    {
+                        model: db.products,
+                        as: "product",
+                        required: true,
+                        attributes: ['PId'],
+                        where: { manufacturerId: Number(manufacturerId) }
+                    }
+                ],
+                where: {
+                    organisationId: checkId,
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
                     ]
                 },
-                include:[
+                group: ["stocks.PId"]
+            });
+
+            const totalSKU = await db.stocks.count({
+                distinct: true,
+                col: "PId",
+                include: [
                     {
-                        model:db.products,
-                        as:'product',
-                        attributes:['PId','PName'],
-                        // where:{'manufacturerId':62},
-                        required:true
+                        model: db.products,
+                        as: "product",
+                        required: true,
+                        where: { manufacturerId: Number(manufacturerId) }
+                    }
+                ],
+                where: {
+                    organisationId: checkId,
+                    [db.Op.and]: [
+                        { ExpDate: { [db.Op.lt]: after90Days } },
+                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+                    ]
+                }
+            });
+            // console.log(Data)
+            await Data?.forEach((item) => {
+                // console.log(item.dataValues.unitCount)
+                unitCount = unitCount + Number(item.dataValues.unitCount)
+                totalExpiryValue = totalExpiryValue + Number(item.dataValues.totalExpiryValue)
+            })
+            return {
+                status: message.code200,
+                message: message.message200,
+                // Data,
+                unitCount,
+                totalExpiryValue,
+                totalSKU
+            }
+        } catch (error) {
+            console.log('expire_details_card_data service error:', error.message)
+            return {
+                status: message.code500,
+                message: message.message500
+            }
+        }
+    }
+
+    async raise_expiry(data) {
+        let transaction;
+        try {
+            transaction = await db.sequelize.transaction();
+            const { manufacturerId, items, returnTotal, id } = data
+            let userId = Number(id)
+            if (data?.userType === 'Employee') {
+                userId = data.data.employeeOf
+            }
+            if (!manufacturerId || !userId || !items || !returnTotal) {
+                return {
+                    status: message.code400,
+                    message: 'Invalid input'
+                }
+            }
+            const header = await db.returnHeader.create({
+                "returnDate": new Date(),
+                "returnTotal": Number(returnTotal),
+                "balance": Number(returnTotal),
+                "returnFrom": userId,
+                "returnTo": Number(manufacturerId),
+                "returnStatus": "Pending"
+            },
+                { transaction }
+            )
+
+            const insertData = [];
+
+            items?.forEach((item, index) => {
+                if (!item.SId || !item.PId || !item.BoxQty || !item.Stock) {
+                    throw new Error(`Missing required fields in items at index ${index}`);
+                }
+
+                insertData.push({
+                    "returnId": header.returnId,
+                    "SId": Number(item.SId),
+                    "PId": Number(item.PId),
+                    "BoxQty": Number(item.BoxQty),
+                    "quantity": Number(item.Stock)
+                });
+            });
+            await db.returnDetails.bulkCreate(insertData, { transaction })
+            // console.log(insertData, ';;;;;;;;;;;')
+            await transaction.commit();
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: header
+            }
+        } catch (error) {
+            if (transaction) await transaction.rollback();
+            console.log('raise_expiry service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async expiry_return_list(data) {
+        try {
+            let { id, page, limit, search, startDate, endDate } = data
+            // console.log(data)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            page = page ? parseInt(page) : 1;
+            limit = limit ? parseInt(limit) : 10;
+            const offset = (page - 1) * limit;
+            const userId = Number(id)
+
+            const whereClause = {
+                returnTo: userId,
+            };
+
+            if (search) {
+                whereClause[db.Op.or] = [
+                    { returnId: { [db.Op.like]: `%${search}%` } },
+                    { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+                ];
+            }
+
+            if (startDate && endDate) {
+                whereClause.returnDate = {
+                    [db.Op.between]: [startDate, endDate]
+                };
+            }
+
+            const { count, rows: Data } = await db.returnHeader.findAndCountAll({
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate'],
+                where: whereClause,
+                include: [
+                    {
+                        model: db.distributors,
+                        as: 'returnFromUser',
+                        attributes: ['companyName', 'distributorId'],
+                        required: false,
+                    }
+                ],
+                limit,
+                offset,
+            });
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                totalData: count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: page,
+                apiData: Data
+            }
+        } catch (error) {
+            console.log('expiry_return_list service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async update_expiry_return(data) {
+        let transaction;
+        try {
+            transaction = await db.sequelize.transaction();
+            const { status, returnId, returnAmt, items, reason, cnUrl, returnFrom, returnTo } = data
+            const Reason = reason || ""
+            if (!status || !returnId) {
+                return {
+                    status: message.code400,
+                    message: 'Invalid input'
+                }
+            }
+            if (status == 'Confirmed') {
+                if (!items || !returnAmt) {
+                    return {
+                        status: message.code400,
+                        message: 'Invalid input'
+                    }
+                }
+                const caseQuery = items.map(item => `WHEN id = ${item.id} THEN ${item.quantity}`).join(' ');
+
+                const ids = items.map(item => item.id).join(',');
+
+                await db.sequelize.query(`
+                      UPDATE return_details 
+                      SET quantity = CASE ${caseQuery} END
+                      WHERE id IN (${ids});
+                      `,
+                    { transaction }
+                );
+                const SIds = items.map(item => item.SId)
+                await db.stocks.update(
+                    { Stock: 0 },
+                    { where: { SId: { [db.Op.in]: SIds } } },
+                    { transaction }
+                );
+                await db.returnHeader.update(
+                    { returnAmt: Number(returnAmt), confirmationDate: new Date(), cNAmt: Number(returnAmt), returnStatus: 'Confirmed' },
+                    { where: { returnId: Number(returnId) } },
+                    { transaction }
+                )
+                if (cnUrl, returnAmt, returnFrom, returnTo) {
+                    await db.creditNotes.upsert({
+                        "amount": Number(returnAmt),
+                        "issuedBy": Number(returnTo),
+                        "issuedTo": Number(returnFrom),
+                        "url": cnUrl,
+                        "isSettled": false,
+                        "returnId": returnId,
+                        "balance":Number(returnAmt)
+                    },
+                        { transaction }
+                    )
+                }
+            } else {
+                await db.returnHeader.update(
+                    { returnStatus: status, reason: Reason },
+                    { where: { returnId: Number(returnId) } },
+                    { transaction }
+                )
+            }
+
+            await transaction.commit();
+            return {
+                status: message.code200,
+                message: `Return request successfully ${status}`
+            }
+        } catch (error) {
+            if (transaction) await transaction.rollback();
+            console.log('update_expiry_return service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async returned_details(data) {
+        try {
+            let { id, returnId } = data
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            const Data = await db.returnHeader.findOne({
+                attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo','returnStatus'],
+                where: { returnId: Number(returnId) },
+                include: [
+                    {
+                        model: db.returnDetails,
+                        as: "returnDetails",
+                        attributes: ['PId', 'SId', 'BoxQty', 'Stock', 'quantity', 'id'],
+                        include: [
+                            {
+                                model: db.products,
+                                as: 'products',
+                                attributes: ['PId', 'PName', 'SaltComposition']
+                            },
+                            {
+                                model: db.stocks,
+                                as: "stocks",
+                                attributes: ['BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme']
+                            }
+                        ]
+                    },
+                    {
+                        model: db.distributors,
+                        as: 'returnFromUser',
+                        attributes: ['companyName', 'distributorId']
+                    },
+                    {
+                        model:db.creditNotes,
+                        as:"creditnote",
+                        attributes:['id','createdAt']
                     }
                 ]
             })
-            return {Data}
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: Data
+            }
         } catch (error) {
-            console.log('expiry_page_card_data service error:',error.message)
+            console.log('returned_details servie error:', error.messagae)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async expiry_list_card_data(data) {
+        try {
+            const { id,startDate,endDate } = data
+            const userId = Number(id)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            let wherereturn = {
+                returnFrom: Number(userId),
+            }
+            let wherecn= {
+                organisationId:Number(userId)
+            }
+            let wherecnv = {
+                returnFrom:Number(userId)
+            }
+            if (startDate && endDate) {
+                const formattedStartDate = startDate.split("-").reverse().join("-") + " 00:00:00";
+                const formattedEndDate = endDate.split("-").reverse().join("-") + " 23:59:59";
+                wherereturn.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecn.createdAt = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecnv.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+            }
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const [Returns] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("COUNT", db.Sequelize.col("returnId")), "totalReturnRaised"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN 1 ELSE 0 END")), "confirmedCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN 1 ELSE 0 END")), "pendingCount"]
+                ],
+                where: wherereturn
+            });
+            const [creditnote] = await db.stocks.findAll({
+                attributes: [
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN ExpDate < CURDATE() THEN 1 ELSE 0 END")), "ExpiredCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN ExpDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ${daysforexpiry} DAY) THEN 1 ELSE 0 END`)), "ExpiringSoonCount"]
+                ],
+                where:wherecn
+            });     
+            const [cnvalues] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("SUM", db.Sequelize.col("returnTotal")), "totalReturnTotal"], // Total returnTotal (all statuses)
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN returnTotal ELSE 0 END")), "pendingReturnTotal"], // Sum of returnTotal for Pending
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN cNAmt ELSE 0 END")), "confirmedCNAmt"] // Sum of cNAmt for Confirmed
+                ],
+                where:wherecnv
+            });
+             return {
+                status:message.code200,
+                message:message.message200,
+                Returns: {
+                    totalReturnRaised: Returns?.dataValues?.totalReturnRaised ?? 0,
+                    confirmedCount: Returns?.dataValues?.confirmedCount ?? 0,
+                    pendingCount: Returns?.dataValues?.pendingCount ?? 0
+                },
+                creditnote: {
+                    ExpiredCount: creditnote?.dataValues?.ExpiredCount ?? 0,
+                    ExpiringSoonCount: creditnote?.dataValues?.ExpiringSoonCount ?? 0
+                },
+                cnvalues: {
+                    totalReturnTotal: cnvalues?.dataValues?.totalReturnTotal ?? 0,
+                    pendingReturnTotal: cnvalues?.dataValues?.pendingReturnTotal ?? 0,
+                    confirmedCNAmt: cnvalues?.dataValues?.confirmedCNAmt ?? 0
+                }
+            };
+            
+        } catch (error) {
+            console.log('expiry_list_card_data service error:', error.message)
+            return {
+                status: message.code500,
+                messagae: error.messagae
+            }
+        }
+    }
+
+    async get_credit_notes(data) {
+        try {
+            const {id} = data
+            let userId = id
+            const Data = await db.creditNotes.findAll({where:{issuedTo:Number(userId)}})
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:Data || []
+            }
+         } catch (error) {
+            console.log('get_credit_note service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
+
+    async redeem_cn(data) {
+        try {
+            const {id,creditnoteId} = data
+            if(!creditnoteId){
+                return {
+                    status:message.code400,
+                    message:'Invalid input'
+                }
+            }
+            const creditNote = await db.creditNotes.findOne({where:{id:Number(creditnoteId)}})
+            return {
+                status:message.code200,
+                message:message.message200,
+                creditNote
+            }
+        } catch (error) {
+            console.log('redeem_cn service error:',error.message)
             return {
                 status:message.code500,
                 message:error.message
@@ -179,5 +671,6 @@ class expiryService {
     }
 
 }
+
 
 module.exports = new expiryService(db);

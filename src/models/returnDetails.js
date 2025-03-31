@@ -8,11 +8,20 @@ module.exports = (sequelize, Sequelize) => {
           autoIncrement: true, 
           allowNull: false,
         },
+        returnId:{
+          type:Sequelize.STRING
+        },
         PId: {
           type: Sequelize.BIGINT, 
         },
         SId: {
           type: Sequelize.BIGINT,
+        },
+        BoxQty:{
+          type:Sequelize.BIGINT
+        },
+        Stock:{
+          type:Sequelize.BIGINT
         },
         quantity: {
           type: Sequelize.BIGINT, 
