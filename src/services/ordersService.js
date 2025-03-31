@@ -166,12 +166,12 @@ class OrdersService {
             updates?.items?.map(async (item) => {
               // console.log(item?.stockId)
               await db.sequelize.query(
-                `UPDATE stocks SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+                `UPDATE stocks SET Stock = Stock - : WHERE SId = :stockId`,
                 {
                   replacements: {
                     itemQuantity: item.quantity,
                     stockId: item.stockId,
-                  },
+               itemQuantity   },
                   transaction: t, // Use the transaction
                 }
               );
@@ -257,8 +257,8 @@ class OrdersService {
               }
             );
             await db.sequelize.query(
-              `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose) 
-               VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose) 
+              `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+               VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
               {
                 replacements: {
@@ -273,7 +273,8 @@ class OrdersService {
                   PTR: item.PTR,
                   Scheme: item.Scheme,
                   BoxQty: item.BoxQty,
-                  loose: item.loose
+                  loose: item.loose,
+                  purchasedFrom:data?.dataValues?.orderTo
                 },
                 transaction: t, // Use the transaction
               }

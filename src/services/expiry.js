@@ -656,11 +656,75 @@ class expiryService {
                 }
             }
             const creditNote = await db.creditNotes.findOne({where:{id:Number(creditnoteId)}})
-            return {
-                status:message.code200,
-                message:message.message200,
-                creditNote
+            // console.log(creditNote?.isSettled)
+            if(!creditNote){
+                return {
+                    status:message.code400,
+                    message:'Invalid credit note'
+                }
+            }else if(creditNote?.isSettled){
+                return {
+                    status:message.code400,
+                    message:'Credit note already reedmed '
+                }
             }
+            let remainingCredit = creditNote?.dataValues?.amount;
+            const orders = await db.orders.findAll({
+                where: {
+                    orderFrom: id,
+                    orderStatus: { [db.Sequelize.Op.in]: ["Received", "Partially paid"] },
+                },
+                order: [["id", "ASC"]],
+            });
+            if (!orders.length) {
+                return {
+                    status: message.code400,
+                    message: "No valid orders found to apply the credit note",
+                };
+            }
+            const updatedOrders = [];
+
+            for (const order of orders) {
+                if (remainingCredit <= 0) break; // Stop if credit is exhausted
+            
+                let orderBalance = order.balance;
+            
+                if (orderBalance > 0) {
+                    let amountToPay = Math.min(orderBalance, remainingCredit);
+            
+                    orderBalance -= amountToPay;
+                    remainingCredit -= amountToPay;
+            
+                    let newStatus = orderBalance === 0 ? "Paid" : "Partially paid";
+            
+                    await order.update({ 
+                        balance: orderBalance, 
+                        orderStatus: newStatus 
+                    });
+            
+                    updatedOrders.push({
+                        orderId: order.id,
+                        paidAmount: amountToPay,
+                        remainingOrderBalance: orderBalance,
+                        newStatus,
+                    });
+                }
+            }
+            
+            await db.creditNotes.update({isSettled:true},{where:{id:Number(creditnoteId)}})
+    
+            return {
+                status: message.code200,
+                message: "Credit note successfully applied to orders",
+                creditNoteId: creditnoteId,
+                remainingCredit,
+                updatedOrders,
+            };
+            // return {
+            //     status:message.code200,
+            //     message:message.message200,
+            //     creditNote
+            // }
         } catch (error) {
             console.log('redeem_cn service error:',error.message)
             return {

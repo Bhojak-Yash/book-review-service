@@ -498,7 +498,7 @@ class DistributorService {
             const { id } = data
 
             const [aa] = await db.sequelize.query(
-                `SELECT documentName FROM documentCategory WHERE category = 'Distributor'`
+                `SELECT documentName FROM documentcategory WHERE category = 'Distributor'`
             );
             const document = await db.documentCategory.findAll({
                 attributes: ['id', 'documentName'],
@@ -827,7 +827,7 @@ class DistributorService {
             console.log('update_distributor service error:',error.message)
             return {
                 status:message.code500,
-                message:message.message500
+                message:error.message
             }
         }
     }

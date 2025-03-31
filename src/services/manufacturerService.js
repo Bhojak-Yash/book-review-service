@@ -468,6 +468,7 @@ class ManufacturerService {
       if (Page > 1) {
         Skip = (Page - 1) * Limit
       }
+      console.log(data.id)
       let whereCondition = { orderTo: Number(data.id) }
       if (data?.status) {
         if (data?.status === 'Unpaid') {
@@ -498,6 +499,7 @@ class ManufacturerService {
       }
       // console.log(whereCondition)
       const totalData = await db.orders.count({ where: whereCondition })
+      console.log(whereCondition)
       const result = await db.orders.findAll({
         attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType'],
         where: whereCondition,
@@ -506,6 +508,7 @@ class ManufacturerService {
             model: db.distributors,
             as: 'distributer',
             attributes: ['distributorId', 'companyName'],
+            required:false,
             include:{
               model:db.authorizations,
               as:'auth',
@@ -518,6 +521,7 @@ class ManufacturerService {
         limit: Limit,
         offset: Skip
       })
+      // console.log(result)
       const formattedResult = result.map(order => {
         const distributer = order.distributer;
         const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
@@ -551,7 +555,7 @@ class ManufacturerService {
         };
       });
       
-      // console.log(formattedResult);
+      // console.log(result);
       
 
       // const updateResult = result.map((item) => {
