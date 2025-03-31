@@ -542,6 +542,7 @@ class DistributorService {
         mn.FSSAI,
         mn.PAN as pan, 
         mn.CIN as cin,
+        mn.type,
               us.*, 
               ad.*
             FROM crm_db.distributors AS mn
@@ -575,6 +576,7 @@ class DistributorService {
                             distributorId: row.distributorId,
                             PAN: row.pan,
                             CIN: row.cin,
+                            type: row.type,
                         },
                         user: {
                             id: row.id,
