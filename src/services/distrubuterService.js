@@ -1057,7 +1057,7 @@ class DistributorService {
             if (type === undefined) {
                 return {
                     status: message.code400,
-                    message: "Type is required (1 for CNF, 0 for Distributor)",
+                    message: "Type is required",
                 };
             }
 
@@ -1078,7 +1078,7 @@ class DistributorService {
             }
 
             // Determine the new type based on input
-            const newType = type === 1 ? "CNF" : "Distributor";
+            const newType = type == true ? "CNF" : "Distributor";
 
             // Update distributor type
             await Distributors.update(
