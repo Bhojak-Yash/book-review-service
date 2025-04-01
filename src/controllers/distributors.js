@@ -146,3 +146,57 @@ exports.update_distributorType = async (req, res) => {
   }
 };
 
+//Employee Management..........................................................
+
+
+exports.create_role = async (req, res) => {
+  try {
+    const userIdFromToken = req.user.id; 
+    const data = req.body; 
+
+    const distributor = await DistributorService.create_role(data, userIdFromToken);
+
+    return res.json(distributor);
+  } catch (error) {
+    console.error("create_role Error:", error.message);
+    return res.status(500).json({ status: message.code500, message: error.message });
+  }
+};
+
+exports.get_roles = async (req, res) => {
+  try {
+    const data = req.query; 
+
+    const roles = await DistributorService.get_roles(data);
+    
+    return res.json({ status: "success", message: "Roles fetched successfully", data: roles });
+  } catch (error) {
+    console.error("get_roles Error:", error.message);
+    return res.status(500).json({ status: message.code500, message: error.message });
+  }
+};
+
+exports.update_roles = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body; 
+
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "Role ID is required." });
+    }
+
+    const roles = await DistributorService.update_roles(id, data);
+
+    if (!roles) {
+      return res.status(404).json({ status: "error", message: "Role not found." });
+    }
+
+    return res.json({ status: "success", message: "Role updated successfully", data: roles });
+  } catch (error) {
+    console.error("update_roles Error:", error.message);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+
+
