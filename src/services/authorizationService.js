@@ -17,24 +17,24 @@ class AuthService {
                     // status: 'Pending'
                 }
             })
-            if(check){
-            if (check.status === 'Pending') {
-                return {
-                    status: message.code400,
-                    message: 'Your authorization request is already pending. Please wait for approval before submitting a new request'
-                }
-            } else if (check.status === 'Not Send' || check.status === 'Rejected') {
-                const Data = await db.authorizations.update(
-                    { status: 'Pending' }, // Update fields
-                    { where: { id: Number(check.id) } } // Condition
-                );
-                return {
-                    status: message.code200,
-                    message: 'Authorization request sent',
-                    // apiData: Data
+            if (check) {
+                if (check.status === 'Pending') {
+                    return {
+                        status: message.code400,
+                        message: 'Your authorization request is already pending. Please wait for approval before submitting a new request'
+                    }
+                } else if (check.status === 'Not Send' || check.status === 'Rejected') {
+                    const Data = await db.authorizations.update(
+                        { status: 'Pending' }, // Update fields
+                        { where: { id: Number(check.id) } } // Condition
+                    );
+                    return {
+                        status: message.code200,
+                        message: 'Authorization request sent',
+                        // apiData: Data
+                    }
                 }
             }
-        }
 
             const Data = await db.authorizations.create({
                 authorizedBy: Number(authorizedBy),
@@ -70,7 +70,7 @@ class AuthService {
     async auth_request_list(data) {
         try {
             // console.log(data)
-            const {start_date,end_date} = data
+            const { start_date, end_date } = data
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
@@ -111,7 +111,7 @@ class AuthService {
                     }
                 ],
                 where: whereClause,
-                order:[["id","DESC"]],
+                order: [["id", "DESC"]],
                 offset: skip,
                 limit: Limit
             })
@@ -136,7 +136,7 @@ class AuthService {
     //     try {
     //         const { id, start_date, end_date } = data;
     //         let whereClause = { authorizedBy: Number(id) };
-        
+
     //         // Date range filter
     //         if (start_date && end_date) {
     //             whereClause.createdAt = {
@@ -146,7 +146,7 @@ class AuthService {
     //                 ],
     //             };
     //         }
-        
+
     //         // Current period result
     //         const currentResult = await db.authorizations.findAll({
     //             attributes: [
@@ -157,26 +157,26 @@ class AuthService {
     //             where: whereClause,
     //             raw: true,
     //         });
-        
+
     //         const { totalCount = 0, approvedCount = 0, rejectedCount = 0 } = currentResult[0] || {};
-        
+
     //         // Calculate previous period (Same duration before start_date)
     //         let previousWhereClause = { authorizedBy: Number(id) };
-        
+
     //         if (start_date && end_date) {
     //             let previousStartDate = new Date(start_date);
     //             let previousEndDate = new Date(end_date);
-        
+
     //             // Calculate previous period range
     //             const diff = previousEndDate.getTime() - previousStartDate.getTime();
     //             previousStartDate.setTime(previousStartDate.getTime() - diff);
     //             previousEndDate.setTime(previousEndDate.getTime() - diff);
-        
+
     //             previousWhereClause.createdAt = {
     //                 [Op.between]: [previousStartDate, previousEndDate],
     //             };
     //         }
-        
+
     //         // Previous period result
     //         const previousResult = await db.authorizations.findAll({
     //             attributes: [
@@ -187,15 +187,15 @@ class AuthService {
     //             where: previousWhereClause,
     //             raw: true,
     //         });
-        
+
     //         const { prevTotalCount = 0, prevApprovedCount = 0, prevRejectedCount = 0 } = previousResult[0] || {};
-        
+
     //         // Function to calculate percentage change
     //         const getPercentageChange = (current, previous) => {
     //             if (previous === 0) return current === 0 ? 0 : 100;
     //             return ((current - previous) / Math.abs(previous)) * 100;
     //         };
-        
+
     //         return {
     //             status: message.code200,
     //             message: message.message200,
@@ -221,7 +221,7 @@ class AuthService {
         try {
             const { id, start_date, end_date } = data;
             let whereClause = { authorizedBy: Number(id) };
-    
+
             // Date range filter
             if (start_date && end_date) {
                 whereClause.createdAt = {
@@ -231,7 +231,7 @@ class AuthService {
                     ],
                 };
             }
-    
+
             // Current period result
             const currentResult = await db.authorizations.findOne({
                 attributes: [
@@ -243,26 +243,26 @@ class AuthService {
                 where: whereClause,
                 raw: true,
             }) || {};
-    
+
             const { totalCount = 0, approvedCount = 0, rejectedCount = 0, pendingCount = 0 } = currentResult;
-    
+
             // Calculate previous period (Same duration before start_date)
             let previousWhereClause = { authorizedBy: Number(id) };
-    
+
             if (start_date && end_date) {
                 let previousStartDate = new Date(start_date);
                 let previousEndDate = new Date(end_date);
-    
+
                 // Calculate previous period range
                 const diff = previousEndDate.getTime() - previousStartDate.getTime();
                 previousStartDate.setTime(previousStartDate.getTime() - diff);
                 previousEndDate.setTime(previousEndDate.getTime() - diff);
-    
+
                 previousWhereClause.createdAt = {
                     [Op.between]: [previousStartDate, previousEndDate],
                 };
             }
-    
+
             // Previous period result
             const previousResult = await db.authorizations.findOne({
                 attributes: [
@@ -274,9 +274,9 @@ class AuthService {
                 where: previousWhereClause,
                 raw: true,
             }) || {};
-    
+
             const { prevTotalCount = 0, prevApprovedCount = 0, prevRejectedCount = 0, prevPendingCount = 0 } = previousResult;
-    
+
             // Get count of all Distributors and CNFs
             const distributerCounts = await db.distributors.findAll({
                 attributes: [
@@ -286,15 +286,15 @@ class AuthService {
                 ],
                 raw: true,
             });
-    
+
             const { totalDistributers = 0, totalCNFs = 0 } = distributerCounts[0] || {};
-    
+
             // Function to calculate percentage change
             const getPercentageChange = (current, previous) => {
                 if (previous === 0) return current === 0 ? 0 : 100;
                 return ((current - previous) / Math.abs(previous)) * 100;
             };
-    
+
             return {
                 status: message.code200,
                 message: message.message200,
@@ -319,54 +319,54 @@ class AuthService {
             };
         }
     }
-    
+
     async stop_po(data) {
         try {
-            const {id,userId} = data
-            if(!userId){
+            const { id, userId } = data
+            if (!userId) {
                 return {
-                    status:message.code400,
-                    message:'userId is required'
+                    status: message.code400,
+                    message: 'userId is required'
                 }
             }
             await db.authorizations.update(
-                {poStatus:'Stopped'},
-                {where:{authorizedId:Number(userId),authorizedBy:Number(id)}}
+                { poStatus: 'Stopped' },
+                { where: { authorizedId: Number(userId), authorizedBy: Number(id) } }
             )
             return {
-                status:message.code200,
-                message:'Po stopped'
+                status: message.code200,
+                message: 'Po stopped'
             }
         } catch (error) {
-            console.log('stop_po service error:',error.message)
+            console.log('stop_po service error:', error.message)
             return {
-                status:message.code500,
-                message:message.message500
+                status: message.code500,
+                message: message.message500
             }
         }
     }
 
     async update_auth_request(data) {
         try {
-            const {id,userId,status} = data
-            if(!id || !userId || !status){
+            const { id, userId, status } = data
+            if (!id || !userId || !status) {
                 return {
-                    status:message.code400,
-                    message:'Invalid params'
+                    status: message.code400,
+                    message: 'Invalid params'
                 }
             }
             let creditCycle = 0
-            if(status==='Approved'){
+            if (status === 'Approved') {
                 creditCycle = 7
             }
-            await db.authorizations.update({status:status,creditCycle:creditCycle},{where:{authorizedId:userId,authorizedBy:id}})
+            await db.authorizations.update({ status: status, creditCycle: creditCycle }, { where: { authorizedId: userId, authorizedBy: id } })
 
 
-            const statusMessage = data.status || "Pending"; 
+            const statusMessage = data.status || "Pending";
             const newNotification = await notificationsService.createNotification({
                 organisationId: userId,
                 category: "Authorization Request",
-                title: `Authorization Request: ${statusMessage}`, 
+                title: `Authorization Request: ${statusMessage}`,
                 description: `An authorization request has been ${statusMessage}.`
             });
 
@@ -377,18 +377,70 @@ class AuthService {
 
 
             return {
-                status:message.code200,
-                message:message.message200,
+                status: message.code200,
+                message: message.message200,
             }
         } catch (error) {
-            console.log('update_auth_request service error:',error.message)
+            console.log('update_auth_request service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
-    
+
+    async authorizedBy_users(data) {
+        try {
+            const { id,search } = data
+            const checkId = Number(id)
+            const Data = await db.authorizations.findAll(
+                {
+                    attributes: ['id','authorizedBy'],
+                    where: { authorizedId: checkId ,status:{[db.Op.in]:['Not Send','Approved']}},
+                    include:[
+                        {
+                            model:db.distributors,
+                            as:"distributor",
+                            attributes:['companyName','distributorId','type'],
+                            // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
+                        },
+                        {
+                            model:db.manufacturers,
+                            as:"manufacturer",
+                            attributes:['companyName','manufacturerId'],
+                            // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
+                        }
+                    ],
+                    where: {
+                        [db.Op.or]: [
+                            { '$distributor.distributorId$': { [db.Op.ne]: null } },
+                            { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
+                        ]
+                    }
+                }
+            )
+
+            const finalResult  = Data?.map((item)=>{
+                return {
+                    "companyName":item.distributor? item.distributor?.companyName : item.manufacturer?.companyName,
+                    "id":item.distributor? item.distributor?.distributorId : item.manufacturer?.manufacturerId,
+                    "type":item.distributor? item.distributor?.type: 'Manufacturer'
+                }
+            })
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:finalResult
+            }
+        } catch (error) {
+            console.log('authorizedBy_users service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
 }
 
 module.exports = new AuthService(db);

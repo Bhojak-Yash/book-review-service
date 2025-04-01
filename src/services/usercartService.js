@@ -182,7 +182,7 @@ class UsersCartService {
                         'email', ad.email
                       )
                     ) AS addresses
-                 FROM distributors AS mn
+                 FROM distributors_new AS mn
                  LEFT JOIN \`address\` AS ad
                    ON ad.userId = mn.distributorId
                  WHERE mn.distributorId = :id

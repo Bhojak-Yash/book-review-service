@@ -26,6 +26,7 @@ const notifications = require('./notifications')
 const returnHeader = require('./returnHeader');
 const returnDetails = require('./returnDetails');
 const creditNotes = require('./creditNotes');
+const manufacturerStocks = require('./manufacturerStocks')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -77,7 +78,8 @@ const db = {
   notifications: notifications(sequelize, Sequelize),
   returnHeader:returnHeader(sequelize,Sequelize),
   returnDetails: returnDetails(sequelize, Sequelize),
-  creditNotes: creditNotes(sequelize,Sequelize)
+  creditNotes: creditNotes(sequelize,Sequelize),
+  manufacturerStocks:manufacturerStocks(sequelize,Sequelize)
 };
 
 
@@ -90,6 +92,8 @@ db.products.hasMany(db.stocks, {
 });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
 db.authorizations.belongsTo(db.retailers, { foreignKey: 'authorizedId', as: 'retailers' });
+db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedBy', as: 'distributor' });
+db.authorizations.belongsTo(db.manufacturers, { foreignKey: 'authorizedBy', as: 'manufacturer' });
 
 
 db.usercarts.belongsTo(db.products, { foreignKey: 'PId', as: 'productDetails' });

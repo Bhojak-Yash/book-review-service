@@ -9,6 +9,7 @@ router.post('/add-stock',verifyToken,stocksc.addStock)
 router.post('/update-stock',verifyToken,stocksc.updateStock)
 router.get('/get-manufacturer-StockSummary',verifyToken,stocksc.getManufacturerStockSummary)
 router.get('/get-all-stocks',verifyToken,stocksc.getAllStocks)
+
 // router.get('/get-stocks')
 
 module.exports =router

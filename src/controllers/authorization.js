@@ -55,3 +55,15 @@ exports.update_auth_request = async (req, res) => {
       return res.status(500).json({ status:message.code500,message: error.message });
     }
 }
+
+exports.authorizedBy_users = async (req,res) => {
+  try {
+    const data = {...req.user,...req.query}
+    const updatedStock = await AuthService.authorizedBy_users(data);
+
+    return res.status(200).json(updatedStock);
+  } catch (error) {
+    console.error('Error authorizedBy_users:', error);
+    return res.status(500).json({status:500, message:error.message });
+  }
+}

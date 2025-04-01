@@ -81,7 +81,7 @@ module.exports =(sequelize,Sequelize)=>{
     },
 
     {
-        tableName: "distributors"
+        tableName: "distributors_new"
       })
     return distributors
 }
