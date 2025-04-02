@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const Users = db.users;
 const Distributors = db.distributors;
+const Sequelize = require('sequelize'); 
+
 
 async function hashPassword(password) {
     const saltRounds = 10;
@@ -1157,8 +1159,182 @@ class DistributorService {
         }
     }
 
+    //Employee Management..........................................................
+
+    async create_role(data, userIdFromToken){
+        try {
+            if (!data.roleName) {
+                throw new Error("roleName is required");
+            }
+
+            const roleCode = data.roleName.toUpperCase().replace(/\s+/g, "_");
 
 
+            const existingRole = await db.roles.findOne({
+                where: { roleCode: roleCode, ownerId: userIdFromToken }
+            });
+            
+            if (existingRole) {
+                throw new Error("Role already exists for this owner.");
+            }
+
+            const newRole = await db.roles.create({
+                roleCode: roleCode,
+                roleName: data.roleName,
+                description: data.description || null, 
+                // priority: data.priority || 1, 
+                ownerId: userIdFromToken, 
+            });
+
+            return { status: "success", message: "Role created successfully", data: newRole };
+        } catch (error) {
+            console.error("Error creating role:", error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async get_roles(data) {
+        try {
+            // Extract page, limit, and roleName from input data
+            const { page = 1, limit, roleName } = data;
+            // console.log(page,limit,';;;;;;;;;;;;;;;;;;;;;;;')
+            // Default limit if not provided, and parse the page and limit values
+            const Limit = Number(limit) || 10
+            const Page = Number(page) || 1;
+            const offset = (Page - 1) * Limit;
+
+            // Initialize the filter condition
+            let whereCondition = {};
+
+            // Apply roleName filter if provided (case-insensitive search)
+            if (roleName && roleName.trim() !== "") {
+                whereCondition.roleName = { [db.Sequelize.Op.like]: `%${roleName}%` };
+            }
+
+            // Fetch roles with pagination, including the filter
+            const { rows: roles, count: totalRoles } = await db.roles.findAndCountAll({
+                where: whereCondition,
+                attributes: [
+                    'id',
+                    'roleName',
+                    'createdAt',
+                    [db.Sequelize.literal('CASE WHEN "LOCKED" = 1 THEN "Inactive" ELSE "Active" END'), 'status']
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: Limit,
+                offset,
+            });
+
+            // Calculate total pages based on the count of roles and the limit per page
+            const totalPages = Math.ceil(totalRoles / Limit);
+            // console.log("Limit.......", Limit);
+            // Return the paginated results along with metadata
+            return {
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalPages: totalPages,
+                totalRoles: totalRoles,
+                limit: Limit,
+                apiData: roles
+            };
+
+        } catch (error) {
+            console.error("Error fetching roles:", error.message);
+            return {
+                status: message.code500,
+                message: message.message500
+            };
+        }
+    }
+
+    // async update_roles(data) {
+    //     try {
+    //         const { roleName, newRoleName, status } = data;
+
+    //         if (!roleName) {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "Role name is required."
+    //             };
+    //         }
+
+    //         let LOCKED;
+    //         if (status === "Active") {
+    //             LOCKED = 0;
+    //         } else if (status === "Inactive") {
+    //             LOCKED = 1;
+    //         } else {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "Invalid status. Use 'Active' or 'Inactive'."
+    //             };
+    //         }
+
+    //         const role = await db.roles.findOne({ where: { roleName } });
+
+    //         if (!role) {
+    //             return {
+    //                 status: message.code404,
+    //                 message: "Role not found."
+    //             };
+    //         }
+
+    //         // Update the role
+    //         await db.roles.update(
+    //             {
+    //                 roleName: newRoleName || role.roleName, // Update if provided, otherwise keep old
+    //                 LOCKED: LOCKED
+    //             },
+    //             { where: { roleName } }
+    //         );
+
+    //         return {
+    //             status: message.code200,
+    //             message: "Role updated successfully."
+    //         };
+
+    //     } catch (error) {
+    //         console.error("Error updating role:", error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500
+    //         };
+    //     }
+    // }
+
+    async update_roles(id, data) {
+        try {
+            const { newRoleName } = data;
+
+            if (!newRoleName) {
+                throw new Error("New role name is required.");
+            }
+
+            // Generate the roleCode by transforming the roleName:
+            const roleCode = newRoleName
+                .toUpperCase()              // Capitalize all characters
+                .replace(/\s+/g, "_");      // Replace spaces with underscores
+
+            // Find role by ID
+            const role = await db.roles.findOne({ where: { id } });
+
+            if (!role) {
+                return null; // Role not found
+            }
+
+            // Update the role with the new roleName and generated roleCode
+            await db.roles.update(
+                { roleName: newRoleName, roleCode: roleCode },
+                { where: { id } }
+            );
+
+            return { id, newRoleName, roleCode }; // Return updated role details
+
+        } catch (error) {
+            throw new Error(error.message);
+        }
+    }
 }
 
 module.exports = new DistributorService(db);
