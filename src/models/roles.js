@@ -17,7 +17,7 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "priority":{
             type:Sequelize.INTEGER,
-            allowNull: false, 
+            // allowNull: false, 
         },
         "ownerId":{
             type: Sequelize.INTEGER,
