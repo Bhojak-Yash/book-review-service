@@ -89,9 +89,13 @@ class OrdersService {
     try {
 
       const order = await this.db.orders.findByPk(orderId);
+      const orderToDeatils = await db.users.findOne({where:{id:order?.dataValues?.orderTo}})
     const orderItems = await db.orderitems.findAll({
       where: { orderId: orderId },
     });
+
+    const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+    const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
     // console.log(order,orderItems,';pppppp')
       if (!orderItems) {
         throw new Error("Order items not found.");
@@ -105,6 +109,7 @@ class OrdersService {
         image:image,
         status:'Pending'
       })
+
       const data = await db.orders.findOne({where:{id:Number(orderId)}})
 
       if (Number(data.dataValues.balance) <= 0) {
@@ -145,7 +150,7 @@ class OrdersService {
           // First, check if all items have enough stock before making any updates
           for (const item of updates.items) {
             const [stock] = await db.sequelize.query(
-              `SELECT Stock FROM stocks WHERE SId = :stockId`,
+              `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
               {
                 replacements: { stockId: item.stockId },
                 type: db.Sequelize.QueryTypes.SELECT,
@@ -171,7 +176,7 @@ class OrdersService {
             updates?.items?.map(async (item) => {
               // console.log(item?.stockId)
               await db.sequelize.query(
-                `UPDATE stocks SET Stock = Stock - : WHERE SId = :stockId`,
+                `UPDATE ${tableNameRow} SET Stock = Stock - : WHERE SId = :stockId`,
                 {
                   replacements: {
                     itemQuantity: item.quantity,

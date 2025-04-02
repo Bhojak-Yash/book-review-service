@@ -87,7 +87,14 @@ db.stocks.belongsTo(db.products, {
   foreignKey: 'PId',
   as: 'product',
 });
+db.manufacturerStocks.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'product',
+});
 db.products.hasMany(db.stocks, {
+  foreignKey: 'PId',
+});
+db.products.hasMany(db.manufacturerStocks, {
   foreignKey: 'PId',
 });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
@@ -100,6 +107,7 @@ db.usercarts.belongsTo(db.products, { foreignKey: 'PId', as: 'productDetails' })
 db.products.hasMany(db.usercarts, { foreignKey: 'PId', as: 'cartItems' });
 db.usercarts.belongsTo(db.stocks, { foreignKey: 'stockId', as: 'stockDetails' });
 db.stocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
+db.manufacturerStocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
@@ -151,12 +159,16 @@ db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnFrom", as: "return
 db.returnHeader.hasMany(db.returnDetails,{foreignKey: "returnId", as: "returnDetails" })
 db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
 db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
+// db.returnDetails.belongsTo(db.manufacturerStocks,{foreignKey: "SId", as: "stocks" })
 db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 
-
+//  sequelize.query(`
+//   CREATE UNIQUE INDEX unique_stock_index 
+//   ON stocks (PId, purchasedFrom, BatchNo, organisationId);
+// `);
 
 
 //  sequelize.queryInterface.addConstraint('documents', {

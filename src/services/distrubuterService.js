@@ -209,7 +209,7 @@ class DistributorService {
 
     async getStocksByManufacturer(data) {
         try {
-            const { id, manufacturerId, page, limit, search } = data
+            const { id, manufacturerId,type, page, limit, search } = data
             // console.log(id,manufacturerId)
             const whereCondition = { manufacturerId: Number(manufacturerId) };
 
@@ -298,8 +298,8 @@ class DistributorService {
             //         message: "Not authorized"
             //     }
             // }
-
-            const { count, rows: stocks } = await db.stocks.findAndCountAll({
+            const tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP', 'PTS'],
                 include: [
                     {
