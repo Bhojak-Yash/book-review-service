@@ -1,5 +1,5 @@
 module.exports =(sequelize,Sequelize)=>{
-    const distributors = sequelize.define("distributors",{
+    const distributors = sequelize.define("distributors_new",{
         "distributorId":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
