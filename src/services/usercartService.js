@@ -196,6 +196,7 @@ class UsersCartService {
                 }
             );
             let orderFromData =await getData(data?.userType,id)
+            const tableName = data?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
             const cartItems = await db.usercarts.findAll({
                 where: {
                     orderFrom: Number(id),
@@ -203,12 +204,12 @@ class UsersCartService {
                 },
                 include: [
                     {
-                        model: db.products, // Include associated product details if needed
+                        model: db.products, 
                         as: "productDetails",
-                        attributes: ["PName","SaltComposition"], // Adjust fields as per your database schema
+                        attributes: ["PName","SaltComposition"], 
                     },
                     {
-                        model:db.stocks,
+                        model:tableName,
                         as:"stockDetails",
                         attributes:['MRP','PTR','BatchNo',"Scheme",'Stock','PTS']
                     }
