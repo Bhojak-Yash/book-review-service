@@ -3,6 +3,7 @@ module.exports = (sequelize, Sequelize) => {
         "moduleConfigId": {
             type: Sequelize.INTEGER,
             primaryKey: true,
+            autoIncrement: true,
             allowNull: false
         },
         "moduleName": {
@@ -14,7 +15,7 @@ module.exports = (sequelize, Sequelize) => {
             allowNull: false
         },
         "category": {
-            type: Sequelize.ENUMENUM('Manufacturer', 'Distributor', 'Retailer', 'Admin'),
+            type: Sequelize.ENUM('Manufacturer', 'Distributor', 'Retailer', 'Admin'),
             allowNull: false
         },
         "icon": {
