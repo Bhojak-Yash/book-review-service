@@ -19,7 +19,7 @@ class StocksService {
     // console.log(stocksData,'gfhjkl',organisationId)
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-    const check = await db.tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
+    const check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
     if (check) {
       const updatedStock = Number(check.Stock) + Number(stocksData?.Stock);
 

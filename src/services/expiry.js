@@ -313,6 +313,7 @@ class expiryService {
                 id = data.data.employeeOf
             }
             const returnTodata = await db.users.findOne({where:{id:Number(manufacturerId)}})
+            
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
