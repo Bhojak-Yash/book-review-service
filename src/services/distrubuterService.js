@@ -1191,6 +1191,7 @@ class DistributorService {
                 roleName: data.roleName,
                 description: data.description || null, 
                 // priority: data.priority || 1, 
+                status: data.status || "Active",
                 ownerId: userIdFromToken, 
             });
 
@@ -1226,7 +1227,7 @@ class DistributorService {
                     'id',
                     'roleName',
                     'createdAt',
-                    [db.Sequelize.literal('CASE WHEN "LOCKED" = 1 THEN "Inactive" ELSE "Active" END'), 'status']
+                    'status'
                 ],
                 order: [['createdAt', 'DESC']],
                 limit: Limit,
@@ -1258,7 +1259,7 @@ class DistributorService {
 
     async update_roles(id, data) {
         try {
-            const { newRoleName } = data;
+            const { newRoleName, status } = data;
 
             if (!newRoleName) {
                 throw new Error("New role name is required.");
@@ -1278,16 +1279,248 @@ class DistributorService {
 
             // Update the role with the new roleName and generated roleCode
             await db.roles.update(
-                { roleName: newRoleName, roleCode: roleCode },
+                { roleName: newRoleName, roleCode: roleCode, status: status },
                 { where: { id } }
             );
 
-            return { id, newRoleName, roleCode }; // Return updated role details
+            return { id, newRoleName, roleCode, status }; // Return updated role details
 
         } catch (error) {
             throw new Error(error.message);
         }
     }
+
+    async delete_role(roleId) {
+        try {
+            if (!roleId) {
+                throw new Error("roleId is required");
+            }
+
+            // Attempt to delete the role with the specified roleId
+            const deletedCount = await db.roles.destroy({
+                where: { id: roleId }
+            });
+
+            if (deletedCount === 0) {
+                throw new Error("Role not found.");
+            }
+
+        } catch (error) {
+            console.error("Error deleting role:", error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async addModuleConfig({ moduleName, category, icon, url, menuType, parentModuleName = null }) {
+        try {
+            // Generate moduleCode by converting moduleName to uppercase and replacing spaces with underscores
+            const moduleCode = moduleName.toUpperCase().replace(/\s+/g, "_");
+
+            let parentMenuId = null;
+
+            // Determine parentMenuId based on menuType
+            if (menuType === 'Sub' || menuType === 'Component') {
+                if (!parentModuleName) {
+                    throw new Error(`Parent module name is required for menuType '${menuType}'.`);
+                }
+
+                // Determine the expected parent menuType
+                const expectedParentMenuType = menuType === 'Sub' ? 'Main' : 'Sub';
+
+                // Find the parent module based on the provided parentModuleName and expected parent menuType
+                const parentModule = await ModuleConfig.findOne({
+                    where: {
+                        moduleName: parentModuleName,
+                        menuType: expectedParentMenuType
+                    }
+                });
+
+                if (!parentModule) {
+                    throw new Error(`Parent module '${parentModuleName}' with menuType '${expectedParentMenuType}' not found.`);
+                }
+
+                parentMenuId = parentModule.moduleConfigId;
+            }
+
+            // Create the new module configuration
+            const newModule = await ModuleConfig.create({
+                moduleName,
+                moduleCode,
+                category,
+                icon,
+                url,
+                menuType,
+                parentMenuId
+            });
+
+            return newModule;
+        } catch (error) {
+            console.error(`Error adding module: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async createModuleConfig(data){
+        try {
+            const { moduleName, category, icon, url, menuType } = data;
+
+            // Convert moduleName to moduleCode (uppercase & replace spaces with '_')
+            const moduleCode = moduleName.toUpperCase().replace(/\s+/g, "_");
+
+            let parentMenuId = 0; // Default for 'Main'
+
+            if (menuType === "Sub") {
+                // Get the last inserted 'Main' module's ID
+                const mainModule = await db.moduleconfigs.findOne({
+                    where: { menuType: "Main" },
+                    order: [["moduleConfigId", "DESC"]], // Get the latest Main module
+                });
+
+                if (mainModule) parentMenuId = mainModule.moduleConfigId;
+            }
+            else if (menuType === "Component") {
+                // Get the last inserted 'Sub' module's ID
+                const subModule = await db.moduleconfigs.findOne({
+                    where: { menuType: "Sub" },
+                    order: [["moduleConfigId", "DESC"]], // Get the latest Sub module
+                });
+
+                if (subModule) parentMenuId = subModule.moduleConfigId;
+            }
+
+            // Insert into moduleconfigs table
+            const newModule = await db.moduleconfigs.create({
+                moduleName,
+                moduleCode,
+                category,
+                icon,
+                url,
+                menuType,
+                parentMenuId,
+            });
+
+            return {
+                status: 201,
+                message: "Module created successfully",
+                data: newModule,
+            };
+        } catch (error) {
+            return {
+                status: 500,
+                message: error.message,
+            };
+        }
+    }
+    
+    // async getAllModules() {
+    //     try {
+    //         const modules = await db.moduleconfigs.findAll({ raw: true });
+
+    //         // Organize modules into a nested structure
+    //         const moduleTree = {};
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Main') {
+    //                 moduleTree[module.moduleName] = { id: module.moduleConfigId, subModules: {} };
+    //             }
+    //         });
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Sub') {
+    //                 const mainModule = Object.values(moduleTree).find(m => m.id === module.parentMenuId);
+    //                 if (mainModule) {
+    //                     mainModule.subModules[module.moduleName] = { id: module.moduleConfigId, components: [] };
+    //                 }
+    //             }
+    //         });
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Component') {
+    //                 Object.values(moduleTree).forEach(mainModule => {
+    //                     Object.values(mainModule.subModules).forEach(subModule => {
+    //                         if (subModule.id === module.parentMenuId) {
+    //                             subModule.components.push({
+    //                                 id: module.moduleConfigId,
+    //                                 name: module.moduleName
+    //                             });
+    //                         }
+    //                     });
+    //                 });
+    //             }
+    //         });
+
+    //         return moduleTree;
+    //     } catch (error) {
+    //         console.error("Error fetching module configurations:", error);
+    //         throw error;
+    //     }
+    // }
+
+    async getAllModules() {
+        try {
+            const modules = await db.moduleconfigs.findAll({ raw: true });
+
+            // Organize modules into a nested structure
+            const moduleTree = [];
+
+            // Process Main Modules
+            modules.forEach(module => {
+                if (module.menuType === 'Main') {
+                    moduleTree.push({
+                        id: module.moduleConfigId,
+                        name: module.moduleName,
+                        subModules: []
+                    });
+                }
+            });
+
+            // Process Sub Modules
+            modules.forEach(module => {
+                if (module.menuType === 'Sub') {
+                    const mainModule = moduleTree.find(m => m.id === module.parentMenuId);
+                    if (mainModule) {
+                        mainModule.subModules.push({
+                            id: module.moduleConfigId,
+                            name: module.moduleName,
+                            components: []
+                        });
+                    }
+                }
+            });
+
+            // Process Components
+            modules.forEach(module => {
+                if (module.menuType === 'Component') {
+                    moduleTree.forEach(mainModule => {
+                        mainModule.subModules.forEach(subModule => {
+                            if (subModule.id === module.parentMenuId) {
+                                subModule.components.push({
+                                    id: module.moduleConfigId,
+                                    name: module.moduleName
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+
+            return {
+                status: 200,
+                message: "Success",
+                data: moduleTree
+            };
+        } catch (error) {
+            console.error("Error fetching module configurations:", error);
+            return {
+                status: 500,
+                message: "Error fetching module configurations",
+                error: error.message
+            };
+        }
+    }
+
+
+
 }
 
 module.exports = new DistributorService(db);

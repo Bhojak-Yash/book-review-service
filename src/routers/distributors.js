@@ -19,6 +19,10 @@ router.post('/update-distributorType',verifyToken,distributorsc.update_distribut
 router.post('/create_role', verifyToken, distributorsc.create_role)
 router.get('/get_roles', verifyToken, distributorsc.get_roles)
 router.put('/update_roles/:id', verifyToken, distributorsc.update_roles)
+router.delete('/delete_role/:id', verifyToken, distributorsc.delete_role)
+
+router.post('/module-config/create', distributorsc.createModule);
+router.get('/module-config/all', distributorsc.getModuleHierarchy);
 
 
 module.exports =router

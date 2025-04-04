@@ -251,13 +251,16 @@ class distributorDashboard {
             });
 
             const retailersApproved = authorizedEntities.map(entity => ({
-                authorizedId: entity.distributorId || entity.retailerId,
-                companyName: entity.companyName || entity.firmName,
-                address: entity.address || entity.address,
-                phone: entity.phone || entity.phone,
+                authorizedId: entity['distributors.distributorId'] || entity['retailers.retailerId'],
+                companyName: entity['distributors.companyName'] || entity['retailers.firmName'],
+                address: entity['distributors.address'] || entity['retailers.address'],
+                phone: entity['distributors.phone'] || entity['retailers.phone'],
                 status: entity.status
             }));
 
+
+            console.log('Retailers Approved:', authorizedEntities);
+        
             return {
                 status: message.code200,
                 message: retailersApproved.length ? message.message200 : 'No authorized retailers or distributors found',
@@ -413,41 +416,135 @@ class distributorDashboard {
     }
 
     // Finding top retailers for Distributors
+    // async topRetailers(tokenData) {
+    //     try {
+    //         let ownerId = tokenData.id;
+
+    //         if (tokenData.userType === 'Employee') {
+    //             ownerId = tokenData.data.employeeOf;
+    //         }
+
+    //         // console.log("Owner ID: ", ownerId);
+
+    //         // SQL query to get top retailers by invAmt for a specific ownerId
+    //         const query = `
+    //             SELECT r.retailerId, r.firmName, SUM(o.invAmt) AS total_invAmt
+    //             FROM orders o
+    //             JOIN retailers r ON o.orderFrom = r.retailerId
+    //             WHERE o.orderTo = :ownerId
+    //             GROUP BY r.retailerId, r.firmName
+    //             HAVING total_invAmt > 0
+    //             ORDER BY total_invAmt DESC;
+    //         `;
+
+    //         const results = await db.sequelize.query(query, {
+    //             type: db.Sequelize.QueryTypes.SELECT,
+    //             replacements: { ownerId }
+    //         });
+
+    //         // console.log("Query results: ", results);
+
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             apiData: results
+    //         };
+    //     } catch (error) {
+    //         console.error('Error in Statistics_five:', error);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500
+    //         };
+    //     }
+    // }
+
     async topRetailers(tokenData) {
         try {
             let ownerId = tokenData.id;
-
             if (tokenData.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
             }
 
-            // console.log("Owner ID: ", ownerId);
+            console.log(`Fetching Top Retailers for Owner ID: ${ownerId}`);
 
-            // SQL query to get top retailers by invAmt for a specific ownerId
+            // Step 1: Find the latest month with orders
+            const latestOrder = await db.orders.findOne({
+                where: { orderTo: ownerId },
+                attributes: [[db.Sequelize.fn('MAX', db.Sequelize.col('createdAt')), 'latestDate']],
+                raw: true
+            });
+
+            if (!latestOrder || !latestOrder.latestDate) {
+                console.log("❌ No orders found for any month.");
+                return {
+                    status: message.code200,
+                    message: "No orders found for any month.",
+                    apiData: []
+                };
+            }
+
+            const latestMonth = new Date(latestOrder.latestDate);
+            const startDate = new Date(latestMonth.getFullYear(), latestMonth.getMonth(), 1); // First day of the latest month
+            const endDate = new Date(latestMonth.getFullYear(), latestMonth.getMonth() + 1, 0, 23, 59, 59); // Last day of the latest month
+
+            console.log(`Latest Month Found: ${startDate.toISOString()} - ${endDate.toISOString()}`);
+
+            // Step 2: Get total invoice amount for that month
+            const totalInvAmtResult = await db.orders.findOne({
+                where: {
+                    orderTo: ownerId,
+                    createdAt: { [db.Sequelize.Op.between]: [startDate, endDate] }
+                },
+                attributes: [[db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']],
+                raw: true
+            });
+
+            const totalInvAmt = totalInvAmtResult.totalInvAmt || 0;
+            console.log(`Total Invoice Amount for the Month: ${totalInvAmt}`);
+
+            if (totalInvAmt === 0) {
+                console.log("❌ No invoice amount for the latest month.");
+                return {
+                    status: message.code200,
+                    message: "No invoice amount for the latest month.",
+                    apiData: []
+                };
+            }
+
+            // Step 3: Fetch top retailers for the latest month
             const query = `
-                SELECT r.retailerId, r.firmName, SUM(o.invAmt) AS total_invAmt
-                FROM orders o
-                JOIN retailers r ON o.orderFrom = r.retailerId
-                WHERE o.orderTo = :ownerId
-                GROUP BY r.retailerId, r.firmName
-                HAVING total_invAmt > 0
-                ORDER BY total_invAmt DESC;
-            `;
+            SELECT r.retailerId, r.firmName, SUM(o.invAmt) AS total_invAmt
+            FROM orders o
+            JOIN retailers r ON o.orderFrom = r.retailerId
+            WHERE o.orderTo = :ownerId 
+              AND o.createdAt BETWEEN :startDate AND :endDate
+            GROUP BY r.retailerId, r.firmName
+            HAVING total_invAmt > 0
+            ORDER BY total_invAmt DESC;
+        `;
 
             const results = await db.sequelize.query(query, {
                 type: db.Sequelize.QueryTypes.SELECT,
-                replacements: { ownerId }
+                replacements: { ownerId, startDate, endDate }
             });
 
-            // console.log("Query results: ", results);
+            console.log("Retailers Data Before Percentage Calculation:", results);
+
+            // Step 4: Calculate percentage of total invoice amount
+            const retailersWithPercentage = results.map(retailer => ({
+                ...retailer,
+                percentage: ((retailer.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
+            }));
+
+            console.log("Retailers Data After Percentage Calculation:", retailersWithPercentage);
 
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: results
+                apiData: retailersWithPercentage
             };
         } catch (error) {
-            console.error('Error in Statistics_five:', error);
+            console.error("❌ Error in topRetailers:", error);
             return {
                 status: message.code500,
                 message: message.message500
@@ -455,15 +552,106 @@ class distributorDashboard {
         }
     }
 
+
     //Finding top distributors for Manufacturers
+    // async topDistributors(tokenData) {
+    //     try {
+    //         let ownerId = tokenData.id;
+
+    //         if (tokenData.userType === 'Employee') {
+    //             ownerId = tokenData.data.employeeOf;
+    //         }
+
+    //         const results = await db.orders.findAll({
+    //             attributes: [
+    //                 'orderFrom',
+    //                 [db.Sequelize.col('distributer.companyName'), 'companyName'],
+    //                 [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'total_invAmt']
+    //             ],
+    //             include: [
+    //                 {
+    //                     model: db.distributors,
+    //                     as: 'distributer', // <-- Use the correct alias
+    //                     attributes: []
+    //                 }
+    //             ],
+    //             where: { orderTo: ownerId },
+    //             group: ['orderFrom', 'distributer.companyName'],
+    //             having: db.Sequelize.literal('total_invAmt > 0'),
+    //             order: [[db.Sequelize.literal('total_invAmt'), 'DESC']],
+    //             raw: true
+    //         });
+
+    //         console.log(results);
+
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             apiData: results
+    //         };
+    //     } catch (error) {
+    //         console.error('Error in topDistributors:', error);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500
+    //         };
+    //     }
+    // }
+
     async topDistributors(tokenData) {
         try {
             let ownerId = tokenData.id;
-
             if (tokenData.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
             }
 
+            console.log(`Fetching Top Distributors for Owner ID: ${ownerId}`);
+
+            // Step 1: Find the latest month with orders
+            const latestOrder = await db.orders.findOne({
+                where: { orderTo: ownerId },
+                attributes: [[db.Sequelize.fn('MAX', db.Sequelize.col('createdAt')), 'latestDate']],
+                raw: true
+            });
+
+            if (!latestOrder || !latestOrder.latestDate) {
+                console.log("❌ No orders found for any month.");
+                return {
+                    status: message.code200,
+                    message: "No orders found for any month.",
+                    apiData: []
+                };
+            }
+
+            const latestMonth = new Date(latestOrder.latestDate);
+            const startDate = new Date(latestMonth.getFullYear(), latestMonth.getMonth(), 1); // First day of the latest month
+            const endDate = new Date(latestMonth.getFullYear(), latestMonth.getMonth() + 1, 0, 23, 59, 59); // Last day of the latest month
+
+            console.log(`Latest Month Found: ${startDate.toISOString()} - ${endDate.toISOString()}`);
+
+            // Step 2: Get total invoice amount for that month
+            const totalInvAmtResult = await db.orders.findOne({
+                where: {
+                    orderTo: ownerId,
+                    createdAt: { [db.Sequelize.Op.between]: [startDate, endDate] }
+                },
+                attributes: [[db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']],
+                raw: true
+            });
+
+            const totalInvAmt = totalInvAmtResult.totalInvAmt || 0;
+            console.log(`Total Invoice Amount for the Month: ${totalInvAmt}`);
+
+            if (totalInvAmt === 0) {
+                console.log("❌ No invoice amount for the latest month.");
+                return {
+                    status: message.code200,
+                    message: "No invoice amount for the latest month.",
+                    apiData: []
+                };
+            }
+
+            // Step 3: Fetch top distributors for the latest month
             const results = await db.orders.findAll({
                 attributes: [
                     'orderFrom',
@@ -473,30 +661,45 @@ class distributorDashboard {
                 include: [
                     {
                         model: db.distributors,
-                        as: 'distributer', // <-- Use the correct alias
+                        as: 'distributer',
                         attributes: []
                     }
                 ],
-                where: { orderTo: ownerId },
+                where: {
+                    orderTo: ownerId,
+                    createdAt: { [db.Sequelize.Op.between]: [startDate, endDate] }
+                },
                 group: ['orderFrom', 'distributer.companyName'],
                 having: db.Sequelize.literal('total_invAmt > 0'),
                 order: [[db.Sequelize.literal('total_invAmt'), 'DESC']],
                 raw: true
             });
 
+            console.log("Distributors Data Before Percentage Calculation:", results);
+
+            // Step 4: Calculate percentage of total invoice amount
+            const distributorsWithPercentage = results.map(distributor => ({
+                ...distributor,
+                percentage: ((distributor.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
+            }));
+
+            console.log("Distributors Data After Percentage Calculation:", distributorsWithPercentage);
+
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: results
+                apiData: distributorsWithPercentage
             };
         } catch (error) {
-            console.error('Error in topDistributors:', error);
+            console.error("❌ Error in topDistributors:", error);
             return {
                 status: message.code500,
                 message: message.message500
             };
         }
     }
+
+
 
 
 

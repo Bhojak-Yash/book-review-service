@@ -27,6 +27,8 @@ const returnHeader = require('./returnHeader');
 const returnDetails = require('./returnDetails');
 const creditNotes = require('./creditNotes');
 const manufacturerStocks = require('./manufacturerStocks')
+const moduleconfigs = require('./moduleconfigs')
+const modulemappings = require('./modulemappings')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -79,7 +81,9 @@ const db = {
   returnHeader:returnHeader(sequelize,Sequelize),
   returnDetails: returnDetails(sequelize, Sequelize),
   creditNotes: creditNotes(sequelize,Sequelize),
-  manufacturerStocks:manufacturerStocks(sequelize,Sequelize)
+  manufacturerStocks:manufacturerStocks(sequelize,Sequelize),
+  moduleconfigs: moduleconfigs(sequelize, Sequelize),
+  modulemappings: modulemappings(sequelize, Sequelize)
 };
 
 

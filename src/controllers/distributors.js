@@ -198,5 +198,38 @@ exports.update_roles = async (req, res) => {
   }
 };
 
+exports.delete_role = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "Role ID is required." });
+    }
 
+    const result = await DistributorService.delete_role(id);
+
+    return res.json({ status: "success", message: "Data deleted successfully", data: result });
+  } catch (error) {
+    console.error("delete_roles Error:", error.message);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+exports.createModule= async(req, res)=> {
+  try {
+    const moduleData = req.body;
+    const result = await DistributorService.createModuleConfig(moduleData);
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(500).json({ status: 500, message: error.message });
+  }
+};
+
+exports.getModuleHierarchy= async (req, res)=> {
+  try {
+    const moduleHierarchy = await DistributorService.getAllModules();
+    return res.status(200).json({ status: 200, message: "Success", data: moduleHierarchy });
+  } catch (error) {
+    return res.status(500).json({ status: 500, message: error.message });
+  }
+};
