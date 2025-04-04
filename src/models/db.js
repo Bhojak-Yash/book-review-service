@@ -161,7 +161,9 @@ db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
 db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
 // db.returnDetails.belongsTo(db.manufacturerStocks,{foreignKey: "SId", as: "stocks" })
 db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
-
+db.stocks.belongsTo(db.manufacturers,{foreignKey: "purchasedFrom",targetKey:'manufacturerId', as: "manufacturer" })
+db.stocks.belongsTo(db.distributors,{foreignKey: "purchasedFrom",targetKey:'distributorId', as: "distributor" })
+db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"returnTo", as: "returnHeader" })
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

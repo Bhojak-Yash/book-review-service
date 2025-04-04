@@ -17,6 +17,19 @@ exports.expire_product_list = async (req, res) => {
       }
 }
 
+exports.expired_product_list = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const expiry = await expiryService.expired_product_list(data);
+  
+        return res.json(expiry);
+      
+      } catch (error) {
+      console.error("Error fetching expired_product_list:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}
+
 exports.expire_details = async (req, res) => {
   try {
       const data ={...req.query,...req.user}
