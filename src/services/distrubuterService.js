@@ -31,6 +31,13 @@ class DistributorService {
             }
             transaction = await db.sequelize.transaction();
 
+            if (userName) {
+                const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
+                if (existingUser) {
+                    throw new Error('A distributor with this email already exists.');
+                }
+            }
+
             const hashedPassword = await hashPassword(password);
 
             const user = await Users.create(
@@ -600,7 +607,7 @@ class DistributorService {
         mn.type,
               us.*, 
               ad.*
-            FROM crm_db.distributors AS mn
+            FROM crm_db.distributors_new AS mn
             LEFT JOIN crm_db.users AS us 
               ON mn.distributorId = us.id
             LEFT JOIN crm_db.address AS ad
@@ -690,209 +697,9 @@ class DistributorService {
         }
     }
 
-    async update_distributor(data) {
-        let transaction;
-        console.log(data)
-        try {
-            const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
-
-            if (!distributorId) {
-                return {
-                    status: message.code400,
-                    message: "Distributor ID is required",
-                }
-            }
-            transaction = await db.sequelize.transaction({ timeout: 30000 });
-            //   console.log(';;;;')
-            const distributor = await db.sequelize.query(
-                `SELECT 
-                     *
-                   FROM distributors_new
-                   WHERE distributorId = :distributorId`,
-                {
-                    replacements: { distributorId },
-                    type: db.Sequelize.QueryTypes.SELECT, // Ensures the query returns plain data
-                    transaction, // Pass the transaction if needed
-                }
-            );
-            console.log('gffxchbjknk', distributor)
-            // Ensure you get a single object, not an array
-            //   const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
-
-            if (!distributor) {
-                return {
-                    status: 404,
-                    message: "Manufacturer not found",
-                }
-            }
-
-            // const authhh = manufactureres?.map((item)=>{
-            //     return {
-            //         authorizedBy:Number(item),
-            //         authorizedId:Number(distributorId),
-            //         status:'Pending'
-            //     }
-            // })
-
-            // await db.authorizations.bulkCreate(authhh)
-            const authhh = manufactureres.map((item) => ({
-                authorizedBy: Number(item),
-                authorizedId: Number(distributorId),
-                status: "Pending",
-            }));
-
-            // Find existing records where status is 'Not Send'
-            const existingRecords = await db.authorizations.findAll({
-                where: {
-                    authorizedBy: authhh.map((a) => a.authorizedBy),
-                    authorizedId: authhh.map((a) => a.authorizedId),
-                    status: { [db.Op.in]: ['Not Send', 'Pending'] },
-                },
-                raw: true,
-            });
-
-            // Get the records that need updates
-            const toUpdate = existingRecords.map((rec) => rec.id);
-
-            // Update existing records
-            if (toUpdate.length > 0) {
-                await db.authorizations.update(
-                    { status: "Pending" },
-                    { where: { id: toUpdate } }
-                );
-            }
-
-            // Filter out records that already exist to avoid duplicate inserts
-            const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
-            const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
-
-            // Insert new records if any
-            if (newRecords.length > 0) {
-                await db.authorizations.bulkCreate(newRecords);
-            }
-
-            // Update manufacturer details
-            //   await db.distributors.update(
-            //     {
-            //       profilePic: profilePic ?? db.sequelize.col("profilePic"),
-            //       companyName: companyName ?? db.sequelize.col("companyName"),
-            //       ownerName: ownerName ?? db.sequelize.col("ownerName"),
-            //     //   email: email ?? db.sequelize.col("email"),
-            //       phone: phone ?? db.sequelize.col("phone"),
-            //       address: address ?? db.sequelize.col("address"),
-            //       GST: GST ?? db.sequelize.col("GST"),
-            //       wholeSaleDrugLicence: wholeSaleDrugLicence ?? db.sequelize.col("wholeSaleDrugLicence"),
-            //       PAN: PAN ?? db.sequelize.col("PAN"),
-            //       FSSAI: FSSAI ?? db.sequelize.col("FSSAI"),
-            //       CIN: CIN ?? db.sequelize.col("CIN"),
-            //       updatedAt: db.sequelize.literal("NOW()"), // Update timestamp
-            //     },
-            //     {
-            //       where: { distributorId },
-            //       transaction, // Pass the transaction here
-            //     }
-            //   )
-            await db.sequelize.query(
-                `UPDATE distributors_new 
-                   SET 
-                      profilePic = COALESCE(:profilePic, profilePic),
-                      companyName = COALESCE(:companyName, companyName),
-                      companyType = COALESCE(:companyType, companyType),
-                      ownerName = COALESCE(:ownerName, ownerName),
-                      email = COALESCE(:email, email),
-                      phone = COALESCE(:phone, phone),
-                      address = COALESCE(:address, address),
-                      GST = COALESCE(:GST, GST),
-                      wholeSaleDrugLicence = COALESCE(:wholeSaleDrugLicence, wholeSaleDrugLicence),
-                      PAN = COALESCE(:PAN, PAN),
-                      FSSAI = COALESCE(:FSSAI, FSSAI),
-                      CIN = COALESCE(:CIN, CIN)
-                   WHERE distributorId = :distributorId`,
-                {
-                    replacements: {
-                        profilePic,
-                        companyName,
-                        companyType,
-                        ownerName,
-                        email,
-                        phone,
-                        address,
-                        GST,
-                        wholeSaleDrugLicence,
-                        PAN,
-                        FSSAI,
-                        CIN,
-                        distributorId
-                    },
-                    transaction, // Pass the transaction here
-                }
-            );
-
-            console.log('[[[[[')
-            const existingAddresses = await db.address.findAll({
-                where: { userId: distributorId },
-            });
-
-            if (existingAddresses.length) {
-                // Update existing addresses
-                await Promise.all(
-                    existingAddresses.map(async (existingAddress) => {
-                        const updateData =
-                            existingAddress.addressType === "Business" ? businessAdd : billingAdd;
-                        await existingAddress.update(updateData, { transaction });
-                    })
-                );
-            } else {
-                // Insert new addresses
-                let dataToInsert = [
-                    { ...businessAdd, userId: distributorId, addressType: "Business" },
-                    { ...billingAdd, userId: distributorId, addressType: "Billing" },
-                ];
-                await db.address.bulkCreate(dataToInsert, { transaction });
-            }
-
-            const documentsData = documents.map((doc) => ({
-                categoryId: doc.id,
-                image: doc.image,
-                status: 'Verified',
-                userId: Number(distributorId)
-            }));
-
-            await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", 'status'],
-                conflictFields: ["categoryId", "userId"]
-            });
-
-            // Fetch manufacturer names for the provided manufacturer IDs
-            const manufacturerNames = await db.manufacturers.findAll({
-                where: { manufacturerId: manufactureres },
-                attributes: ['manufacturerId', 'companyName'],
-                raw: true
-            });
-
-            // Format the response to include manufacturer names
-            const manufacturerList = manufacturerNames.map(manu => ({
-                manufacturerId: manu.manufacturerId,
-                companyName: manu.companyName
-            }));
-            console.log("Distributor details updated successfully");
-            return {
-                status: message.code200,
-                message: "Distributor details updated successfully",
-                manufacturers: manufacturerList,
-                documents: documentsData
-            };
-        } catch (error) {
-            console.log('update_distributor service error:', error.message)
-            return {
-                status: message.code500,
-                message: error.message
-            }
-        }
-    }
     // async update_distributor(data) {
     //     let transaction;
-    //     console.log(data);
+    //     console.log(data)
     //     try {
     //         const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
 
@@ -900,95 +707,157 @@ class DistributorService {
     //             return {
     //                 status: message.code400,
     //                 message: "Distributor ID is required",
-    //             };
+    //             }
     //         }
     //         transaction = await db.sequelize.transaction({ timeout: 30000 });
-
-    //         // Fetch distributor
-    //         const distributor = await db.distributors.findOne({
-    //             where: { distributorId },
-    //             transaction
-    //         });
-
-    //         console.log('Fetched distributor:', distributor);
+    //         //   console.log(';;;;')
+    //         const distributor = await db.sequelize.query(
+    //             `SELECT 
+    //                  *
+    //                FROM distributors_new
+    //                WHERE distributorId = :distributorId`,
+    //             {
+    //                 replacements: { distributorId },
+    //                 type: db.Sequelize.QueryTypes.SELECT, // Ensures the query returns plain data
+    //                 transaction, // Pass the transaction if needed
+    //             }
+    //         );
+    //         console.log('gffxchbjknk', distributor)
+    //         // Ensure you get a single object, not an array
+    //         //   const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
 
     //         if (!distributor) {
     //             return {
     //                 status: 404,
-    //                 message: "Distributor not found",
-    //             };
+    //                 message: "Manufacturer not found",
+    //             }
     //         }
 
-    //         //auhtorizations update
+    //         // const authhh = manufactureres?.map((item)=>{
+    //         //     return {
+    //         //         authorizedBy:Number(item),
+    //         //         authorizedId:Number(distributorId),
+    //         //         status:'Pending'
+    //         //     }
+    //         // })
+
+    //         // await db.authorizations.bulkCreate(authhh)
     //         const authhh = manufactureres.map((item) => ({
     //             authorizedBy: Number(item),
     //             authorizedId: Number(distributorId),
     //             status: "Pending",
     //         }));
 
+    //         // Find existing records where status is 'Not Send'
     //         const existingRecords = await db.authorizations.findAll({
     //             where: {
     //                 authorizedBy: authhh.map((a) => a.authorizedBy),
     //                 authorizedId: authhh.map((a) => a.authorizedId),
-    //                 status: { [db.Sequelize.Op.in]: ['Not Send', 'Pending'] },
+    //                 status: { [db.Op.in]: ['Not Send', 'Pending'] },
     //             },
     //             raw: true,
-    //             transaction
     //         });
 
+    //         // Get the records that need updates
     //         const toUpdate = existingRecords.map((rec) => rec.id);
+
+    //         // Update existing records
     //         if (toUpdate.length > 0) {
     //             await db.authorizations.update(
     //                 { status: "Pending" },
-    //                 { where: { id: toUpdate }, transaction }
+    //                 { where: { id: toUpdate } }
     //             );
     //         }
 
+    //         // Filter out records that already exist to avoid duplicate inserts
     //         const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
     //         const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
+
+    //         // Insert new records if any
     //         if (newRecords.length > 0) {
-    //             await db.authorizations.bulkCreate(newRecords, { transaction });
+    //             await db.authorizations.bulkCreate(newRecords);
     //         }
 
-    //         // distributor table update
-    //         await db.distributors.update(
+    //         // Update manufacturer details
+    //         //   await db.distributors.update(
+    //         //     {
+    //         //       profilePic: profilePic ?? db.sequelize.col("profilePic"),
+    //         //       companyName: companyName ?? db.sequelize.col("companyName"),
+    //         //       ownerName: ownerName ?? db.sequelize.col("ownerName"),
+    //         //     //   email: email ?? db.sequelize.col("email"),
+    //         //       phone: phone ?? db.sequelize.col("phone"),
+    //         //       address: address ?? db.sequelize.col("address"),
+    //         //       GST: GST ?? db.sequelize.col("GST"),
+    //         //       wholeSaleDrugLicence: wholeSaleDrugLicence ?? db.sequelize.col("wholeSaleDrugLicence"),
+    //         //       PAN: PAN ?? db.sequelize.col("PAN"),
+    //         //       FSSAI: FSSAI ?? db.sequelize.col("FSSAI"),
+    //         //       CIN: CIN ?? db.sequelize.col("CIN"),
+    //         //       updatedAt: db.sequelize.literal("NOW()"), // Update timestamp
+    //         //     },
+    //         //     {
+    //         //       where: { distributorId },
+    //         //       transaction, // Pass the transaction here
+    //         //     }
+    //         //   )
+    //         await db.sequelize.query(
+    //             `UPDATE distributors_new 
+    //                SET 
+    //                   profilePic = COALESCE(:profilePic, profilePic),
+    //                   companyName = COALESCE(:companyName, companyName),
+    //                   companyType = COALESCE(:companyType, companyType),
+    //                   ownerName = COALESCE(:ownerName, ownerName),
+    //                   email = COALESCE(:email, email),
+    //                   phone = COALESCE(:phone, phone),
+    //                   address = COALESCE(:address, address),
+    //                   GST = COALESCE(:GST, GST),
+    //                   wholeSaleDrugLicence = COALESCE(:wholeSaleDrugLicence, wholeSaleDrugLicence),
+    //                   PAN = COALESCE(:PAN, PAN),
+    //                   FSSAI = COALESCE(:FSSAI, FSSAI),
+    //                   CIN = COALESCE(:CIN, CIN)
+    //                WHERE distributorId = :distributorId`,
     //             {
-    //                 profilePic,
-    //                 companyName,
-    //                 companyType,
-    //                 ownerName,
-    //                 email,
-    //                 phone,
-    //                 address,
-    //                 GST,
-    //                 wholeSaleDrugLicence,
-    //                 PAN,
-    //                 FSSAI,
-    //                 CIN,
-    //                 updatedAt: db.sequelize.literal("NOW()")
-    //             },
-    //             { where: { distributorId }, transaction }
+    //                 replacements: {
+    //                     profilePic,
+    //                     companyName,
+    //                     companyType,
+    //                     ownerName,
+    //                     email,
+    //                     phone,
+    //                     address,
+    //                     GST,
+    //                     wholeSaleDrugLicence,
+    //                     PAN,
+    //                     FSSAI,
+    //                     CIN,
+    //                     distributorId
+    //                 },
+    //                 transaction, // Pass the transaction here
+    //             }
     //         );
 
-    //         console.log("Distributor updated successfully");
+    //         console.log('[[[[[')
+    //         const existingAddresses = await db.address.findAll({
+    //             where: { userId: distributorId },
+    //         });
 
-    //         // address updates
-    //         const existingAddresses = await db.address.findAll({ where: { userId: distributorId }, transaction });
     //         if (existingAddresses.length) {
-    //             await Promise.all(existingAddresses.map(async (existingAddress) => {
-    //                 const updateData =
-    //                     existingAddress.addressType === "Business" ? businessAdd : billingAdd;
-    //                 await existingAddress.update(updateData, { transaction });
-    //             }));
+    //             // Update existing addresses
+    //             await Promise.all(
+    //                 existingAddresses.map(async (existingAddress) => {
+    //                     const updateData =
+    //                         existingAddress.addressType === "Business" ? businessAdd : billingAdd;
+    //                     await existingAddress.update(updateData, { transaction });
+    //                 })
+    //             );
     //         } else {
-    //             const dataToInsert = [
+    //             // Insert new addresses
+    //             let dataToInsert = [
     //                 { ...businessAdd, userId: distributorId, addressType: "Business" },
     //                 { ...billingAdd, userId: distributorId, addressType: "Billing" },
     //             ];
     //             await db.address.bulkCreate(dataToInsert, { transaction });
     //         }
 
-    //         // documents update
     //         const documentsData = documents.map((doc) => ({
     //             categoryId: doc.id,
     //             image: doc.image,
@@ -997,24 +866,22 @@ class DistributorService {
     //         }));
 
     //         await db.documents.bulkCreate(documentsData, {
-    //             updateOnDuplicate: ["image", "status"],
-    //             transaction
+    //             updateOnDuplicate: ["image", 'status'],
+    //             conflictFields: ["categoryId", "userId"]
     //         });
 
-    //         //Getting manufcturerName that is passed in the payLoad
+    //         // Fetch manufacturer names for the provided manufacturer IDs
     //         const manufacturerNames = await db.manufacturers.findAll({
     //             where: { manufacturerId: manufactureres },
     //             attributes: ['manufacturerId', 'companyName'],
-    //             raw: true,
-    //             transaction
+    //             raw: true
     //         });
 
+    //         // Format the response to include manufacturer names
     //         const manufacturerList = manufacturerNames.map(manu => ({
     //             manufacturerId: manu.manufacturerId,
     //             companyName: manu.companyName
     //         }));
-
-    //         await transaction.commit();
     //         console.log("Distributor details updated successfully");
     //         return {
     //             status: message.code200,
@@ -1023,14 +890,155 @@ class DistributorService {
     //             documents: documentsData
     //         };
     //     } catch (error) {
-    //         if (transaction) await transaction.rollback();
-    //         console.log('update_distributor service error:', error.message);
+    //         console.log('update_distributor service error:', error.message)
     //         return {
     //             status: message.code500,
-    //             message: message.message500
-    //         };
+    //             message: error.message
+    //         }
     //     }
     // }
+    
+    async update_distributor(data) {
+        let transaction;
+        console.log(data);
+        try {
+            const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
+
+            if (!distributorId) {
+                return {
+                    status: message.code400,
+                    message: "Distributor ID is required",
+                };
+            }
+            transaction = await db.sequelize.transaction({ timeout: 30000 });
+
+            // Fetch distributor
+            const distributor = await db.distributors.findOne({
+                where: { distributorId },
+                transaction
+            });
+
+            console.log('Fetched distributor:', distributor);
+
+            if (!distributor) {
+                return {
+                    status: 404,
+                    message: "Distributor not found",
+                };
+            }
+
+            //auhtorizations update
+            const authhh = manufactureres.map((item) => ({
+                authorizedBy: Number(item),
+                authorizedId: Number(distributorId),
+                status: "Pending",
+            }));
+
+            const existingRecords = await db.authorizations.findAll({
+                where: {
+                    authorizedBy: authhh.map((a) => a.authorizedBy),
+                    authorizedId: authhh.map((a) => a.authorizedId),
+                    status: { [db.Sequelize.Op.in]: ['Not Send', 'Pending'] },
+                },
+                raw: true,
+                transaction
+            });
+
+            const toUpdate = existingRecords.map((rec) => rec.id);
+            if (toUpdate.length > 0) {
+                await db.authorizations.update(
+                    { status: "Pending" },
+                    { where: { id: toUpdate }, transaction }
+                );
+            }
+
+            const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
+            const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
+            if (newRecords.length > 0) {
+                await db.authorizations.bulkCreate(newRecords, { transaction });
+            }
+
+            // distributor table update
+            await db.distributors.update(
+                {
+                    profilePic,
+                    companyName,
+                    companyType,
+                    ownerName,
+                    email,
+                    phone,
+                    address,
+                    GST,
+                    wholeSaleDrugLicence,
+                    PAN,
+                    FSSAI,
+                    CIN,
+                    updatedAt: db.sequelize.literal("NOW()")
+                },
+                { where: { distributorId }, transaction }
+            );
+
+            console.log("Distributor updated successfully");
+
+            // address updates
+            const existingAddresses = await db.address.findAll({ where: { userId: distributorId }, transaction });
+            if (existingAddresses.length) {
+                await Promise.all(existingAddresses.map(async (existingAddress) => {
+                    const updateData =
+                        existingAddress.addressType === "Business" ? businessAdd : billingAdd;
+                    await existingAddress.update(updateData, { transaction });
+                }));
+            } else {
+                const dataToInsert = [
+                    { ...businessAdd, userId: distributorId, addressType: "Business" },
+                    { ...billingAdd, userId: distributorId, addressType: "Billing" },
+                ];
+                await db.address.bulkCreate(dataToInsert, { transaction });
+            }
+
+            // documents update
+            const documentsData = documents.map((doc) => ({
+                categoryId: doc.id,
+                image: doc.image,
+                status: 'Verified',
+                userId: Number(distributorId)
+            }));
+
+            await db.documents.bulkCreate(documentsData, {
+                updateOnDuplicate: ["image", "status"],
+                transaction
+            });
+
+            //Getting manufcturerName that is passed in the payLoad
+            const manufacturerNames = await db.manufacturers.findAll({
+                where: { manufacturerId: manufactureres },
+                attributes: ['manufacturerId', 'companyName'],
+                raw: true,
+                transaction
+            });
+
+            const manufacturerList = manufacturerNames.map(manu => ({
+                manufacturerId: manu.manufacturerId,
+                companyName: manu.companyName
+            }));
+
+            await transaction.commit();
+            console.log("Distributor details updated successfully");
+            return {
+                status: message.code200,
+                message: "Distributor details updated successfully",
+                manufacturers: manufacturerList,
+                documents: documentsData
+            };
+        } catch (error) {
+            if (transaction) await transaction.rollback();
+            console.log('update_distributor service error:', error.message);
+            return {
+                status: message.code500,
+                message: message.message500
+            };
+        }
+    }
 
     async check_profile(data) {
         try {
@@ -1247,61 +1255,6 @@ class DistributorService {
             };
         }
     }
-
-    // async update_roles(data) {
-    //     try {
-    //         const { roleName, newRoleName, status } = data;
-
-    //         if (!roleName) {
-    //             return {
-    //                 status: message.code400,
-    //                 message: "Role name is required."
-    //             };
-    //         }
-
-    //         let LOCKED;
-    //         if (status === "Active") {
-    //             LOCKED = 0;
-    //         } else if (status === "Inactive") {
-    //             LOCKED = 1;
-    //         } else {
-    //             return {
-    //                 status: message.code400,
-    //                 message: "Invalid status. Use 'Active' or 'Inactive'."
-    //             };
-    //         }
-
-    //         const role = await db.roles.findOne({ where: { roleName } });
-
-    //         if (!role) {
-    //             return {
-    //                 status: message.code404,
-    //                 message: "Role not found."
-    //             };
-    //         }
-
-    //         // Update the role
-    //         await db.roles.update(
-    //             {
-    //                 roleName: newRoleName || role.roleName, // Update if provided, otherwise keep old
-    //                 LOCKED: LOCKED
-    //             },
-    //             { where: { roleName } }
-    //         );
-
-    //         return {
-    //             status: message.code200,
-    //             message: "Role updated successfully."
-    //         };
-
-    //     } catch (error) {
-    //         console.error("Error updating role:", error.message);
-    //         return {
-    //             status: message.code500,
-    //             message: message.message500
-    //         };
-    //     }
-    // }
 
     async update_roles(id, data) {
         try {

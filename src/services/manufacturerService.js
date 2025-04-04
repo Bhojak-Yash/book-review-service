@@ -73,6 +73,13 @@ class ManufacturerService {
       }
       transaction = await db.sequelize.transaction();
 
+      if (userName) {
+        const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
+        if (existingUser) {
+          throw new Error('A manufacturer with this email already exists.');
+        }
+      }
+
       const hashedPassword = await hashPassword(password);
 
       const user = await Users.create(
@@ -111,8 +118,9 @@ class ManufacturerService {
       if (transaction) await transaction.rollback();
       console.log('createManufacturer error:', error.message)
       return {
+        error: true,
         status: message.code500,
-        message: message.message500
+        message: error.message
       }
     }
   }
