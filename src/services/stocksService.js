@@ -262,7 +262,7 @@ class StocksService {
       ],
       include: [
         {
-          model: db.stocks,
+          model: db.manufacturerStocks,
           as: "stocks", // Adjust alias as per your association
           required: false, // LEFT JOIN: include products even if stock is not available
           where: whereCondition
