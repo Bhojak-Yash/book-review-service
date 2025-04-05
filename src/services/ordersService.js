@@ -284,7 +284,7 @@ class OrdersService {
                   Scheme: item.Scheme,
                   BoxQty: item.BoxQty,
                   loose: item.loose,
-                  purchasedFrom:data?.dataValues?.orderTo
+                  purchasedFrom:order?.dataValues?.orderTo
                 },
                 transaction: t, // Use the transaction
               }
