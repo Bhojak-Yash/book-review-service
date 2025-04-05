@@ -19,7 +19,12 @@ class StocksService {
     console.log(stocksData,'gfhjkl',organisationId)
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-    const check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
+    let check;
+    if(userData?.userType === 'Manufacturer' ){
+     check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId } })
+    }else{
+      check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
+    }
     if (check) {
       const updatedStock = Number(check.Stock) + Number(stocksData?.Stock);
 
@@ -578,7 +583,7 @@ class StocksService {
           return true; // Default case if no status matches
         });
       }
-
+// console.log(whereCondition)
       // Step 3: Fetch the paginated stock data
       const { rows: stocks, count } = await db.products.findAndCountAll({
         attributes: [
