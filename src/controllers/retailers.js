@@ -65,8 +65,8 @@ exports.get_distributors_list = async (req,res) => {
 exports.retailer_profile_update = async (req, res) => {
   try {
     console.log("Decoded User from Token:", req.user); // Debugging userId
-
-    const response = await RetailerService.retailer_profile_update(req);
+    const data = {...req.body,...req.user}
+    const response = await RetailerService.retailer_profile_update(data);
 
     return res.status(response.status).json(response);
   } catch (error) {

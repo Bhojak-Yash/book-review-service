@@ -211,9 +211,9 @@ class RetailerService {
 
     async retailer_profile_update(data){
         let transaction;
-        console.log(data);
+        // console.log(data);
         try {
-            const { retailerId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, distributors } = data;
+            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, distributors } = data;
 
             if (!retailerId) {
                 return {
@@ -229,7 +229,7 @@ class RetailerService {
                 transaction
             });
 
-            console.log('Fetched retailer:', retailer);
+            // console.log('Fetched retailer:', retailer);
 
             if (!retailer) {
                 return {
@@ -283,12 +283,11 @@ class RetailerService {
                     PAN,
                     FSSAI,
                     CIN,
-                    updatedAt: db.sequelize.literal("NOW()")
                 },
                 { where: { retailerId }, transaction }
             );
 
-            console.log("Retailer updated successfully");
+            // console.log("Retailer updated successfully");
 
             // address updates
             const existingAddresses = await db.address.findAll({ where: { userId: retailerId }, transaction });
@@ -333,10 +332,10 @@ class RetailerService {
             }));
 
             await transaction.commit();
-            console.log("Distributor details updated successfully");
+            // console.log("Retailer details updated successfully");
             return {
                 status: message.code200,
-                message: "Distributor details updated successfully",
+                message: "Retailer details updated successfully",
                 manufacturers: distributerList,
                 documents: documentsData
             };
