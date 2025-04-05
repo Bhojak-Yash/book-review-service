@@ -85,14 +85,15 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    // console.log(orderId,updates,loggedInUserId,';;lllll')
+    console.log(orderId,updates,loggedInUserId,';;lllll')
     try {
-
       const order = await this.db.orders.findByPk(orderId);
+      // console.log(order?.dataValues)
       const orderToDeatils = await db.users.findOne({where:{id:order?.dataValues?.orderTo}})
-    const orderItems = await db.orderitems.findAll({
-      where: { orderId: orderId },
-    });
+      const orderItems = await db.orderitems.findAll({
+        where: { orderId: orderId },
+      });
+      // console.log('pppppppppppppppppp')
 
     const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
     const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
@@ -142,13 +143,14 @@ class OrdersService {
     }
 
     if (updates.orderStatus === "Confirmed") {
-     
+    //  console.log(';;;;;;;;;;;;;;;;;;')
       updates.confirmationDate = new Date();
       if (orderItems && orderItems.length > 0) {
 
         await db.sequelize.transaction(async (t) => {
           // First, check if all items have enough stock before making any updates
           for (const item of updates.items) {
+            console.log('pppppppp')
             const [stock] = await db.sequelize.query(
               `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
               {
@@ -390,7 +392,7 @@ class OrdersService {
       const Limit = Number(data.limit) || 10;
       let skip = 0;
       let whereClause = { orderFrom: id };
-
+console.log(id)
       if (Page > 1) {
         skip = (Page - 1) * Limit;
       }
@@ -401,6 +403,9 @@ class OrdersService {
           { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
           {
             '$manufacturer.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+          },
+          {
+            '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
           }
         ];
       }
@@ -436,8 +441,14 @@ class OrdersService {
             required: false, // Ensure manufacturer is included even if no match is found
           },
           {
+            model: db.distributors,
+            as: "distributor",
+            attributes: ["companyName"],
+            required: false, // Ensure manufacturer is included even if no match is found
+          },
+          {
             model:db.authorizations,
-            where:{authorizedId:Number(59)},
+            where:{authorizedId:Number(id)},
             as:"auth",
             attributes:['creditCycle'],
             required:false
@@ -471,7 +482,7 @@ class OrdersService {
             "orderTotal": order.orderTotal,
             "invNo": order.invNo,
             "balance": order.balance,
-            "orderTo": order.manufacturer?.companyName || order.orderTo,
+            "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
             "deliveryType": order.deliveryType,
             // "auth": order.auth,
             "overdue": overdue 

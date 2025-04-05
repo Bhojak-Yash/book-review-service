@@ -327,7 +327,7 @@ class DistributorService {
             if (type) {
                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
             }
-            console.log(whereStock, whereCondition)
+            // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
                 where: whereStock,

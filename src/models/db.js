@@ -121,6 +121,7 @@ db.usercarts.belongsTo(db.stocks, { foreignKey: 'stockId', as: 'stockDetails' })
 db.stocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.manufacturerStocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
+// db.orders.belongsTo(db.users, { as: "distributor", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
 db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
@@ -130,6 +131,7 @@ db.orders.belongsTo(db.distributors, {
 });
 db.orders.hasMany(db.orderitems,{foreignKey: "orderId", as: "orderItems"})
 db.orders.belongsTo(db.manufacturers,{foreignKey:'orderTo',as: 'manufacturer'})
+db.orders.belongsTo(db.distributors,{foreignKey:'orderTo',as: 'distributor'})
 // db.orders.hasMany(db.authorizations, { foreignKey: "authorizedBy", targetKey: "orderTo", as: "auth" });
 db.orders.belongsTo(db.authorizations, { foreignKey: "orderTo", targetKey: "authorizedBy", as: "auth" });
 
