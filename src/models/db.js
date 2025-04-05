@@ -98,9 +98,17 @@ db.manufacturerStocks.belongsTo(db.products, {
 db.products.hasMany(db.stocks, {
   foreignKey: 'PId',
 });
+// db.products.hasMany(db.manufacturerStocks, {
+//   foreignKey: 'PId',
+// });
+db.products.hasMany(db.manufacturerStocks, {
+  foreignKey: 'PId',
+  as: 'stockss',
+});
 db.products.hasMany(db.manufacturerStocks, {
   foreignKey: 'PId',
 });
+// db.manufacturerStocks.belongsTo(db.products,{foreignKey:'PId',as:"stocks"})
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
 db.authorizations.belongsTo(db.retailers, { foreignKey: 'authorizedId', as: 'retailers' });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedBy', as: 'distributor' });

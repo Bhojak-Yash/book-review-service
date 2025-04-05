@@ -263,7 +263,7 @@ class StocksService {
       include: [
         {
           model: db.manufacturerStocks,
-          as: "stocks", // Adjust alias as per your association
+          as: "stockss", // Adjust alias as per your association
           required: false, // LEFT JOIN: include products even if stock is not available
           where: whereCondition
         },
@@ -289,8 +289,8 @@ class StocksService {
 
     const transformedStocks = stocks.flatMap(product => {
       const filteredStocks = expStatus
-        ? product.stocks.filter(stock => stock.Stock > 0) // Only include stocks with available quantity
-        : product.stocks;
+        ? product.stockss.filter(stock => stock.Stock > 0) // Only include stocks with available quantity
+        : product.stockss;
 
       return filteredStocks.length > 0
         ? filteredStocks.map(stock => ({
