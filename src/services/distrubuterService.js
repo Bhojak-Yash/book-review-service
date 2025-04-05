@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const Users = db.users;
 const Distributors = db.distributors;
-const Sequelize = require('sequelize'); 
+const Sequelize = require('sequelize');
 
 
 async function hashPassword(password) {
@@ -126,13 +126,13 @@ class DistributorService {
 
     async getManufacturer(data) {
         try {
-            const { id, search,type } = data;
+            const { id, search, type } = data;
 
             let checkUserType = ['Distributor', 'Manufacturer']
-            if(type=='cnf'){
-                checkUserType =  ['Distributor']
-            }else if(type=='manufacturer'){
-                checkUserType =  ['Manufacturer']
+            if (type == 'cnf') {
+                checkUserType = ['Distributor']
+            } else if (type == 'manufacturer') {
+                checkUserType = ['Manufacturer']
             }
             // Sanitize input values
             // const authorizedId = Number(id);
@@ -172,7 +172,7 @@ class DistributorService {
                         required: false,
                         where: {
                             type: 'CNF',
-                            ...(search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}) 
+                            ...(search ? { companyName: { [db.Op.like]: `%${search}%` } } : {})
                         }
                     },
                     {
@@ -180,7 +180,7 @@ class DistributorService {
                         as: 'manufacturer',
                         attributes: ['companyName', 'manufacturerId'],
                         required: false,
-                        where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {} 
+                        where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                     }
                 ],
                 where: {
@@ -192,11 +192,11 @@ class DistributorService {
                 }
             });
 
-            const finalResult  = result?.map((item)=>{
+            const finalResult = result?.map((item) => {
                 return {
-                    "companyName":item.disuser.length? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
-                    "manufacturerId":item.id,
-                    "type":item.disuser.length? 'CNF': 'Manufacturer'
+                    "companyName": item.disuser.length ? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
+                    "manufacturerId": item.id,
+                    "type": item.disuser.length ? 'CNF' : 'Manufacturer'
                 }
             })
 
@@ -218,9 +218,18 @@ class DistributorService {
 
     async getStocksByManufacturer(data) {
         try {
-            const { id, manufacturerId,type, page, limit, search } = data
-            // console.log(id,manufacturerId)
-            const whereCondition = { manufacturerId: Number(manufacturerId) };
+            console.log(data)
+            const { id, manufacturerId, type, page, limit, search } = data
+            console.log(id, manufacturerId)
+            let whereStock = {}
+            let whereCondition = {};
+            let tablesearch = 'distributors_new'
+            if (type == 'Manufacturer') {
+                tablesearch = 'manufacturers'
+                whereCondition.manufacturerId = Number(manufacturerId)
+            } else {
+                whereStock.organisationId = Number(id)
+            }
 
             if (search && search.trim() !== "") {
                 whereCondition.PName = { [db.Sequelize.Op.like]: `%${search}%` };
@@ -231,19 +240,24 @@ class DistributorService {
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
-            if (!manufacturerId) {
-                return {
-                    status: 404,
-                    message: 'Manufacturer not found'
-                }
-            }
+            // if (!manufacturerId) {
+            //     return {
+            //         status: 404,
+            //         message: 'Manufacturer not found'
+            //     }
+            // }
             let manufacturer = {}
+            const ccc = manufacturerId ? manufacturerId : id
+            const idColumn =
+                tablesearch === 'manufacturers' ? 'manufacturerId' : 'distributorId';
+                const logoColumn =
+                tablesearch === 'manufacturers' ? 'logo' : 'profilePic';
             if (id) {
                 const [eee] = await db.sequelize.query(
                     `SELECT 
-                    mn.manufacturerId, 
+                    mn.${idColumn} as manufacturerId, 
                     mn.companyName,
-                    mn.logo,
+                    mn.${logoColumn} as logo,
                     au.id AS authorizationId,
                     au.status, 
                     JSON_ARRAYAGG(
@@ -255,13 +269,13 @@ class DistributorService {
                         'state', ad.state
                       )
                     ) AS addresses
-                 FROM manufacturers AS mn
+                 FROM ${tablesearch} AS mn
                  LEFT JOIN authorizations AS au
-                   ON mn.manufacturerId = au.authorizedBy AND au.authorizedId = :id
+                   ON mn.${idColumn} = au.authorizedBy AND au.authorizedId = :id
                  LEFT JOIN \`address\` AS ad
-                   ON ad.userId = mn.manufacturerId
-                 WHERE mn.manufacturerId = :manufacturerId
-                 GROUP BY mn.manufacturerId, mn.companyName, au.id, au.status`,
+                   ON ad.userId = mn.${idColumn}
+                 WHERE mn.${idColumn}= :manufacturerId
+                 GROUP BY mn.${idColumn}, mn.companyName, au.id, au.status`,
                     {
                         replacements: {
                             manufacturerId: Number(manufacturerId),
@@ -270,13 +284,14 @@ class DistributorService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
+                // console.log(eee,manufacturerId,tablesearch)
                 manufacturer = eee
             } else {
                 const [eee] = await db.sequelize.query(
                     `SELECT 
-                    mn.manufacturerId, 
+                     mn.${idColumn} as manufacturerId,  
                     mn.companyName,
-                    mn.logo,
+                     mn.${logoColumn} as logo,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
                         'addressType', ad.addressType, 
@@ -286,14 +301,14 @@ class DistributorService {
                         'state', ad.state
                       )
                     ) AS addresses
-                 FROM manufacturers AS mn
+                 FROM ${tablesearch} AS mn
                  LEFT JOIN \`address\` AS ad
-                   ON ad.userId = mn.manufacturerId
-                 WHERE mn.manufacturerId = :manufacturerId
-                 GROUP BY mn.manufacturerId, mn.companyName`,
+                   ON ad.userId = mn.${idColumn}
+                 WHERE mn.${idColumn} = :manufacturerId
+                 GROUP BY mn.${idColumn}, mn.companyName`,
                     {
                         replacements: {
-                            manufacturerId: Number(manufacturerId),
+                            manufacturerId: Number(ccc),
                             // id: Number(id),
                         },
                         type: db.Sequelize.QueryTypes.SELECT,
@@ -301,18 +316,21 @@ class DistributorService {
                 );
                 manufacturer = { ...eee, authorizationId: null, status: 'Not Send' }
             }
-            // if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
-            //     return {
-            //         status: 400,
-            //         message: "Not authorized"
-            //     }
-            // }
-           let tableName='Manufacturer'
-            if(type){
-                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            console.log('ppppppp',manufacturer)
+            if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
+                return {
+                    status: 400,
+                    message: "Not authorized"
+                }
             }
+            let tableName = db.manufacturerStocks
+            if (type) {
+                tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            }
+            console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
+                where: whereStock,
                 include: [
                     {
                         model: db.products,
@@ -365,11 +383,12 @@ class DistributorService {
                 }
             })
             // console.log(ids)
-            const totalCount = await db.products.count({ where: whereCondition })
+            // const totalCount = await db.products.count({ where: whereCondition })
             let updatedStockWithQuantity = []
             if (id) {
+                
                 // console.log('[[][][]]')
-                const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(manufacturerId) } })
+                const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(ccc) } })
                 // const totalCount = updatedStock.length
                 updatedStockWithQuantity = updatedStock.map(stockItem => {
                     const cartItem = cart.find(c => c.stockId === stockItem.SId);
@@ -900,7 +919,7 @@ class DistributorService {
     //         }
     //     }
     // }
-    
+
     async update_distributor(data) {
         let transaction;
         console.log(data);
@@ -1067,103 +1086,103 @@ class DistributorService {
         }
     }
 
-    async get_distributor_stocks(data){
+    async get_distributor_stocks(data) {
         try {
             const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
-      // console.log(data)
-    //   const userData = await db.users.findOne({ where: { id: Number(id) } })
-    //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-      let Page = page || 1;
-      let Limit = limit || 10;
-      const nearToExpDate = Number(process.env.lowStockDays)
-      // console.log(nearToExpDate)
-      let whereCondition = { organisationId: Number(id) };
-      if (entityId) {
-        whereCondition.entityId = Number(entityId);
-      }
-
-      // Handle expiration status filter
-      if (expStatus) {
-        const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-
-        if (expStatus === "expired") {
-          whereCondition.ExpDate = { [db.Sequelize.Op.lt]: today }; // Expired (before today)
-        } else if (expStatus === "nearToExp") {
-          const nearToExpDate = new Date();
-          nearToExpDate.setDate(nearToExpDate.getDate() + nearToExpDate);
-          whereCondition.ExpDate = {
-            [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
-          }; // Between today and 90 days from now
-        } else if (expStatus === "upToDate") {
-          const upToDateThreshold = new Date();
-          upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(nearToExpDate));
-          whereCondition.ExpDate = { [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0] }; // More than 90 days from today
-        }
-      }
-
-      let skip = (Page - 1) * Number(Limit);
-      const {rows:stocks,count}=await db.stocks.findAndCountAll({
-        // attributes:[]
-        where:whereCondition,
-        include:[
-            {
-                model:db.products,
-                as:'product',
-                attributes: ["PId","PCode","PName","PackagingDetails","SaltComposition","LOCKED","manufacturerId"]
+            // console.log(data)
+            //   const userData = await db.users.findOne({ where: { id: Number(id) } })
+            //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            let Page = page || 1;
+            let Limit = limit || 10;
+            const nearToExpDate = Number(process.env.lowStockDays)
+            // console.log(nearToExpDate)
+            let whereCondition = { organisationId: Number(id) };
+            if (entityId) {
+                whereCondition.entityId = Number(entityId);
             }
-        ]
-      })
-      return {
-        status:message.code200,
-        message:message.message200,
-        totalData:count,
-        totalPage:Math.ceil(count/Limit),
-        currentPage:Page,
-        apiData:stocks
-      }
 
-    //   const { rows: stocks, count } = await db.products.findAndCountAll({
-    //     attributes: [
-    //       "PId",
-    //       "PCode",
-    //       "PName",
-    //       "PackagingDetails",
-    //       "SaltComposition",
-    //       "LOCKED",
-    //       "manufacturerId"
-    //     ],
-    //     include: [
-    //       {
-    //         model: db.stocks,
-    //         as: "stocks", // Adjust alias as per your association
-    //         required: false, // LEFT JOIN: include products even if stock is not available
-    //         where: whereCondition
-    //       },
-    //     ],
-    //     where: {
-    //       manufacturerId: id,
-    //       ...(search
-    //         ? {
-    //           [Op.or]: [
-    //             { PCode: { [Op.like]: `%${search}%` } },
-    //             { PName: { [Op.like]: `%${search}%` } },
-    //             { SaltComposition: { [Op.like]: `%${search}%` } },
-    //           ],
-    //         }
-    //         : {}),
-    //     },
-    //     offset: skip,
-    //     limit: Number(Limit),
-    //     subQuery: false,
-    //     // raw: true,
-    //     // nest: true,
-    //   })
+            // Handle expiration status filter
+            if (expStatus) {
+                const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+
+                if (expStatus === "expired") {
+                    whereCondition.ExpDate = { [db.Sequelize.Op.lt]: today }; // Expired (before today)
+                } else if (expStatus === "nearToExp") {
+                    const nearToExpDate = new Date();
+                    nearToExpDate.setDate(nearToExpDate.getDate() + nearToExpDate);
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
+                    }; // Between today and 90 days from now
+                } else if (expStatus === "upToDate") {
+                    const upToDateThreshold = new Date();
+                    upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(nearToExpDate));
+                    whereCondition.ExpDate = { [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0] }; // More than 90 days from today
+                }
+            }
+
+            let skip = (Page - 1) * Number(Limit);
+            const { rows: stocks, count } = await db.stocks.findAndCountAll({
+                // attributes:[]
+                where: whereCondition,
+                include: [
+                    {
+                        model: db.products,
+                        as: 'product',
+                        attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+                    }
+                ]
+            })
+            return {
+                status: message.code200,
+                message: message.message200,
+                totalData: count,
+                totalPage: Math.ceil(count / Limit),
+                currentPage: Page,
+                apiData: stocks
+            }
+
+            //   const { rows: stocks, count } = await db.products.findAndCountAll({
+            //     attributes: [
+            //       "PId",
+            //       "PCode",
+            //       "PName",
+            //       "PackagingDetails",
+            //       "SaltComposition",
+            //       "LOCKED",
+            //       "manufacturerId"
+            //     ],
+            //     include: [
+            //       {
+            //         model: db.stocks,
+            //         as: "stocks", // Adjust alias as per your association
+            //         required: false, // LEFT JOIN: include products even if stock is not available
+            //         where: whereCondition
+            //       },
+            //     ],
+            //     where: {
+            //       manufacturerId: id,
+            //       ...(search
+            //         ? {
+            //           [Op.or]: [
+            //             { PCode: { [Op.like]: `%${search}%` } },
+            //             { PName: { [Op.like]: `%${search}%` } },
+            //             { SaltComposition: { [Op.like]: `%${search}%` } },
+            //           ],
+            //         }
+            //         : {}),
+            //     },
+            //     offset: skip,
+            //     limit: Number(Limit),
+            //     subQuery: false,
+            //     // raw: true,
+            //     // nest: true,
+            //   })
 
         } catch (error) {
-            console.log('get_distributor_stocks service error:',error.message)
+            console.log('get_distributor_stocks service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
@@ -1273,7 +1292,7 @@ class DistributorService {
 
     //Employee Management..........................................................
 
-    async create_role(data, userIdFromToken){
+    async create_role(data, userIdFromToken) {
         try {
             if (!data.roleName) {
                 throw new Error("roleName is required");
@@ -1285,7 +1304,7 @@ class DistributorService {
             const existingRole = await db.roles.findOne({
                 where: { roleCode: roleCode, ownerId: userIdFromToken }
             });
-            
+
             if (existingRole) {
                 throw new Error("Role already exists for this owner.");
             }
@@ -1293,10 +1312,10 @@ class DistributorService {
             const newRole = await db.roles.create({
                 roleCode: roleCode,
                 roleName: data.roleName,
-                description: data.description || null, 
+                description: data.description || null,
                 // priority: data.priority || 1, 
                 status: data.status || "Active",
-                ownerId: userIdFromToken, 
+                ownerId: userIdFromToken,
             });
 
             return { status: "success", message: "Role created successfully", data: newRole };
@@ -1464,7 +1483,7 @@ class DistributorService {
         }
     }
 
-    async createModuleConfig(data){
+    async createModuleConfig(data) {
         try {
             const { moduleName, category, icon, url, menuType } = data;
 
@@ -1515,7 +1534,7 @@ class DistributorService {
             };
         }
     }
-    
+
     // async getAllModules() {
     //     try {
     //         const modules = await db.moduleconfigs.findAll({ raw: true });
