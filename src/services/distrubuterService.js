@@ -307,8 +307,11 @@ class DistributorService {
             //         message: "Not authorized"
             //     }
             // }
-            const tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-            const { count, rows: stocks } = await db.manufacturerStocks.findAndCountAll({
+           let tableName='Manufacturer'
+            if(type){
+                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            }
+            const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
                 include: [
                     {
