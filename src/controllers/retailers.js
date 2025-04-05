@@ -74,3 +74,16 @@ exports.retailer_profile_update = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
+
+exports.retailer_profile_get = async (req, res) => {
+  try {
+    // console.log("Decoded User from Token:", req.user); // Debugging userId
+    const data = {...req.user}
+    const response = await RetailerService.retailer_profile_get(data);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("retailer_profile_get Error:", error.message);
+    return res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};

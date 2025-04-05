@@ -8,6 +8,7 @@ router.get('/get-manufacturer-stocks',stocksc.getStockDetailsByManufacturer)
 router.post('/add-stock',verifyToken,stocksc.addStock)
 router.post('/update-stock',verifyToken,stocksc.updateStock)
 router.get('/get-manufacturer-StockSummary',verifyToken,stocksc.getManufacturerStockSummary)
+router.get('/get-distributor-StockSummary',verifyToken,stocksc.getdistributorStockSummary)
 router.get('/get-all-stocks',verifyToken,stocksc.getAllStocks)
 
 // router.get('/get-stocks')
