@@ -308,8 +308,8 @@ class DistributorService {
             //     }
             // }
             const tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-            const { count, rows: stocks } = await tableName.findAndCountAll({
-                attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP', 'PTS'],
+            const { count, rows: stocks } = await db.manufacturerStocks.findAndCountAll({
+                attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
                 include: [
                     {
                         model: db.products,
@@ -335,7 +335,7 @@ class DistributorService {
                         "PCode": item.product.PCode,
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
-                        "PTR": item.PTR,
+                        // "PTR": item.PTR,
                         "PTS": item.PTS || 0,
                         "MRP": item.MRP,
                         "BatchNo": item.BatchNo,
@@ -352,7 +352,7 @@ class DistributorService {
                         "PCode": item.product.PCode,
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
-                        "PTR": null,
+                        // "PTR": null,
                         "PTS": null,
                         "MRP": null,
                         "BatchNo": item.BatchNo,
@@ -1060,6 +1060,107 @@ class DistributorService {
             return {
                 status: message.code500,
                 message: message.message500
+            }
+        }
+    }
+
+    async get_distributor_stocks(data){
+        try {
+            const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
+      // console.log(data)
+    //   const userData = await db.users.findOne({ where: { id: Number(id) } })
+    //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+      let Page = page || 1;
+      let Limit = limit || 10;
+      const nearToExpDate = Number(process.env.lowStockDays)
+      // console.log(nearToExpDate)
+      let whereCondition = { organisationId: Number(id) };
+      if (entityId) {
+        whereCondition.entityId = Number(entityId);
+      }
+
+      // Handle expiration status filter
+      if (expStatus) {
+        const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+
+        if (expStatus === "expired") {
+          whereCondition.ExpDate = { [db.Sequelize.Op.lt]: today }; // Expired (before today)
+        } else if (expStatus === "nearToExp") {
+          const nearToExpDate = new Date();
+          nearToExpDate.setDate(nearToExpDate.getDate() + nearToExpDate);
+          whereCondition.ExpDate = {
+            [db.Sequelize.Op.between]: [today, nearToExpDate.toISOString().split("T")[0]],
+          }; // Between today and 90 days from now
+        } else if (expStatus === "upToDate") {
+          const upToDateThreshold = new Date();
+          upToDateThreshold.setDate(upToDateThreshold.getDate() + Number(nearToExpDate));
+          whereCondition.ExpDate = { [db.Sequelize.Op.gt]: upToDateThreshold.toISOString().split("T")[0] }; // More than 90 days from today
+        }
+      }
+
+      let skip = (Page - 1) * Number(Limit);
+      const {rows:stocks,count}=await db.stocks.findAndCountAll({
+        // attributes:[]
+        where:whereCondition,
+        include:[
+            {
+                model:db.products,
+                as:'product',
+                attributes: ["PId","PCode","PName","PackagingDetails","SaltComposition","LOCKED","manufacturerId"]
+            }
+        ]
+      })
+      return {
+        status:message.code200,
+        message:message.message200,
+        totalData:count,
+        totalPage:Math.ceil(count/Limit),
+        currentPage:Page,
+        apiData:stocks
+      }
+
+    //   const { rows: stocks, count } = await db.products.findAndCountAll({
+    //     attributes: [
+    //       "PId",
+    //       "PCode",
+    //       "PName",
+    //       "PackagingDetails",
+    //       "SaltComposition",
+    //       "LOCKED",
+    //       "manufacturerId"
+    //     ],
+    //     include: [
+    //       {
+    //         model: db.stocks,
+    //         as: "stocks", // Adjust alias as per your association
+    //         required: false, // LEFT JOIN: include products even if stock is not available
+    //         where: whereCondition
+    //       },
+    //     ],
+    //     where: {
+    //       manufacturerId: id,
+    //       ...(search
+    //         ? {
+    //           [Op.or]: [
+    //             { PCode: { [Op.like]: `%${search}%` } },
+    //             { PName: { [Op.like]: `%${search}%` } },
+    //             { SaltComposition: { [Op.like]: `%${search}%` } },
+    //           ],
+    //         }
+    //         : {}),
+    //     },
+    //     offset: skip,
+    //     limit: Number(Limit),
+    //     subQuery: false,
+    //     // raw: true,
+    //     // nest: true,
+    //   })
+
+        } catch (error) {
+            console.log('get_distributor_stocks service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
             }
         }
     }
