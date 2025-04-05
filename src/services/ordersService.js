@@ -181,7 +181,7 @@ class OrdersService {
                   replacements: {
                     itemQuantity: item.quantity,
                     stockId: item.stockId,
-               itemQuantity   },
+                  },
                   transaction: t, // Use the transaction
                 }
               );
