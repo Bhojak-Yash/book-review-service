@@ -16,7 +16,7 @@ class StocksService {
   }
 
   async addStock(organisationId, stocksData) {
-    // console.log(stocksData,'gfhjkl',organisationId)
+    console.log(stocksData,'gfhjkl',organisationId)
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
     const check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
@@ -35,24 +35,45 @@ class StocksService {
         Stock: updatedStock // Update stock in the returned object
       };
     }
-    return await tableName.create({
-      PId: stocksData.PId,
-      BatchNo: stocksData.BatchNo,
-      ExpDate: stocksData.ExpDate || null,
-      MRP: stocksData.MRP || null,
-      PTR: stocksData?.PTR || null,
-      PTS: stocksData?.PTS || null,
-      Scheme: stocksData?.Scheme || null,
-      BoxQty: stocksData?.BoxQty || null,
-      Loose: stocksData?.Loose || null,
-      Stock: stocksData?.Stock || null,
-      location: stocksData?.location || null,
-      organisationId: organisationId || null,
-      entityId: stocksData?.entityId || null,
-      purchasedFrom: stocksData?.purchasedFrom,
-      CreatedAt: new Date(),
-      UpdatedAt: new Date(),
-    });
+    if(userData?.userType === 'Manufacturer'){
+      return await tableName.create({
+        PId: stocksData.PId,
+        BatchNo: stocksData.BatchNo,
+        ExpDate: stocksData.ExpDate || null,
+        MRP: stocksData.MRP || null,
+        PTR: stocksData?.PTR || null,
+        PTS: stocksData?.PTS || null,
+        Scheme: stocksData?.Scheme || null,
+        BoxQty: stocksData?.BoxQty || null,
+        Loose: stocksData?.Loose || null,
+        Stock: stocksData?.Stock || null,
+        location: stocksData?.location || null,
+        organisationId: organisationId || null,
+        entityId: stocksData?.entityId || null,
+        purchasedFrom: stocksData?.purchasedFrom,
+        CreatedAt: new Date(),
+        UpdatedAt: new Date(),
+      });
+    }else{
+      return await tableName.create({
+        PId: stocksData.PId,
+        BatchNo: stocksData.BatchNo,
+        ExpDate: stocksData.ExpDate || null,
+        MRP: stocksData.MRP || null,
+        PTR: stocksData?.PTR || null,
+        PTS: stocksData?.PTS || null,
+        Scheme: stocksData?.Scheme || null,
+        BoxQty: stocksData?.BoxQty || null,
+        Loose: stocksData?.Loose || null,
+        Stock: stocksData?.Stock || null,
+        location: stocksData?.location || null,
+        organisationId: organisationId || null,
+        entityId: stocksData?.entityId || null,
+        // purchasedFrom: stocksData?.purchasedFrom,
+        CreatedAt: new Date(),
+        UpdatedAt: new Date(),
+      });
+    }
   }
 
   async updateStock(SId, organisationId, stockData) {
