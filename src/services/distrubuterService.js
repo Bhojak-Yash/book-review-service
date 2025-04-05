@@ -228,7 +228,7 @@ class DistributorService {
                 tablesearch = 'manufacturers'
                 whereCondition.manufacturerId = Number(manufacturerId)
             } else {
-                whereStock.organisationId = Number(id)
+                whereStock.organisationId = Number(manufacturerId)
             }
 
             if (search && search.trim() !== "") {
