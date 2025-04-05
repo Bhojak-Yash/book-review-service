@@ -176,13 +176,13 @@ class OrdersService {
             updates?.items?.map(async (item) => {
               // console.log(item?.stockId)
               await db.sequelize.query(
-                `UPDATE ${tableNameRow} SET Stock = Stock - : WHERE SId = :stockId`,
+                `UPDATE ${tableNameRow} SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
                 {
                   replacements: {
                     itemQuantity: item.quantity,
                     stockId: item.stockId,
                   },
-                  transaction: t, // Use the transaction
+                  transaction: t,
                 }
               );
               // await db.orderitems.update(item)
