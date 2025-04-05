@@ -21,9 +21,9 @@ module.exports =(sequelize,Sequelize)=>{
             type: Sequelize.DOUBLE,
             allowNull: false
         },
-        "PTR":{
-            type:Sequelize.DOUBLE
-        },
+        // "PTR":{
+        //     type:Sequelize.DOUBLE
+        // },
         "PTS":{
             type:Sequelize.DOUBLE
         },
