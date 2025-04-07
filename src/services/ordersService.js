@@ -431,7 +431,8 @@ console.log(id)
           "orderTotal",
           "invNo",
           "balance",
-          "deliveryType"
+          "deliveryType",
+          "reason"
         ],
         include: [
           {
@@ -568,6 +569,7 @@ console.log(id)
         where: whereClause,
         offset: skip,
         limit: Limit,
+        order: [["orderDate", "DESC"]]
       });
 
       // Formatting Result

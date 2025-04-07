@@ -1,6 +1,6 @@
 module.exports = (sequelize, Sequelize) => {
     const documents = sequelize.define("documents", {
-        "documnetId": {
+        "documentId": {
             type: Sequelize.INTEGER,
             primaryKey: true,
             allowNull: false,
@@ -21,6 +21,10 @@ module.exports = (sequelize, Sequelize) => {
         "status": {
             type: Sequelize.STRING
         },
+        "isDeleted":{
+            type: Sequelize.BOOLEAN,
+            defaultValue: false,
+        }
     },
 
         {

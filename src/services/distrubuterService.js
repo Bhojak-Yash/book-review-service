@@ -57,7 +57,8 @@ class DistributorService {
                     companyName: companyName,
                     distributorCode: distributorCode,
                     type: "Distributor",
-                    status: "Active"
+                    status: "Active",
+                    email:userName
                 },
                 { transaction }
             );
@@ -250,7 +251,7 @@ class DistributorService {
             const ccc = manufacturerId ? manufacturerId : id
             const idColumn =
                 tablesearch === 'manufacturers' ? 'manufacturerId' : 'distributorId';
-                const logoColumn =
+            const logoColumn =
                 tablesearch === 'manufacturers' ? 'logo' : 'profilePic';
             if (id) {
                 const [eee] = await db.sequelize.query(
@@ -316,7 +317,7 @@ class DistributorService {
                 );
                 manufacturer = { ...eee, authorizationId: null, status: 'Not Send' }
             }
-            console.log('ppppppp',manufacturer)
+            console.log('ppppppp', manufacturer)
             if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
                 return {
                     status: 400,
@@ -386,7 +387,7 @@ class DistributorService {
             // const totalCount = await db.products.count({ where: whereCondition })
             let updatedStockWithQuantity = []
             if (id) {
-                
+
                 // console.log('[[][][]]')
                 const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(ccc) } })
                 // const totalCount = updatedStock.length
@@ -580,7 +581,7 @@ class DistributorService {
     }
     async distributor_profile(data) {
         try {
-            console.log(data)
+            // console.log(data)
             const { id } = data
 
             const [aa] = await db.sequelize.query(
@@ -592,9 +593,10 @@ class DistributorService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['image', "status", 'updatedAt'],
+                        attributes: ['documentId','image', "status", 'updatedAt'],
                         where: {
-                            userId: Number(id)
+                            userId: Number(id),
+                            isDeleted:false
                         },
                         required: false,
                     },
@@ -624,6 +626,7 @@ class DistributorService {
         mn.distributorId, 
         mn.wholeSaleDrugLicence,
         mn.FSSAI,
+        mn.companyType,
         mn.PAN as pan, 
         mn.CIN as cin,
         mn.type,
@@ -636,13 +639,36 @@ class DistributorService {
               ON mn.distributorId = ad.userId
             WHERE mn.distributorId = ${id};
           `;
-
+          const authorizedBy=await db.authorizations.findAll({
+            where:{authorizedId:Number(id),status:{[db.Op.or]:['Approved','Not Send','Pending']}},
+            attributes:['authorizedId','authorizedBy'],
+            include:[
+                {
+                    model:db.manufacturers,
+                    as:'manufacturer',
+                    attributes:['manufacturerId','companyName']
+                },
+                {
+                    model:db.distributors,
+                    as:"distributor",
+                    attributes:['distributorId','companyName']
+                }
+            ]
+        })
             const [dataa] = await db.sequelize.query(query);
+            // console.log(dataa)
             const transformedData = {};
+            const auth = authorizedBy?.map((item)=>{
+                return {
+                    authorizedBy:item.authorizedBy,
+                    authorizedByUser:item?.manufacturer?.companyName || item?.distributor?.companyName || null,
+                    type:item?.manufacturer?.companyName?"Manufacturer" : 'CNF'
+                }
+            })
             // console.log(dataa)
             dataa.forEach((row) => {
                 const distributorId = row.distributorId;
-
+                // console.log(row)
                 if (!transformedData[distributorId]) {
                     transformedData[distributorId] = {
                         distributor: {
@@ -653,8 +679,9 @@ class DistributorService {
                             updatedAt: row.updatedAt,
                             address: row.address,
                             phone: row.phone,
-                            email: row.email,
+                            email: row.userName,
                             GST: row.gst,
+                            companyType:row.companyType,
                             wholeSaleDrugLicence: row.wholeSaleDrugLicence,
                             FSSAI: row.FSSAI,
                             distributorId: row.distributorId,
@@ -695,6 +722,7 @@ class DistributorService {
                 }
 
                 transformedData[distributorId].documents = document
+                transformedData[distributorId].authorizedBy=auth
                 // Add documents (only specific columns that were dynamically added)
                 // columns.forEach((col) => {
                 //   if (row[col] !== undefined) {
@@ -702,7 +730,7 @@ class DistributorService {
                 //   }
                 // });
             });
-
+            
             // Convert transformedData object to an array
             const result = Object.values(transformedData);
             return {
@@ -922,7 +950,7 @@ class DistributorService {
 
     async update_distributor(data) {
         let transaction;
-        console.log(data);
+        // console.log(data);
         try {
             const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
 
@@ -940,7 +968,7 @@ class DistributorService {
                 transaction
             });
 
-            console.log('Fetched distributor:', distributor);
+            // console.log('Fetched distributor:', distributor);
 
             if (!distributor) {
                 return {
@@ -1095,7 +1123,7 @@ class DistributorService {
             let Page = page || 1;
             let Limit = limit || 10;
             const nearToExpDate = Number(process.env.lowStockDays)
-            console.log(nearToExpDate)
+            // console.log(nearToExpDate)
             let whereCondition = { organisationId: Number(id) };
             if (entityId) {
                 whereCondition.entityId = Number(entityId);
@@ -1105,30 +1133,57 @@ class DistributorService {
             if (expStatus) {
                 const today = new Date();
                 const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
-              
+
                 if (expStatus === "expired") {
-                  whereCondition.ExpDate = {
-                    [db.Sequelize.Op.lt]: todayStr, // Expired before today
-                  };
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.lt]: todayStr, // Expired before today
+                    };
                 } else if (expStatus === "nearToExp") {
-                  const nearToExpDate = new Date();
-                  nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
-                  const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
-              
-                  whereCondition.ExpDate = {
-                    [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
-                  };
+                    const nearToExpDate = new Date();
+                    nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
+                    const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
+
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
+                    };
                 } else if (expStatus === "upToDate") {
-                  const upToDateThreshold = new Date();
-                  upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
-                  const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
-              
-                  whereCondition.ExpDate = {
-                    [db.Sequelize.Op.gt]: upToDateStr,
-                  };
+                    const upToDateThreshold = new Date();
+                    upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
+                    const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
+
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.gt]: upToDateStr,
+                    };
                 }
-              }
-              
+            }
+
+            if (stockStatus) {
+                const count = Number(process.env.aboutToEmpty)
+                if (stockStatus === "outOfStock") {
+                    whereCondition.stock = {
+                        [db.Op.lte]:0
+                    };
+                } else if (stockStatus === "aboutEmpty") {
+                    whereCondition.stock = {
+                        [db.Op.gt]: 0,
+                        [db.Op.lt]: count
+                    };
+                } else if (stockStatus === "upToDate") {
+                    whereCondition.stock = {
+                        [db.Op.gte]: count
+                    };
+                }
+            }
+
+            if (search) {
+                whereCondition[db.Op.or] = [
+                    { BatchNo: { [db.Op.like]: `%${search}%` } },
+                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
+                ];
+            }
+
+
 
             let skip = (Page - 1) * Number(Limit);
             const { rows: stocks, count } = await db.stocks.findAndCountAll({
@@ -1141,7 +1196,7 @@ class DistributorService {
                         attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
                     }
                 ],
-                offset:skip,
+                offset: skip,
                 Limit
             })
             return {
@@ -1301,6 +1356,24 @@ class DistributorService {
             };
         }
     }
-}
 
+    async delete_document(data) {
+        try {
+            const {id,documentId} =data
+            // console.log(id,documentId)
+            await db.documents.update({isDeleted:true},{where:{documentId:Number(documentId),userId:Number(id)}})
+            return {
+                status:message.code200,
+                message:'Document deleted successfully'
+            }
+        } catch (error) {
+            console.log('delete_document service error',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+}
+  
 module.exports = new DistributorService(db);
