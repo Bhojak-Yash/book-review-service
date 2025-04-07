@@ -158,6 +158,19 @@ exports.update_distributorType = async (req, res) => {
   }
 };
 
+exports.delete_document = async (req, res) => {
+  try {
+    const data = {...req.user,...req.query}
+
+    const distributor = await DistributorService.delete_document(data);
+
+    return res.json(distributor);
+  } catch (error) {
+    console.error("delete_document Error:", error.message);
+    return res.status(500).json({ status: message.code500, message: error.message });
+  }
+};
+
 //Employee Management..........................................................
 
 

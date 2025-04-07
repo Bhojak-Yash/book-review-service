@@ -340,7 +340,7 @@ class expiryService {
                 ];
             }
             const { count, rows: Data } = await db.stocks.findAndCountAll({
-                attributes: ['SId', 'Stock', 'PId', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme'],
+                attributes: ['SId', 'Stock', 'PId', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme','organisationId'],
                 where: whereCondition,
                 include: [
                     {
@@ -357,6 +357,16 @@ class expiryService {
                         //     where: { "manufacturerId": Number(manufacturerId) },
                         //     required: true
                         // }
+                    },
+                    {
+                        model:db.distributors,
+                        as:'distributor',
+                        attributes:['distributorId','companyName']
+                    },
+                    {
+                        model:db.manufacturers,
+                        as:"manufacturer",
+                        attributes:['manufacturerId','companyName']
                     }
                 ],
                 limit,
@@ -373,8 +383,8 @@ class expiryService {
                 return {
                     "PName": item.product.PName,
                     'PCode': item.product.PCode,
-                    "manufacturerId": item.product.manufacturer.manufacturerId,
-                    "companyName": item.product.manufacturer.companyName,
+                    "manufacturerId": item?.manufacturer?.manufacturerId || item?.distributor?.distributorId || null,
+                    "companyName": item?.manufacturer?.companyName || item?.distributor?.companyName || null,
                     "SId": item.SId,
                     "Scheme": item.Scheme,
                     "Stock": item.Stock,
@@ -493,12 +503,12 @@ class expiryService {
         let transaction;
         try {
             transaction = await db.sequelize.transaction();
-            const { manufacturerId, items, returnTotal, id } = data
+            const { returnTo, items, returnTotal, id } = data
             let userId = Number(id)
             if (data?.userType === 'Employee') {
                 userId = data.data.employeeOf
             }
-            if (!manufacturerId || !userId || !items || !returnTotal) {
+            if (!returnTo || !userId || !items || !returnTotal) {
                 return {
                     status: message.code400,
                     message: 'Invalid input'
@@ -509,7 +519,7 @@ class expiryService {
                 "returnTotal": Number(returnTotal),
                 "balance": Number(returnTotal),
                 "returnFrom": userId,
-                "returnTo": Number(manufacturerId),
+                "returnTo": Number(returnTo),
                 "returnStatus": "Pending"
             },
                 { transaction }
@@ -586,11 +596,30 @@ class expiryService {
                         as: 'returnFromUser',
                         attributes: ['companyName', 'distributorId'],
                         required: false,
+                    },
+                    {
+                        model:db.retailers,
+                        as:'returnByUser',
+                        attributes:['retailerId','firmName'],
+                        required:false
                     }
                 ],
                 limit,
                 offset,
             });
+
+            const result = await Data?.map((item)=>{
+                return {
+                    "returnId": item.returnId,
+                    "returnFrom": item.returnFrom,
+                    "returnTo": item.returnTo,
+                    "returnAmt": item.returnAmt,
+                    "returnTotal": item.returnTotal,
+                    "returnStatus": item.returnStatus,
+                    "returnDate": item.returnDate,
+                    "returnFromUser": item?.returnFromUser?.companyName || item?.returnByUser?.firmName,
+                }
+            })
 
             return {
                 status: message.code200,
@@ -598,7 +627,7 @@ class expiryService {
                 totalData: count,
                 totalPages: Math.ceil(count / limit),
                 currentPage: page,
-                apiData: Data
+                apiData: result
             }
         } catch (error) {
             console.log('expiry_return_list service error:', error.message)
@@ -719,17 +748,33 @@ class expiryService {
                         attributes: ['companyName', 'distributorId']
                     },
                     {
+                        model:db.retailers,
+                        as:'returnByUser',
+                        attributes:['retailerId','firmName'],
+                        required:false
+                    },
+                    {
                         model: db.creditNotes,
                         as: "creditnote",
                         attributes: ['id', 'createdAt']
                     }
                 ]
             })
+            const result = {
+                "returnId": Data.returnId,
+                "returnDate":Data.returnDate,
+                "returnFrom": Data.returnFrom,
+                "returnTo": Data.returnTo,
+                "returnStatus": Data.returnStatus,
+                "returnFromUser":Data?.returnFromUser?.companyName || Data?.returnByUser?.firmName || null,
+                "returnDetails":Data.returnDetails,
+                "creditnote":Data?.creditnote
+            }
 
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: Data
+                apiData: result
             }
         } catch (error) {
             console.log('returned_details servie error:', error.messagae)
@@ -859,7 +904,7 @@ class expiryService {
             } else if (creditNote?.isSettled) {
                 return {
                     status: message.code400,
-                    message: 'Credit note already reedmed '
+                    message: 'Credit note already reedmed'
                 }
             }
             let remainingCredit = creditNote?.dataValues?.amount;
