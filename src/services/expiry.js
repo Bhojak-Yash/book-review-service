@@ -113,6 +113,198 @@ class expiryService {
         }
     }
 
+    async expired_product_list(data) {
+        try {
+            let { page, limit, id } = data;
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            // console.log(id)
+            page = page ? parseInt(page) : 1;
+            limit = limit ? parseInt(limit) : 10;
+            const offset = (page - 1) * limit;
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const today = moment().startOf("day");
+            const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+            const { count, rows } = await db.stocks.findAndCountAll({
+                attributes: [
+                    "purchasedFrom",
+                    // "PId",
+                    [db.Sequelize.fn("COUNT", db.Sequelize.col("SId")), "totalStocks"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.col("Stock")), "totalSkus"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("Stock * PTS")), "totalAmtPTS"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("Stock * PTR")), "totalAmtPTR"]
+                ],
+                where: {
+                    Stock: { [db.Sequelize.Op.gt]: 0 },
+                    organisationId: Number(id),
+                    [db.Sequelize.Op.and]: [
+                        { ExpDate: { [db.Sequelize.Op.lt]: after90Days } },
+                        { ExpDate: { [db.Sequelize.Op.gt]: threeMonthsBefore } }
+                    ]
+                },
+                include: [
+                    {
+                        model: db.manufacturers,
+                        as: "manufacturer",
+                        attributes: ["companyName", "manufacturerId"],
+                        required: false
+                    },
+                    {
+                        model: db.distributors,
+                        as: "distributor",
+                        attributes: ["companyName", "distributorId"],
+                        required: false
+                    },
+                    {
+                        model: db.returnHeader,
+                        as: "returnHeader",
+                        attributes: ['returnId'],
+                        where: { returnFrom: Number(id), returnStatus: 'Pending' },
+                        required: false
+                    }
+                ],
+                limit,
+                offset,
+                // order: [["SId", "ASC"]],
+                group: ["purchasedFrom","returnHeader.returnId"]
+            });
+
+            const result = await rows?.map((item)=>{
+                // console.log(item)
+                return {
+                    "returnToId": item.dataValues.purchasedFrom,
+                    "totalStock": item.dataValues.totalStocks,
+                    "totalSKU": item.dataValues.totalSkus,
+                    "totalAmt": item.dataValues.totalAmtPTS,
+                    "totalAmtPTR": item.dataValues.totalAmtPTR,
+                    "returnTo":item.manufacturer?item.manufacturer.companyName:item.distributor.companyName,
+                    "returnStatus": item?.returnHeader ? "Pending" : "Not Returned",
+                    "returnId": item?.returnHeader ? item?.returnHeader?.returnId : null
+                }
+            })
+            
+            return {
+                status: message.code200,
+                message: message.message200,
+                totalData: count.length,
+                totalPages: Math.ceil(count.length / limit),
+                currentPage: page,
+                apiData: result,
+            }
+        } catch (error) {
+            console.log('expired_product_list service error:', error.messagae)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    // async expire_details(data) {
+    //     try {
+    //         let { id, manufacturerId, page, limit, search } = data
+    //         // console.log(data)
+    //         if (data?.userType === 'Employee') {
+    //             id = data.data.employeeOf
+    //         }
+    //         const returnTodata = await db.users.findOne({where:{id:Number(manufacturerId)}})
+    //         page = page ? parseInt(page) : 1;
+    //         limit = limit ? parseInt(limit) : 10;
+    //         const offset = (page - 1) * limit;
+    //         const checkId = Number(id)
+    //         const daysforexpiry = Number(process.env.lowStockDays)
+    //         const today = moment().startOf("day").format("YYYY-MM-DD HH:mm:ss")
+    //         const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+    //         const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+    //         const whereCondition = {
+    //             organisationId: checkId,
+    //             [db.Op.and]: [
+    //                 { ExpDate: { [db.Op.lt]: after90Days } },
+    //                 { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+    //             ]
+    //         };
+
+    //         // Apply product filters only if searchKey is present
+    //         const productWhereCondition = {};
+    //         if (search && search.trim() !== "") {
+    //             productWhereCondition[db.Op.or] = [
+    //                 { PCode: { [db.Op.like]: `%${search}%` } },
+    //                 { PName: { [db.Op.like]: `%${search}%` } },
+    //                 { SaltComposition: { [db.Op.like]: `%${search}%` } }
+    //             ];
+    //         }
+    //         const { count, rows: Data } = await db.stocks.findAndCountAll({
+    //             attributes: ['SId', 'Stock', 'PId', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme'],
+    //             where: whereCondition,
+    //             include: [
+    //                 {
+    //                     model: db.products,
+    //                     as: 'product',
+    //                     attributes: ['PId', 'PName', 'PCode', 'manufacturerId', 'PackagingDetails', 'Package', 'ProductForm', 'Quantity', 'SaltComposition'],
+    //                     // where:Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
+    //                     where: productWhereCondition,
+    //                     required: true,
+    //                     include: {
+    //                         model: db.manufacturers,
+    //                         as: 'manufacturer',
+    //                         attributes: ['manufacturerId', 'companyName'],
+    //                         where: { "manufacturerId": Number(manufacturerId) },
+    //                         required: true
+    //                     }
+    //                 }
+    //             ],
+    //             limit,
+    //             offset
+    //         })
+    //         const result = Data?.map((item) => {
+    //             const currentDate = new Date();
+    //             let expiryStatus = "Near Expiry";
+    //             console.log(item.ExpDate, currentDate)
+    //             if (item.ExpDate < currentDate) {
+    //                 console.log('pppp')
+    //                 expiryStatus = "Expired";
+    //             }
+    //             return {
+    //                 "PName": item.product.PName,
+    //                 'PCode': item.product.PCode,
+    //                 "manufacturerId": item.product.manufacturer.manufacturerId,
+    //                 "companyName": item.product.manufacturer.companyName,
+    //                 "SId": item.SId,
+    //                 "Scheme": item.Scheme,
+    //                 "Stock": item.Stock,
+    //                 "PId": item.PId,
+    //                 "ExpDate": item.ExpDate,
+    //                 "PTS": item.PTS,
+    //                 "PTR": item.PTR,
+    //                 "MRP": item.MRP,
+    //                 "BoxQty": item.BoxQty,
+    //                 "location": item.location,
+    //                 "PackagingDetails": item.product.PackagingDetails,
+    //                 "Package": item.product.Package,
+    //                 "ProductForm": item.product.ProductForm,
+    //                 "Quantity": item.product.Quantity,
+    //                 "SaltComposition": item.product.SaltComposition,
+    //                 expiryStatus
+    //             }
+    //         })
+    //         return {
+    //             totalData: count,
+    //             totalPages: Math.ceil(count / limit),
+    //             currentPage: page,
+    //             apiData: result
+    //         }
+    //     } catch (error) {
+    //         console.log('expire_details service error:', error.message)
+    //         return {
+    //             status: message.code500,
+    //             message: error.message
+    //         }
+    //     }
+    // }
+
     async expire_details(data) {
         try {
             let { id, manufacturerId, page, limit, search } = data
@@ -120,6 +312,8 @@ class expiryService {
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
             }
+            const returnTodata = await db.users.findOne({where:{id:Number(manufacturerId)}})
+            
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
@@ -156,13 +350,13 @@ class expiryService {
                         // where:Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
                         where: productWhereCondition,
                         required: true,
-                        include: {
-                            model: db.manufacturers,
-                            as: 'manufacturer',
-                            attributes: ['manufacturerId', 'companyName'],
-                            where: { "manufacturerId": Number(manufacturerId) },
-                            required: true
-                        }
+                        // include: {
+                        //     model: db.manufacturers,
+                        //     as: 'manufacturer',
+                        //     attributes: ['manufacturerId', 'companyName'],
+                        //     where: { "manufacturerId": Number(manufacturerId) },
+                        //     required: true
+                        // }
                     }
                 ],
                 limit,
@@ -464,7 +658,7 @@ class expiryService {
                         "url": cnUrl,
                         "isSettled": false,
                         "returnId": returnId,
-                        "balance":Number(returnAmt)
+                        "balance": Number(returnAmt)
                     },
                         { transaction }
                     )
@@ -499,7 +693,7 @@ class expiryService {
                 id = data.data.employeeOf
             }
             const Data = await db.returnHeader.findOne({
-                attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo','returnStatus'],
+                attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo', 'returnStatus'],
                 where: { returnId: Number(returnId) },
                 include: [
                     {
@@ -525,9 +719,9 @@ class expiryService {
                         attributes: ['companyName', 'distributorId']
                     },
                     {
-                        model:db.creditNotes,
-                        as:"creditnote",
-                        attributes:['id','createdAt']
+                        model: db.creditNotes,
+                        as: "creditnote",
+                        attributes: ['id', 'createdAt']
                     }
                 ]
             })
@@ -548,7 +742,7 @@ class expiryService {
 
     async expiry_list_card_data(data) {
         try {
-            const { id,startDate,endDate } = data
+            const { id, startDate, endDate } = data
             const userId = Number(id)
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
@@ -556,11 +750,11 @@ class expiryService {
             let wherereturn = {
                 returnFrom: Number(userId),
             }
-            let wherecn= {
-                organisationId:Number(userId)
+            let wherecn = {
+                organisationId: Number(userId)
             }
             let wherecnv = {
-                returnFrom:Number(userId)
+                returnFrom: Number(userId)
             }
             if (startDate && endDate) {
                 const formattedStartDate = startDate.split("-").reverse().join("-") + " 00:00:00";
@@ -589,19 +783,19 @@ class expiryService {
                     [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN ExpDate < CURDATE() THEN 1 ELSE 0 END")), "ExpiredCount"],
                     [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN ExpDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ${daysforexpiry} DAY) THEN 1 ELSE 0 END`)), "ExpiringSoonCount"]
                 ],
-                where:wherecn
-            });     
+                where: wherecn
+            });
             const [cnvalues] = await db.returnHeader.findAll({
                 attributes: [
                     [db.Sequelize.fn("SUM", db.Sequelize.col("returnTotal")), "totalReturnTotal"], // Total returnTotal (all statuses)
                     [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN returnTotal ELSE 0 END")), "pendingReturnTotal"], // Sum of returnTotal for Pending
                     [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN cNAmt ELSE 0 END")), "confirmedCNAmt"] // Sum of cNAmt for Confirmed
                 ],
-                where:wherecnv
+                where: wherecnv
             });
-             return {
-                status:message.code200,
-                message:message.message200,
+            return {
+                status: message.code200,
+                message: message.message200,
                 Returns: {
                     totalReturnRaised: Returns?.dataValues?.totalReturnRaised ?? 0,
                     confirmedCount: Returns?.dataValues?.confirmedCount ?? 0,
@@ -617,7 +811,7 @@ class expiryService {
                     confirmedCNAmt: cnvalues?.dataValues?.confirmedCNAmt ?? 0
                 }
             };
-            
+
         } catch (error) {
             console.log('expiry_list_card_data service error:', error.message)
             return {
@@ -629,43 +823,43 @@ class expiryService {
 
     async get_credit_notes(data) {
         try {
-            const {id} = data
+            const { id } = data
             let userId = id
-            const Data = await db.creditNotes.findAll({where:{issuedTo:Number(userId)}})
+            const Data = await db.creditNotes.findAll({ where: { issuedTo: Number(userId) } })
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:Data || []
+                status: message.code200,
+                message: message.message200,
+                apiData: Data || []
             }
-         } catch (error) {
-            console.log('get_credit_note service error:',error.message)
+        } catch (error) {
+            console.log('get_credit_note service error:', error.message)
             return {
-                status:message.code500,
-                message:message.message500
+                status: message.code500,
+                message: message.message500
             }
         }
     }
 
     async redeem_cn(data) {
         try {
-            const {id,creditnoteId} = data
-            if(!creditnoteId){
+            const { id, creditnoteId } = data
+            if (!creditnoteId) {
                 return {
-                    status:message.code400,
-                    message:'Invalid input'
+                    status: message.code400,
+                    message: 'Invalid input'
                 }
             }
-            const creditNote = await db.creditNotes.findOne({where:{id:Number(creditnoteId)}})
+            const creditNote = await db.creditNotes.findOne({ where: { id: Number(creditnoteId) } })
             // console.log(creditNote?.isSettled)
-            if(!creditNote){
+            if (!creditNote) {
                 return {
-                    status:message.code400,
-                    message:'Invalid credit note'
+                    status: message.code400,
+                    message: 'Invalid credit note'
                 }
-            }else if(creditNote?.isSettled){
+            } else if (creditNote?.isSettled) {
                 return {
-                    status:message.code400,
-                    message:'Credit note already reedmed '
+                    status: message.code400,
+                    message: 'Credit note already reedmed '
                 }
             }
             let remainingCredit = creditNote?.dataValues?.amount;
@@ -686,22 +880,22 @@ class expiryService {
 
             for (const order of orders) {
                 if (remainingCredit <= 0) break; // Stop if credit is exhausted
-            
+
                 let orderBalance = order.balance;
-            
+
                 if (orderBalance > 0) {
                     let amountToPay = Math.min(orderBalance, remainingCredit);
-            
+
                     orderBalance -= amountToPay;
                     remainingCredit -= amountToPay;
-            
+
                     let newStatus = orderBalance === 0 ? "Paid" : "Partially paid";
-            
-                    await order.update({ 
-                        balance: orderBalance, 
-                        orderStatus: newStatus 
+
+                    await order.update({
+                        balance: orderBalance,
+                        orderStatus: newStatus
                     });
-            
+
                     updatedOrders.push({
                         orderId: order.id,
                         paidAmount: amountToPay,
@@ -710,9 +904,9 @@ class expiryService {
                     });
                 }
             }
-            
-            await db.creditNotes.update({isSettled:true},{where:{id:Number(creditnoteId)}})
-    
+
+            await db.creditNotes.update({ isSettled: true }, { where: { id: Number(creditnoteId) } })
+
             return {
                 status: message.code200,
                 message: "Credit note successfully applied to orders",
@@ -726,10 +920,10 @@ class expiryService {
             //     creditNote
             // }
         } catch (error) {
-            console.log('redeem_cn service error:',error.message)
+            console.log('redeem_cn service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }

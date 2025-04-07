@@ -318,7 +318,7 @@ class ManufacturerService {
 
       // Fetch allowed document columns
       const [aa] = await sequelize.query(
-        `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
+        `SELECT documentName FROM documentcategory WHERE category = 'Manufacturer'`
       );
       const document = await db.documentCategory.findAll({
         attributes: ['id', 'documentName'],

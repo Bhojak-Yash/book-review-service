@@ -98,9 +98,17 @@ db.manufacturerStocks.belongsTo(db.products, {
 db.products.hasMany(db.stocks, {
   foreignKey: 'PId',
 });
+// db.products.hasMany(db.manufacturerStocks, {
+//   foreignKey: 'PId',
+// });
+db.products.hasMany(db.manufacturerStocks, {
+  foreignKey: 'PId',
+  as: 'stockss',
+});
 db.products.hasMany(db.manufacturerStocks, {
   foreignKey: 'PId',
 });
+// db.manufacturerStocks.belongsTo(db.products,{foreignKey:'PId',as:"stocks"})
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
 db.authorizations.belongsTo(db.retailers, { foreignKey: 'authorizedId', as: 'retailers' });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedBy', as: 'distributor' });
@@ -113,6 +121,7 @@ db.usercarts.belongsTo(db.stocks, { foreignKey: 'stockId', as: 'stockDetails' })
 db.stocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.manufacturerStocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartItems' });
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
+// db.orders.belongsTo(db.users, { as: "distributor", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
 db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
 db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
@@ -122,6 +131,7 @@ db.orders.belongsTo(db.distributors, {
 });
 db.orders.hasMany(db.orderitems,{foreignKey: "orderId", as: "orderItems"})
 db.orders.belongsTo(db.manufacturers,{foreignKey:'orderTo',as: 'manufacturer'})
+db.orders.belongsTo(db.distributors,{foreignKey:'orderTo',as: 'distributor'})
 // db.orders.hasMany(db.authorizations, { foreignKey: "authorizedBy", targetKey: "orderTo", as: "auth" });
 db.orders.belongsTo(db.authorizations, { foreignKey: "orderTo", targetKey: "authorizedBy", as: "auth" });
 
@@ -165,7 +175,9 @@ db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
 db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
 // db.returnDetails.belongsTo(db.manufacturerStocks,{foreignKey: "SId", as: "stocks" })
 db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
-
+db.stocks.belongsTo(db.manufacturers,{foreignKey: "purchasedFrom",targetKey:'manufacturerId', as: "manufacturer" })
+db.stocks.belongsTo(db.distributors,{foreignKey: "purchasedFrom",targetKey:'distributorId', as: "distributor" })
+db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"returnTo", as: "returnHeader" })
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

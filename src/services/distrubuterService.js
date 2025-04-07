@@ -3,9 +3,7 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const Users = db.users;
 const Distributors = db.distributors;
-const Sequelize = require('sequelize'); 
-const nodemailer = require('nodemailer');
-
+const Sequelize = require('sequelize');
 
 
 async function hashPassword(password) {
@@ -128,13 +126,13 @@ class DistributorService {
 
     async getManufacturer(data) {
         try {
-            const { id, search,type } = data;
+            const { id, search, type } = data;
 
             let checkUserType = ['Distributor', 'Manufacturer']
-            if(type=='cnf'){
-                checkUserType =  ['Distributor']
-            }else if(type=='manufacturer'){
-                checkUserType =  ['Manufacturer']
+            if (type == 'cnf') {
+                checkUserType = ['Distributor']
+            } else if (type == 'manufacturer') {
+                checkUserType = ['Manufacturer']
             }
             // Sanitize input values
             // const authorizedId = Number(id);
@@ -174,7 +172,7 @@ class DistributorService {
                         required: false,
                         where: {
                             type: 'CNF',
-                            ...(search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}) 
+                            ...(search ? { companyName: { [db.Op.like]: `%${search}%` } } : {})
                         }
                     },
                     {
@@ -182,7 +180,7 @@ class DistributorService {
                         as: 'manufacturer',
                         attributes: ['companyName', 'manufacturerId'],
                         required: false,
-                        where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {} 
+                        where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                     }
                 ],
                 where: {
@@ -194,11 +192,11 @@ class DistributorService {
                 }
             });
 
-            const finalResult  = result?.map((item)=>{
+            const finalResult = result?.map((item) => {
                 return {
-                    "companyName":item.disuser.length? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
-                    "manufacturerId":item.id,
-                    "type":item.disuser.length? 'CNF': 'Manufacturer'
+                    "companyName": item.disuser.length ? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
+                    "manufacturerId": item.id,
+                    "type": item.disuser.length ? 'CNF' : 'Manufacturer'
                 }
             })
 
@@ -220,9 +218,18 @@ class DistributorService {
 
     async getStocksByManufacturer(data) {
         try {
-            const { id, manufacturerId,type, page, limit, search } = data
-            // console.log(id,manufacturerId)
-            const whereCondition = { manufacturerId: Number(manufacturerId) };
+            console.log(data)
+            const { id, manufacturerId, type, page, limit, search } = data
+            console.log(id, manufacturerId)
+            let whereStock = {}
+            let whereCondition = {};
+            let tablesearch = 'distributors_new'
+            if (type == 'Manufacturer') {
+                tablesearch = 'manufacturers'
+                whereCondition.manufacturerId = Number(manufacturerId)
+            } else {
+                whereStock.organisationId = Number(manufacturerId)
+            }
 
             if (search && search.trim() !== "") {
                 whereCondition.PName = { [db.Sequelize.Op.like]: `%${search}%` };
@@ -233,19 +240,24 @@ class DistributorService {
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
-            if (!manufacturerId) {
-                return {
-                    status: 404,
-                    message: 'Manufacturer not found'
-                }
-            }
+            // if (!manufacturerId) {
+            //     return {
+            //         status: 404,
+            //         message: 'Manufacturer not found'
+            //     }
+            // }
             let manufacturer = {}
+            const ccc = manufacturerId ? manufacturerId : id
+            const idColumn =
+                tablesearch === 'manufacturers' ? 'manufacturerId' : 'distributorId';
+                const logoColumn =
+                tablesearch === 'manufacturers' ? 'logo' : 'profilePic';
             if (id) {
                 const [eee] = await db.sequelize.query(
                     `SELECT 
-                    mn.manufacturerId, 
+                    mn.${idColumn} as manufacturerId, 
                     mn.companyName,
-                    mn.logo,
+                    mn.${logoColumn} as logo,
                     au.id AS authorizationId,
                     au.status, 
                     JSON_ARRAYAGG(
@@ -257,13 +269,13 @@ class DistributorService {
                         'state', ad.state
                       )
                     ) AS addresses
-                 FROM manufacturers AS mn
+                 FROM ${tablesearch} AS mn
                  LEFT JOIN authorizations AS au
-                   ON mn.manufacturerId = au.authorizedBy AND au.authorizedId = :id
+                   ON mn.${idColumn} = au.authorizedBy AND au.authorizedId = :id
                  LEFT JOIN \`address\` AS ad
-                   ON ad.userId = mn.manufacturerId
-                 WHERE mn.manufacturerId = :manufacturerId
-                 GROUP BY mn.manufacturerId, mn.companyName, au.id, au.status`,
+                   ON ad.userId = mn.${idColumn}
+                 WHERE mn.${idColumn}= :manufacturerId
+                 GROUP BY mn.${idColumn}, mn.companyName, au.id, au.status`,
                     {
                         replacements: {
                             manufacturerId: Number(manufacturerId),
@@ -272,13 +284,14 @@ class DistributorService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
+                // console.log(eee,manufacturerId,tablesearch)
                 manufacturer = eee
             } else {
                 const [eee] = await db.sequelize.query(
                     `SELECT 
-                    mn.manufacturerId, 
+                     mn.${idColumn} as manufacturerId,  
                     mn.companyName,
-                    mn.logo,
+                     mn.${logoColumn} as logo,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
                         'addressType', ad.addressType, 
@@ -288,14 +301,14 @@ class DistributorService {
                         'state', ad.state
                       )
                     ) AS addresses
-                 FROM manufacturers AS mn
+                 FROM ${tablesearch} AS mn
                  LEFT JOIN \`address\` AS ad
-                   ON ad.userId = mn.manufacturerId
-                 WHERE mn.manufacturerId = :manufacturerId
-                 GROUP BY mn.manufacturerId, mn.companyName`,
+                   ON ad.userId = mn.${idColumn}
+                 WHERE mn.${idColumn} = :manufacturerId
+                 GROUP BY mn.${idColumn}, mn.companyName`,
                     {
                         replacements: {
-                            manufacturerId: Number(manufacturerId),
+                            manufacturerId: Number(ccc),
                             // id: Number(id),
                         },
                         type: db.Sequelize.QueryTypes.SELECT,
@@ -303,15 +316,21 @@ class DistributorService {
                 );
                 manufacturer = { ...eee, authorizationId: null, status: 'Not Send' }
             }
-            // if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
-            //     return {
-            //         status: 400,
-            //         message: "Not authorized"
-            //     }
-            // }
-            const tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            console.log('ppppppp',manufacturer)
+            if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
+                return {
+                    status: 400,
+                    message: "Not authorized"
+                }
+            }
+            let tableName = db.manufacturerStocks
+            if (type) {
+                tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            }
+            // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
-                attributes: ['SId', 'BatchNo', 'ExpDate', 'PTR', 'Scheme', 'MRP', 'PTS'],
+                attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
+                where: whereStock,
                 include: [
                     {
                         model: db.products,
@@ -337,7 +356,7 @@ class DistributorService {
                         "PCode": item.product.PCode,
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
-                        "PTR": item.PTR,
+                        // "PTR": item.PTR,
                         "PTS": item.PTS || 0,
                         "MRP": item.MRP,
                         "BatchNo": item.BatchNo,
@@ -354,7 +373,7 @@ class DistributorService {
                         "PCode": item.product.PCode,
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
-                        "PTR": null,
+                        // "PTR": null,
                         "PTS": null,
                         "MRP": null,
                         "BatchNo": item.BatchNo,
@@ -364,11 +383,12 @@ class DistributorService {
                 }
             })
             // console.log(ids)
-            const totalCount = await db.products.count({ where: whereCondition })
+            // const totalCount = await db.products.count({ where: whereCondition })
             let updatedStockWithQuantity = []
             if (id) {
+                
                 // console.log('[[][][]]')
-                const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(manufacturerId) } })
+                const cart = await db.usercarts.findAll({ where: { stockId: { [db.Op.in]: ids }, orderFrom: id, orderTo: Number(ccc) } })
                 // const totalCount = updatedStock.length
                 updatedStockWithQuantity = updatedStock.map(stockItem => {
                     const cartItem = cart.find(c => c.stockId === stockItem.SId);
@@ -899,7 +919,7 @@ class DistributorService {
     //         }
     //     }
     // }
-    
+
     async update_distributor(data) {
         let transaction;
         console.log(data);
@@ -1066,6 +1086,119 @@ class DistributorService {
         }
     }
 
+    async get_distributor_stocks(data) {
+        try {
+            const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
+            // console.log(data)
+            //   const userData = await db.users.findOne({ where: { id: Number(id) } })
+            //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            let Page = page || 1;
+            let Limit = limit || 10;
+            const nearToExpDate = Number(process.env.lowStockDays)
+            console.log(nearToExpDate)
+            let whereCondition = { organisationId: Number(id) };
+            if (entityId) {
+                whereCondition.entityId = Number(entityId);
+            }
+
+            // Handle expiration status filter
+            if (expStatus) {
+                const today = new Date();
+                const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+              
+                if (expStatus === "expired") {
+                  whereCondition.ExpDate = {
+                    [db.Sequelize.Op.lt]: todayStr, // Expired before today
+                  };
+                } else if (expStatus === "nearToExp") {
+                  const nearToExpDate = new Date();
+                  nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
+                  const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
+              
+                  whereCondition.ExpDate = {
+                    [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
+                  };
+                } else if (expStatus === "upToDate") {
+                  const upToDateThreshold = new Date();
+                  upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
+                  const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
+              
+                  whereCondition.ExpDate = {
+                    [db.Sequelize.Op.gt]: upToDateStr,
+                  };
+                }
+              }
+              
+
+            let skip = (Page - 1) * Number(Limit);
+            const { rows: stocks, count } = await db.stocks.findAndCountAll({
+                // attributes:[]
+                where: whereCondition,
+                include: [
+                    {
+                        model: db.products,
+                        as: 'product',
+                        attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+                    }
+                ],
+                offset:skip,
+                Limit
+            })
+            return {
+                status: message.code200,
+                message: message.message200,
+                totalData: count,
+                totalPage: Math.ceil(count / Limit),
+                currentPage: Page,
+                apiData: stocks
+            }
+
+            //   const { rows: stocks, count } = await db.products.findAndCountAll({
+            //     attributes: [
+            //       "PId",
+            //       "PCode",
+            //       "PName",
+            //       "PackagingDetails",
+            //       "SaltComposition",
+            //       "LOCKED",
+            //       "manufacturerId"
+            //     ],
+            //     include: [
+            //       {
+            //         model: db.stocks,
+            //         as: "stocks", // Adjust alias as per your association
+            //         required: false, // LEFT JOIN: include products even if stock is not available
+            //         where: whereCondition
+            //       },
+            //     ],
+            //     where: {
+            //       manufacturerId: id,
+            //       ...(search
+            //         ? {
+            //           [Op.or]: [
+            //             { PCode: { [Op.like]: `%${search}%` } },
+            //             { PName: { [Op.like]: `%${search}%` } },
+            //             { SaltComposition: { [Op.like]: `%${search}%` } },
+            //           ],
+            //         }
+            //         : {}),
+            //     },
+            //     offset: skip,
+            //     limit: Number(Limit),
+            //     subQuery: false,
+            //     // raw: true,
+            //     // nest: true,
+            //   })
+
+        } catch (error) {
+            console.log('get_distributor_stocks service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
     // async update_distributorType(data) {
     //     let transaction;
     //     try {
@@ -1168,6 +1301,360 @@ class DistributorService {
             };
         }
     }
+
+    //Employee Management..........................................................
+
+    async create_role(data, userIdFromToken) {
+        try {
+            if (!data.roleName) {
+                throw new Error("roleName is required");
+            }
+
+            const roleCode = data.roleName.toUpperCase().replace(/\s+/g, "_");
+
+
+            const existingRole = await db.roles.findOne({
+                where: { roleCode: roleCode, ownerId: userIdFromToken }
+            });
+
+            if (existingRole) {
+                throw new Error("Role already exists for this owner.");
+            }
+
+            const newRole = await db.roles.create({
+                roleCode: roleCode,
+                roleName: data.roleName,
+                description: data.description || null,
+                // priority: data.priority || 1, 
+                status: data.status || "Active",
+                ownerId: userIdFromToken,
+            });
+
+            return { status: "success", message: "Role created successfully", data: newRole };
+        } catch (error) {
+            console.error("Error creating role:", error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async get_roles(data) {
+        try {
+            // Extract page, limit, and roleName from input data
+            const { page = 1, limit, roleName } = data;
+            // console.log(page,limit,';;;;;;;;;;;;;;;;;;;;;;;')
+            // Default limit if not provided, and parse the page and limit values
+            const Limit = Number(limit) || 10
+            const Page = Number(page) || 1;
+            const offset = (Page - 1) * Limit;
+
+            // Initialize the filter condition
+            let whereCondition = {};
+
+            // Apply roleName filter if provided (case-insensitive search)
+            if (roleName && roleName.trim() !== "") {
+                whereCondition.roleName = { [db.Sequelize.Op.like]: `%${roleName}%` };
+            }
+
+            // Fetch roles with pagination, including the filter
+            const { rows: roles, count: totalRoles } = await db.roles.findAndCountAll({
+                where: whereCondition,
+                attributes: [
+                    'id',
+                    'roleName',
+                    'createdAt',
+                    'status'
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: Limit,
+                offset,
+            });
+
+            // Calculate total pages based on the count of roles and the limit per page
+            const totalPages = Math.ceil(totalRoles / Limit);
+            // console.log("Limit.......", Limit);
+            // Return the paginated results along with metadata
+            return {
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalPages: totalPages,
+                totalRoles: totalRoles,
+                limit: Limit,
+                apiData: roles
+            };
+
+        } catch (error) {
+            console.error("Error fetching roles:", error.message);
+            return {
+                status: message.code500,
+                message: message.message500
+            };
+        }
+    }
+
+    async update_roles(id, data) {
+        try {
+            const { newRoleName, status } = data;
+
+            if (!newRoleName) {
+                throw new Error("New role name is required.");
+            }
+
+            // Generate the roleCode by transforming the roleName:
+            const roleCode = newRoleName
+                .toUpperCase()              // Capitalize all characters
+                .replace(/\s+/g, "_");      // Replace spaces with underscores
+
+            // Find role by ID
+            const role = await db.roles.findOne({ where: { id } });
+
+            if (!role) {
+                return null; // Role not found
+            }
+
+            // Update the role with the new roleName and generated roleCode
+            await db.roles.update(
+                { roleName: newRoleName, roleCode: roleCode, status: status },
+                { where: { id } }
+            );
+
+            return { id, newRoleName, roleCode, status }; // Return updated role details
+
+        } catch (error) {
+            throw new Error(error.message);
+        }
+    }
+
+    async delete_role(roleId) {
+        try {
+            if (!roleId) {
+                throw new Error("roleId is required");
+            }
+
+            // Attempt to delete the role with the specified roleId
+            const deletedCount = await db.roles.destroy({
+                where: { id: roleId }
+            });
+
+            if (deletedCount === 0) {
+                throw new Error("Role not found.");
+            }
+
+        } catch (error) {
+            console.error("Error deleting role:", error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async addModuleConfig({ moduleName, category, icon, url, menuType, parentModuleName = null }) {
+        try {
+            // Generate moduleCode by converting moduleName to uppercase and replacing spaces with underscores
+            const moduleCode = moduleName.toUpperCase().replace(/\s+/g, "_");
+
+            let parentMenuId = null;
+
+            // Determine parentMenuId based on menuType
+            if (menuType === 'Sub' || menuType === 'Component') {
+                if (!parentModuleName) {
+                    throw new Error(`Parent module name is required for menuType '${menuType}'.`);
+                }
+
+                // Determine the expected parent menuType
+                const expectedParentMenuType = menuType === 'Sub' ? 'Main' : 'Sub';
+
+                // Find the parent module based on the provided parentModuleName and expected parent menuType
+                const parentModule = await ModuleConfig.findOne({
+                    where: {
+                        moduleName: parentModuleName,
+                        menuType: expectedParentMenuType
+                    }
+                });
+
+                if (!parentModule) {
+                    throw new Error(`Parent module '${parentModuleName}' with menuType '${expectedParentMenuType}' not found.`);
+                }
+
+                parentMenuId = parentModule.moduleConfigId;
+            }
+
+            // Create the new module configuration
+            const newModule = await ModuleConfig.create({
+                moduleName,
+                moduleCode,
+                category,
+                icon,
+                url,
+                menuType,
+                parentMenuId
+            });
+
+            return newModule;
+        } catch (error) {
+            console.error(`Error adding module: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async createModuleConfig(data) {
+        try {
+            const { moduleName, category, icon, url, menuType } = data;
+
+            // Convert moduleName to moduleCode (uppercase & replace spaces with '_')
+            const moduleCode = moduleName.toUpperCase().replace(/\s+/g, "_");
+
+            let parentMenuId = 0; // Default for 'Main'
+
+            if (menuType === "Sub") {
+                // Get the last inserted 'Main' module's ID
+                const mainModule = await db.moduleconfigs.findOne({
+                    where: { menuType: "Main" },
+                    order: [["moduleConfigId", "DESC"]], // Get the latest Main module
+                });
+
+                if (mainModule) parentMenuId = mainModule.moduleConfigId;
+            }
+            else if (menuType === "Component") {
+                // Get the last inserted 'Sub' module's ID
+                const subModule = await db.moduleconfigs.findOne({
+                    where: { menuType: "Sub" },
+                    order: [["moduleConfigId", "DESC"]], // Get the latest Sub module
+                });
+
+                if (subModule) parentMenuId = subModule.moduleConfigId;
+            }
+
+            // Insert into moduleconfigs table
+            const newModule = await db.moduleconfigs.create({
+                moduleName,
+                moduleCode,
+                category,
+                icon,
+                url,
+                menuType,
+                parentMenuId,
+            });
+
+            return {
+                status: 201,
+                message: "Module created successfully",
+                data: newModule,
+            };
+        } catch (error) {
+            return {
+                status: 500,
+                message: error.message,
+            };
+        }
+    }
+
+    // async getAllModules() {
+    //     try {
+    //         const modules = await db.moduleconfigs.findAll({ raw: true });
+
+    //         // Organize modules into a nested structure
+    //         const moduleTree = {};
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Main') {
+    //                 moduleTree[module.moduleName] = { id: module.moduleConfigId, subModules: {} };
+    //             }
+    //         });
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Sub') {
+    //                 const mainModule = Object.values(moduleTree).find(m => m.id === module.parentMenuId);
+    //                 if (mainModule) {
+    //                     mainModule.subModules[module.moduleName] = { id: module.moduleConfigId, components: [] };
+    //                 }
+    //             }
+    //         });
+
+    //         modules.forEach(module => {
+    //             if (module.menuType === 'Component') {
+    //                 Object.values(moduleTree).forEach(mainModule => {
+    //                     Object.values(mainModule.subModules).forEach(subModule => {
+    //                         if (subModule.id === module.parentMenuId) {
+    //                             subModule.components.push({
+    //                                 id: module.moduleConfigId,
+    //                                 name: module.moduleName
+    //                             });
+    //                         }
+    //                     });
+    //                 });
+    //             }
+    //         });
+
+    //         return moduleTree;
+    //     } catch (error) {
+    //         console.error("Error fetching module configurations:", error);
+    //         throw error;
+    //     }
+    // }
+
+    async getAllModules() {
+        try {
+            const modules = await db.moduleconfigs.findAll({ raw: true });
+
+            // Organize modules into a nested structure
+            const moduleTree = [];
+
+            // Process Main Modules
+            modules.forEach(module => {
+                if (module.menuType === 'Main') {
+                    moduleTree.push({
+                        id: module.moduleConfigId,
+                        name: module.moduleName,
+                        subModules: []
+                    });
+                }
+            });
+
+            // Process Sub Modules
+            modules.forEach(module => {
+                if (module.menuType === 'Sub') {
+                    const mainModule = moduleTree.find(m => m.id === module.parentMenuId);
+                    if (mainModule) {
+                        mainModule.subModules.push({
+                            id: module.moduleConfigId,
+                            name: module.moduleName,
+                            components: []
+                        });
+                    }
+                }
+            });
+
+            // Process Components
+            modules.forEach(module => {
+                if (module.menuType === 'Component') {
+                    moduleTree.forEach(mainModule => {
+                        mainModule.subModules.forEach(subModule => {
+                            if (subModule.id === module.parentMenuId) {
+                                subModule.components.push({
+                                    id: module.moduleConfigId,
+                                    name: module.moduleName
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+
+            return {
+                status: 200,
+                message: "Success",
+                data: moduleTree
+            };
+        } catch (error) {
+            console.error("Error fetching module configurations:", error);
+            return {
+                status: 500,
+                message: "Error fetching module configurations",
+                error: error.message
+            };
+        }
+    }
+
+
 
 }
 

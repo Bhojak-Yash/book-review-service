@@ -3,6 +3,7 @@ const expiryc = require('../controllers/expiry');
 const {verifyToken} = require('../middlewares/auth');
 
 router.get('/expire-product-list',verifyToken,expiryc.expire_product_list)
+router.get('/expired-product-list',verifyToken,expiryc.expired_product_list)
 router.get('/expire_details',verifyToken,expiryc.expire_details)
 router.get('/expiry-details-card-data',verifyToken,expiryc.expire_details_card_data)
 router.post('/raise-expiry',verifyToken,expiryc.raise_expiry)
