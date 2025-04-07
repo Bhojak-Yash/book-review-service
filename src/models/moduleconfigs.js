@@ -30,6 +30,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         "parentMenuId": {
             type: Sequelize.INTEGER
+        },
+        "status": {
+            type: Sequelize.STRING
         }
     },
         {

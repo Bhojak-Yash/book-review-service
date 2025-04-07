@@ -75,6 +75,9 @@ module.exports =(sequelize,Sequelize)=>{
         "wholeSaleDrugLicence":{
             type:Sequelize.STRING
         },
+        "roleId":{
+            type:Sequelize.INTEGER
+        },
         "type": {
             type: Sequelize.ENUM('CNF', 'Distributor')
         },

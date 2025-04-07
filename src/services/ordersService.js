@@ -542,7 +542,7 @@ console.log(id)
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
-          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance","reason"
+          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason"
         ],
         include: [
           {
@@ -597,6 +597,7 @@ console.log(id)
           userType: userType,
           orderTotal: order.orderTotal,
           invNo: order.invNo,
+          reason: order.reason || null,
         };
       });
 

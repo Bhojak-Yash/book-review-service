@@ -36,9 +36,9 @@ module.exports =(sequelize,Sequelize)=>{
         // "divisionId":{
         //     type:Sequelize.STRING
         // },
-        // "roleId":{
-        //     type:Sequelize.BIGINT
-        // },
+        "roleId":{
+            type:Sequelize.BIGINT
+        },
        "employeeStatus":{
             type:Sequelize.STRING
         },
