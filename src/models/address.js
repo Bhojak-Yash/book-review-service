@@ -36,13 +36,13 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
             allowNull: false
         },
-        "state": {
+        "State": {
             type: Sequelize.STRING,
             allowNull: false
         },
         "country":{
             type: Sequelize.STRING,
-            allowNull: false
+            // allowNull: false
         },
         "pinCode": {
             type: Sequelize.BIGINT,

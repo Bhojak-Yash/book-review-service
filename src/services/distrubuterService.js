@@ -57,7 +57,8 @@ class DistributorService {
                     companyName: companyName,
                     distributorCode: distributorCode,
                     type: "Distributor",
-                    status: "Active"
+                    status: "Active",
+                    email:userName
                 },
                 { transaction }
             );
@@ -654,6 +655,7 @@ class DistributorService {
             ]
         })
             const [dataa] = await db.sequelize.query(query);
+            // console.log(dataa)
             const transformedData = {};
             const auth = authorizedBy?.map((item)=>{
                 return {
@@ -665,7 +667,7 @@ class DistributorService {
             // console.log(dataa)
             dataa.forEach((row) => {
                 const distributorId = row.distributorId;
-
+                // console.log(row)
                 if (!transformedData[distributorId]) {
                     transformedData[distributorId] = {
                         distributor: {
@@ -676,7 +678,7 @@ class DistributorService {
                             updatedAt: row.updatedAt,
                             address: row.address,
                             phone: row.phone,
-                            email: row.email,
+                            email: row.userName,
                             GST: row.gst,
                             wholeSaleDrugLicence: row.wholeSaleDrugLicence,
                             FSSAI: row.FSSAI,
@@ -946,7 +948,7 @@ class DistributorService {
 
     async update_distributor(data) {
         let transaction;
-        console.log(data);
+        // console.log(data);
         try {
             const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
 
@@ -964,7 +966,7 @@ class DistributorService {
                 transaction
             });
 
-            console.log('Fetched distributor:', distributor);
+            // console.log('Fetched distributor:', distributor);
 
             if (!distributor) {
                 return {

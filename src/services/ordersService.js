@@ -569,6 +569,7 @@ console.log(id)
         where: whereClause,
         offset: skip,
         limit: Limit,
+        order: [["orderDate", "DESC"]]
       });
 
       // Formatting Result
