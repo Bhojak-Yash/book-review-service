@@ -6,6 +6,7 @@ const Distributors = db.distributors;
 const Sequelize = require('sequelize');
 const nodemailer = require('nodemailer');
 
+
     
 async function hashPassword(password) {
     const saltRounds = 10;
@@ -402,13 +403,13 @@ class DistributorService {
     async create_employee(userIdFromToken, data) {
         let transaction;
         try {
-            const { userName, phone, email, role, warehouse, entityId } = data;
+            const { userName, phone, email, roleId, warehouse, entityId } = data;
             const employeeOf = userIdFromToken.id;
 
-            console.log("tokenData:", employeeOf);
+            console.log("tokenData:", data);
 
             // Validate required fields
-            if (!userName || !phone || !email || !role || !warehouse || !entityId) {
+            if (!userName || !phone || !email || !roleId || !warehouse || !entityId) {
                 return {
                     status: message.code400,
                     message: "All fields are required",
@@ -447,12 +448,13 @@ class DistributorService {
                     entityId,
                     email: email,
                     phone: phone,
-                    role,
+                    roleId: roleId,
                     warehouse,
                     employeeStatus: "Active",
                 },
                 { transaction }
             );
+            console.log(roleId);
 
             if (email) {
                 const transporter = nodemailer.createTransport({
@@ -497,6 +499,191 @@ class DistributorService {
         }
     }
 
+    async createModuleMappings(modules) {
+        const transaction = await db.modulemappings.sequelize.transaction();
+        try {
+            // Perform bulk insert
+            await db.modulemappings.bulkCreate(modules, { transaction });
+
+            await transaction.commit();
+            return { status: message.code200, message: 'Module mappings inserted successfully.' };
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
+    // async getRoleModuleMappings() {
+    //     try {
+    //         // Fetch all roles
+    //         const roles = await db.roles.findAll({
+    //             attributes: ['id', 'roleName']
+    //         });
+
+    //         // Fetch all modules
+    //         const modules = await db.moduleconfigs.findAll({
+    //             attributes: ['moduleConfigId', 'moduleName']
+    //         });
+
+    //         // Initialize the role-module mapping array
+    //         const roleModuleMappings = roles.map(role => ({
+    //             roleId: role.id,
+    //             roleName: role.roleName,
+    //             modules: modules.map(module => ({
+    //                 moduleConfigId: module.moduleConfigId,
+    //                 moduleName: module.moduleName,
+    //                 accessLevel: 'none' // Default access level
+    //             }))
+    //         }));
+
+    //         return {
+    //             status: 200,
+    //             message: "Role-module mappings retrieved successfully.",
+    //             data: roleModuleMappings
+    //         };
+    //     } catch (error) {
+    //         console.error("Error retrieving role-module mappings:", error);
+    //         return {
+    //             status: 500,
+    //             message: "An error occurred while retrieving role-module mappings.",
+    //             error: error.message
+    //         };
+    //     }
+    // }
+
+    async getRoleModuleMappings() {
+        try {
+            // Fetch all roles with their associated module mappings and modules
+            const roles = await db.roles.findAll({
+                attributes: ['id', 'roleName'],
+                include: [{
+                    model: db.modulemappings,
+                    attributes: ['accessLevel'],
+                    include: [{
+                        model: db.moduleconfigs,
+                        attributes: ['moduleConfigId', 'moduleName', 'icon', 'url']
+                    }]
+                }]
+            });
+
+            // Transform the data into the desired format
+            const roleModuleMappings = roles.map(role => ({
+                roleId: role.id,
+                roleName: role.roleName,
+                modules: role.modulemappings.map(mapping => ({
+                    moduleConfigId: mapping.moduleconfig.moduleConfigId,
+                    moduleName: mapping.moduleconfig.moduleName,
+                    icon: mapping.moduleconfig.icon,
+                    url: mapping.moduleconfig.url,
+                    accessLevel: mapping.accessLevel || 'none' // Default to 'none' if accessLevel is null
+                }))
+            }));
+
+            return {
+                status: 200,
+                message: "Role-module mappings retrieved successfully.",
+                data: roleModuleMappings
+            };
+        } catch (error) {
+            console.error("Error retrieving role-module mappings:", error);
+            return {
+                status: 500,
+                message: "An error occurred while retrieving role-module mappings.",
+                error: error.message
+            };
+        }
+    }
+    
+    // employeeController.js
+
+
+    async getAllEmployees(employeeOf){
+        try {
+            const employees = await db.employees.findAll({
+                where: { employeeOf },
+                include: [
+                    {
+                        model: db.roles,
+                        as: 'role',
+                        attributes: ['roleName']
+                    }
+                ],
+                attributes: [
+                    'employeeId',
+                    'firstName',
+                    'lastName',
+                    'phone',
+                    'email',
+                    'employeeStatus'
+                ]
+            });
+
+            const formattedEmployees = employees.map(emp => ({
+                employeeId: emp.employeeId,
+                employeeName: `${emp.firstName} ${emp.lastName}`,
+                employeeRole: emp.role?.roleName || null,
+                phone: emp.phone,
+                email: emp.email,
+                status: emp.employeeStatus
+            }));
+
+            return {
+                status: 200,
+                message: "Employees fetched successfully",
+                data: formattedEmployees
+            };
+
+        } catch (error) {
+            console.error("❌ Service error - getEmployeesByOwner:", error.message);
+            return {
+                status: 500,
+                message: "Internal Server Error"
+            };
+        }
+    }
+
+    async updateEmployee(employeeId, data, userIdFromToken){
+        try {
+            const employee = await db.employees.findOne({
+                where: { employeeId, employeeOf: userIdFromToken }
+            });
+
+            if (!employee) {
+                return {
+                    status: 404,
+                    message: "Employee not found or unauthorized"
+                };
+            }
+
+            const updates = {};
+            if (data.employeeName) {
+                const nameParts = data.employeeName.trim().split(" ");
+                updates.lastName = nameParts.pop();
+                updates.firstName = nameParts.join(" ");
+            }
+
+            if (data.phone) updates.phone = data.phone;
+            if (data.email) updates.email = data.email;
+            if (data.roleId) updates.roleId = data.roleId;
+            if (data.status) updates.employeeStatus = data.status;
+
+            await db.employees.update(updates, {
+                where: { employeeId },
+            });
+
+            return {
+                status: 200,
+                message: "Employee updated successfully"
+            };
+
+        } catch (error) {
+            console.error("❌ updateEmployeeById error:", error.message);
+            return {
+                status: 500,
+                message: "Internal Server Error"
+            };
+        }
+    }
 }
 
 module.exports = new DistributorService(db);

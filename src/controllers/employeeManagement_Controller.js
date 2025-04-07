@@ -4,6 +4,7 @@ const db = require('../models/db');
 const Users = db.users;
 const Distributors = db.distributors;
 const empManagement_Service = require('../services/employeeManagement_Service');
+const modulemappings = require('../models/modulemappings');
 
 
 exports.create_role = async (req, res) => {
@@ -101,4 +102,61 @@ exports.create_employee = async (req, res) => {
         console.error("create_employee Error:", error.message);
         return res.status(500).json({ status: message.code500, message: error.message });
     }
+};
+
+exports.createModuleMappings = async (req, res) => {
+    try {
+        const { modules } = req.body;
+
+        if (!Array.isArray(modules)) {
+            return res.status(400).json({ message: 'Invalid data format: modules should be an array.' });
+        }
+
+        // Call the service function with the modules array
+        const result = await empManagement_Service.createModuleMappings(modules);
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({
+            message: 'An error occurred while inserting module mappings.',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.getRoleModuleMappings = async (req, res) => {
+    try {
+        const result = await empManagement_Service.getRoleModuleMappings();
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error("getRoleModuleMappings Error:", error.message);
+        return res.status(500).json({ status: message.code500, message: error.message });
+    }
+};
+
+exports.getAllEmployees = async (req, res) => {
+    try {
+        const userIdFromToken = req.user?.id || req.userId; 
+        if (!userIdFromToken) {
+            return res.status(401).json({ status: 401, message: "Unauthorized" });
+        }
+        const result = await empManagement_Service.getAllEmployees(userIdFromToken);
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error("getAllEmployees Error:", error.message);
+        return res.status(500).json({ status: message.code500, message: error.message });
+    }
+};
+
+
+exports.updateEmployee = async (req, res) => {
+    const employeeId = req.params.id;
+    const userIdFromToken = req.user?.id;
+
+    if (!userIdFromToken) {
+        return res.status(401).json({ status: 401, message: "Unauthorized" });
+    }
+
+    const result = await empManagement_Service.updateEmployee(employeeId, req.body, userIdFromToken);
+    return res.status(result.status).json(result);
 };

@@ -86,6 +86,14 @@ const db = {
   modulemappings: modulemappings(sequelize, Sequelize)
 };
 
+db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
+db.modulemappings.belongsTo(db.moduleconfigs, { foreignKey: 'moduleConfigId' });
+db.roles.hasMany(db.modulemappings, { foreignKey: 'roleId' });
+db.moduleconfigs.hasMany(db.modulemappings, { foreignKey: 'moduleConfigId' });
+db.employees.belongsTo(db.roles, { foreignKey: 'roleId', as: 'role' });
+db.roles.hasMany(db.employees, { foreignKey: 'roleId' });
+
+
 
 db.stocks.belongsTo(db.products, {
   foreignKey: 'PId',

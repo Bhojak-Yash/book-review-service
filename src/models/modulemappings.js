@@ -3,22 +3,20 @@ module.exports = (sequelize, Sequelize) => {
         "moduleMappingId": {
             type: Sequelize.INTEGER,
             primaryKey: true,
-            allowNull: false
+            allowNull: false,
+            autoIncrement: true,
         },
         "moduleConfigId": {
             type: Sequelize.INTEGER,
             allowNull: false
         },
-        "userId": {
+        "roleId": {
             type: Sequelize.INTEGER,
             allowNull: false
         },
         "accessLevel": {
             type: Sequelize.ENUM('Full', 'Read','None'),
             allowNull: false
-        },
-        "status": {
-            type: Sequelize.STRING
         }
     },
         {
