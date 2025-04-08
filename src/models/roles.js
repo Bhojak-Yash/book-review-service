@@ -29,7 +29,9 @@ module.exports =(sequelize,Sequelize)=>{
     },
 
     {
-        tableName: "roles"
+        tableName: "roles",
+        timestamps: true,
+        paranoid: true
       })
     return roles
 }

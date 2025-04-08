@@ -123,7 +123,6 @@ exports.createModuleMappings = async (req, res) => {
     }
 };
 
-
 exports.getRoleModuleMappings = async (req, res) => {
     try {
         const result = await empManagement_Service.getRoleModuleMappings();
@@ -136,18 +135,18 @@ exports.getRoleModuleMappings = async (req, res) => {
 
 exports.getAllEmployees = async (req, res) => {
     try {
-        const userIdFromToken = req.user?.id || req.userId; 
-        if (!userIdFromToken) {
-            return res.status(401).json({ status: 401, message: "Unauthorized" });
-        }
-        const result = await empManagement_Service.getAllEmployees(userIdFromToken);
+        const userIdFromToken = req.user.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || '';
+
+        const result = await empManagement_Service.getAllEmployees(userIdFromToken, page, limit, search);
         return res.status(201).json(result);
     } catch (error) {
         console.error("getAllEmployees Error:", error.message);
         return res.status(500).json({ status: message.code500, message: error.message });
     }
 };
-
 
 exports.updateEmployee = async (req, res) => {
     const employeeId = req.params.id;
@@ -159,4 +158,41 @@ exports.updateEmployee = async (req, res) => {
 
     const result = await empManagement_Service.updateEmployee(employeeId, req.body, userIdFromToken);
     return res.status(result.status).json(result);
+};
+
+exports.bulkUpdateEmployeeStatusController = async (req, res) => {
+    try {
+        const { employeeIds, status } = req.body;
+        const userIdFromToken = req.user?.id;
+
+        const result = await empManagement_Service.bulkUpdateEmployeeStatus(employeeIds, status, userIdFromToken);
+        res.status(result.status).json(result);
+    } catch (error) {
+        console.error("❌ Error in bulkUpdateEmployeeStatusController:", error.message);
+        res.status(500).json({ status: 500, message: "Internal Server Error" });
+    }
+};
+
+
+exports.deleteEmployee = async (req, res) => {
+    const employeeId = req.params.id;
+    const userIdFromToken = req.user?.id;
+
+    if (!userIdFromToken) {
+        return res.status(401).json({ status: 401, message: "Unauthorized" });
+    }
+
+    const result = await empManagement_Service.deleteEmployeeById(employeeId, userIdFromToken);
+    return res.status(result.status).json(result);
+};
+
+exports.getEmployeeStats = async (req, res) => {
+    try {
+        const userIdFromToken = req.user.id;
+        const result = await empManagement_Service.getEmployeeStats(userIdFromToken);
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("getEmployeeStats Error:", error.message);
+        return res.status(500).json({ status: 500, message: error.message });
+    }
 };

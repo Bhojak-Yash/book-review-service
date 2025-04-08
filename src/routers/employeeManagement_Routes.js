@@ -16,6 +16,11 @@ router.get('/getRoleModuleMappings', verifyToken, empManagement.getRoleModuleMap
 router.get('/getAllEmployees', verifyToken, empManagement.getAllEmployees);
 
 router.put('/employees/:id',verifyToken, empManagement.updateEmployee);
+router.put("/bulkUpdateEmployeeStatus",verifyToken, empManagement.bulkUpdateEmployeeStatusController);
+router.delete('/delete_employees/:id', verifyToken, empManagement.deleteEmployee);
+router.get("/getEmployeeStats", verifyToken, empManagement.getEmployeeStats);
+
+
 
 
 

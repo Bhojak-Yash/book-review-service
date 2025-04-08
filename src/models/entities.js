@@ -8,7 +8,7 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "entityCode":{
             type: Sequelize.STRING,
-            allowNull: false
+            // allowNull: false
         },
         "name":{
             type:Sequelize.STRING
@@ -30,13 +30,18 @@ module.exports =(sequelize,Sequelize)=>{
        "status":{
             type:Sequelize.STRING
         },
-       "entityType":{
+       "ownerName":{
             type:Sequelize.STRING
+        },
+       "entityType":{
+            type:Sequelize.ENUM("Division", "Warehouse")
         },
     },
 
     {
-        tableName: "entities"
+        tableName: "entities",
+        timestamps: true,
+        paranoid: true
       })
     return entities
 }
