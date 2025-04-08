@@ -42,12 +42,12 @@ module.exports =(sequelize,Sequelize)=>{
        "employeeStatus":{
             type:Sequelize.STRING
         },
-        
-
     },
 
     {
-        tableName: "employees"
+        tableName: "employees",
+        timestamps: true,
+        paranoid: true
       })
     return employees
 }

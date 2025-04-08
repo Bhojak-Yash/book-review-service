@@ -93,6 +93,15 @@ db.moduleconfigs.hasMany(db.modulemappings, { foreignKey: 'moduleConfigId' });
 db.employees.belongsTo(db.roles, { foreignKey: 'roleId', as: 'role' });
 db.roles.hasMany(db.employees, { foreignKey: 'roleId' });
 
+db.manufacturers.hasOne(db.entities, {
+  foreignKey: 'organisationId',
+  sourceKey: 'manufacturerId'
+});
+db.distributors.hasOne(db.entities, {
+  foreignKey: 'organisationId',
+  sourceKey: 'distributorId'
+});
+
 
 
 db.stocks.belongsTo(db.products, {

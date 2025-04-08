@@ -5,7 +5,7 @@ const Users = db.users;
 const Distributors = db.distributors;
 const Sequelize = require('sequelize');
 const nodemailer = require('nodemailer');
-
+const { Op } = require("sequelize");
 
     
 async function hashPassword(password) {
@@ -54,23 +54,23 @@ class DistributorService {
 
     async get_roles(data) {
         try {
-            // Extract page, limit, and roleName from input data
             const { page = 1, limit, roleName } = data;
-            // console.log(page,limit,';;;;;;;;;;;;;;;;;;;;;;;')
-            // Default limit if not provided, and parse the page and limit values
-            const Limit = Number(limit) || 10
+            const Limit = Number(limit) || 10;
             const Page = Number(page) || 1;
             const offset = (Page - 1) * Limit;
 
-            // Initialize the filter condition
-            let whereCondition = {};
+            // Filter roles with deletedAt: null (i.e., not soft deleted)
+            let whereCondition = {
+                deletedAt: null,
+            };
 
-            // Apply roleName filter if provided (case-insensitive search)
+            // Filter by roleName if provided
             if (roleName && roleName.trim() !== "") {
-                whereCondition.roleName = { [db.Sequelize.Op.like]: `%${roleName}%` };
+                whereCondition.roleName = {
+                    [db.Sequelize.Op.like]: `%${roleName}%`
+                };
             }
 
-            // Fetch roles with pagination, including the filter
             const { rows: roles, count: totalRoles } = await db.roles.findAndCountAll({
                 where: whereCondition,
                 attributes: [
@@ -84,16 +84,14 @@ class DistributorService {
                 offset,
             });
 
-            // Calculate total pages based on the count of roles and the limit per page
             const totalPages = Math.ceil(totalRoles / Limit);
-            // console.log("Limit.......", Limit);
-            // Return the paginated results along with metadata
+
             return {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
-                totalPages: totalPages,
-                totalRoles: totalRoles,
+                totalPages,
+                totalRoles,
                 limit: Limit,
                 apiData: roles
             };
@@ -146,17 +144,20 @@ class DistributorService {
                 throw new Error("roleId is required");
             }
 
-            // Attempt to delete the role with the specified roleId
-            const deletedCount = await db.roles.destroy({
-                where: { id: roleId }
-            });
-
-            if (deletedCount === 0) {
+            const role = await db.roles.findByPk(roleId);
+            if (!role) {
                 throw new Error("Role not found.");
             }
 
+            await db.roles.update(
+                { deletedAt: new Date() },
+                { where: { id: roleId } }
+            );
+
+            console.log(`Role with ID ${roleId} soft deleted`);
+
         } catch (error) {
-            console.error("Error deleting role:", error.message);
+            console.error("Error soft deleting role:", error.message);
             throw new Error(error.message);
         }
     }
@@ -416,9 +417,18 @@ class DistributorService {
                 };
             }
 
-            const nameParts = userName.trim().split(' ');
-            const lastName = nameParts.pop();
-            const firstName = nameParts.join(' ');
+            const nameParts = userName.trim().split(" ");
+            let firstName = "";
+            let lastName = "";
+
+            if (nameParts.length === 1) {
+                firstName = nameParts[0];
+                lastName = "";
+            } else {
+                lastName = nameParts.pop();
+                firstName = nameParts.join(" ");
+            }
+
 
             transaction = await db.sequelize.transaction();
 
@@ -594,13 +604,24 @@ class DistributorService {
         }
     }
     
-    // employeeController.js
-
-
-    async getAllEmployees(employeeOf){
+    async getAllEmployees(employeeOf, page = 1, limit = 10, search = '') {
         try {
-            const employees = await db.employees.findAll({
-                where: { employeeOf },
+            const offset = (page - 1) * limit;
+
+            const whereClause = {
+                employeeOf,
+                deletedAt: null
+            };
+
+            if (search) {
+                whereClause[Op.or] = [
+                    { firstName: { [Op.like]: `%${search}%` } },
+                    { lastName: { [Op.like]: `%${search}%` } }
+                ];
+            }
+
+            const { count, rows: employees } = await db.employees.findAndCountAll({
+                where: whereClause,
                 include: [
                     {
                         model: db.roles,
@@ -614,13 +635,17 @@ class DistributorService {
                     'lastName',
                     'phone',
                     'email',
-                    'employeeStatus'
-                ]
+                    'employeeStatus',
+                    'createdAt'
+                ],
+                order: [['createdAt', 'DESC']],
+                limit,
+                offset
             });
 
             const formattedEmployees = employees.map(emp => ({
                 employeeId: emp.employeeId,
-                employeeName: `${emp.firstName} ${emp.lastName}`,
+                employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
                 employeeRole: emp.role?.roleName || null,
                 phone: emp.phone,
                 email: emp.email,
@@ -630,11 +655,19 @@ class DistributorService {
             return {
                 status: 200,
                 message: "Employees fetched successfully",
-                data: formattedEmployees
+                data: {
+                    employees: formattedEmployees,
+                    pagination: {
+                        total: count,
+                        page,
+                        limit,
+                        totalPages: Math.ceil(count / limit)
+                    }
+                }
             };
 
         } catch (error) {
-            console.error("❌ Service error - getEmployeesByOwner:", error.message);
+            console.error("❌ Service error - getAllEmployees:", error.message);
             return {
                 status: 500,
                 message: "Internal Server Error"
@@ -684,6 +717,148 @@ class DistributorService {
             };
         }
     }
+
+    async bulkUpdateEmployeeStatus(employeeIds, status, userIdFromToken){
+        try {
+            // First, log the incoming data
+            console.log("🔍 Input - IDs:", employeeIds, "Status:", status, "UserID:", userIdFromToken);
+
+            // Find matching employees first
+            const matchingEmployees = await db.employees.findAll({
+                where: {
+                    employeeId: employeeIds,
+                    employeeOf: userIdFromToken,
+                    deletedAt: null
+                }
+            });
+
+            console.log("🔍 Matching employees found:", matchingEmployees.length);
+
+            if (matchingEmployees.length === 0) {
+                return {
+                    status: 404,
+                    message: "No matching employees found to update"
+                };
+            }
+
+            // Perform bulk update
+            const [updatedCount] = await db.employees.update(
+                { employeeStatus: status },
+                {
+                    where: {
+                        employeeId: employeeIds,
+                        employeeOf: userIdFromToken,
+                        deletedAt: null
+                    }
+                }
+            );
+            console.log("Looking for employees where:");
+            console.log("employeeId IN:", employeeIds);
+            console.log("employeeOf:", userIdFromToken);
+            console.log("deletedAt is NULL");
+
+
+            return {
+                status: 200,
+                message: `Employee status updated to "${status}" successfully`,
+                updatedCount
+            };
+        } catch (error) {
+            console.error("❌ bulkUpdateEmployeeStatus error:", error.message);
+            return {
+                status: 500,
+                message: "Internal Server Error"
+            };
+        }
+    };
+
+
+    async deleteEmployeeById(employeeId, userIdFromToken) {
+        try {
+            const employee = await db.employees.findOne({
+                where: { employeeId, employeeOf: userIdFromToken }
+            });
+
+            if (!employee) {
+                return {
+                    status: 404,
+                    message: "Employee not found or unauthorized"
+                };
+            }
+
+            // ✅ Soft delete by setting deletedAt timestamp
+            await db.employees.update(
+                { deletedAt: new Date() },
+                { where: { employeeId } }
+            );
+
+            return {
+                status: 200,
+                message: "Employee marked as deleted"
+            };
+
+        } catch (error) {
+            console.error("❌ deleteEmployeeById error:", error.message);
+            return {
+                status: 500,
+                message: "Internal Server Error"
+            };
+        }
+    }
+
+    async getEmployeeStats(userIdFromToken) {
+        try {
+            const employeeOf = userIdFromToken;
+
+            const totalEmployees = await db.employees.count({
+                where: {
+                    employeeOf,
+                    deletedAt: null
+                }
+            });
+
+            const totalRoles = await db.roles.count({
+                where: {
+                    deletedAt: null
+                }
+            });
+
+            const inactiveEmployees = await db.employees.count({
+                where: {
+                    employeeOf,
+                    employeeStatus: 'Inactive',
+                    deletedAt: null
+                }
+            });
+
+            const latestEmployee = await db.employees.findOne({
+                where: {
+                    employeeOf,
+                    deletedAt: null
+                },
+                order: [['updatedAt', 'DESC']],
+                attributes: ['updatedAt']
+            });
+
+            return {
+                status: 200,
+                message: "Employee statistics fetched successfully",
+                data: {
+                    totalEmployees,
+                    totalRoles,
+                    inactiveEmployees,
+                    lastUpdatedAt: latestEmployee?.updatedAt || null
+                }
+            };
+
+        } catch (error) {
+            console.error("❌ Error - getEmployeeStats:", error.message);
+            return {
+                status: 500,
+                message: "Internal Server Error"
+            };
+        }
+    }    
 }
 
 module.exports = new DistributorService(db);
