@@ -979,7 +979,7 @@ class DistributorService {
 
             //auhtorizations update
             const authhh = manufactureres.map((item) => ({
-                authorizedBy: Number(item.authorizedBy),
+                authorizedBy: Number(item),
                 authorizedId: Number(distributorId),
                 status: "Pending",
             }));
