@@ -979,21 +979,25 @@ class DistributorService {
 
             //auhtorizations update
             const authhh = manufactureres.map((item) => ({
-                authorizedBy: Number(item),
+                authorizedBy: Number(item.authorizedBy),
                 authorizedId: Number(distributorId),
                 status: "Pending",
             }));
-
-            const existingRecords = await db.authorizations.findAll({
-                where: {
-                    authorizedBy: authhh.map((a) => a.authorizedBy),
-                    authorizedId: authhh.map((a) => a.authorizedId),
-                    status: { [db.Sequelize.Op.in]: ['Not Send', 'Pending'] },
-                },
-                raw: true,
-                transaction
-            });
-
+            // console.log(manufactureres,';;;;;',authhh)
+            let existingRecords=[]
+            if(authhh.length>0){
+                // console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[')
+                 existingRecords = await db.authorizations.findAll({
+                    where: {
+                        authorizedBy: authhh.map((a) => a.authorizedBy),
+                        authorizedId: authhh.map((a) => a.authorizedId),
+                        status: { [db.Sequelize.Op.in]: ['Not Send', 'Pending'] },
+                    },
+                    raw: true,
+                    transaction
+                });
+            }
+// console.log('ppppp')
             const toUpdate = existingRecords.map((rec) => rec.id);
             if (toUpdate.length > 0) {
                 await db.authorizations.update(
@@ -1051,15 +1055,17 @@ class DistributorService {
                 categoryId: doc.id,
                 image: doc.image,
                 status: 'Verified',
-                userId: Number(distributorId)
+                userId: Number(distributorId),
+                isDeleted:false
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", "status"],
+                updateOnDuplicate: ["image", "status",'isDeleted'],
                 transaction
             });
 
             //Getting manufcturerName that is passed in the payLoad
+            
             const manufacturerNames = await db.manufacturers.findAll({
                 where: { manufacturerId: manufactureres },
                 attributes: ['manufacturerId', 'companyName'],

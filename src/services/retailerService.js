@@ -516,5 +516,13 @@ class RetailerService {
             }
         }
     }
+
+    async get_stocks_byDistributor(data){
+        try {
+            
+        } catch (error) {
+            console.log('get_stocks_byDistributor service error:')
+        }
+    }
 }
 module.exports = new RetailerService(db);
