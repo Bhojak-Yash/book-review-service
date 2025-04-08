@@ -120,6 +120,7 @@ db.products.hasMany(db.manufacturerStocks, {
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
 db.authorizations.belongsTo(db.retailers, { foreignKey: 'authorizedId', as: 'retailers' });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedBy', as: 'distributor' });
+db.authorizations.hasMany(db.address, { foreignKey: 'userId',targetKey:'authorizedId', as: 'address' });
 db.authorizations.belongsTo(db.manufacturers, { foreignKey: 'authorizedBy', as: 'manufacturer' });
 
 

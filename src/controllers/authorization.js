@@ -22,6 +22,16 @@ exports.auth_request_list = async (req, res) => {
       return res.status(500).json({ status:message.code500,message: error.message });
     }
 }
+exports.distributor_auth_request_list = async (req, res) => {
+  try {
+      const data = {...req.user,...req.query}
+      const auth = await AuthService.distributor_auth_request_list(data);
+      return res.json(auth);
+    } catch (error) {
+      console.error("distributor_auth_request_list Error:", error.message);
+      return res.status(500).json({ status:message.code500,message: error.message });
+    }
+}
 
 exports.auth_distributer_summary = async (req, res) => {
   try {

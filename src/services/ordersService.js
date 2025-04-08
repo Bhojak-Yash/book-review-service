@@ -307,8 +307,8 @@ class OrdersService {
 
 
     await this.db.orders.update(updates, { where: { id: orderId } });
-
-    return this.db.orders.findByPk(orderId);
+    const aaa= this.db.orders.findByPk(orderId);
+    return aaa
     } catch (error) {
       console.log('update order servcie error:',error.message)
      return {

@@ -132,6 +132,113 @@ class AuthService {
         }
     }
 
+    async distributor_auth_request_list(data) {
+        try {
+            // console.log(data)
+            const { start_date, end_date } = data
+            const Page = Number(data.page) || 1;
+            const Limit = Number(data.limit) || 10;
+            let skip = 0
+            let whereClause = { authorizedBy: Number(data.id) }
+            if (data.status) {
+                if (data.status === 'active') {
+                    whereClause.status = 'Approved'
+                } else if (data.status === 'blocked') {
+                    whereClause.status = 'Rejected'
+                } else {
+                    whereClause.status = data.status
+                }
+            }
+            // if (start_date && end_date) {
+            //     whereClause.createdAt = {
+            //       [Op.between]: [
+            //         new Date(start_date),
+            //         new Date(end_date),
+            //       ],
+            //     };
+            //   }
+            if (Page > 1) {
+                skip = (Page - 1) * Limit
+            }
+            console.log(whereClause)
+            const { count, rows } = await db.authorizations.findAndCountAll({
+                include: [
+                    {
+                        model: db.distributors,
+                        as: "distributers",
+                        required: false,
+                        where: {
+                            ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
+                            ...(start_date && end_date
+                                ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
+                                : {}),
+                        },
+                    },
+                    {
+                        model: db.retailers,
+                        as: "retailers",
+                        required: false,
+                        where: {
+                            ...(data.search ? { firmName: { [Op.like]: `%${data.search}%` } } : {}),
+                            ...(start_date && end_date
+                                ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
+                                : {}),
+                        },
+                    },
+                    {
+                        model: db.address,
+                        as: 'address',
+                        attributes: ['State', 'city', 'addressType'],
+                        on: db.sequelize.literal('`authorizations`.`authorizedId` = CAST(`address`.`userId` AS UNSIGNED)')
+                        // required:false
+                    }
+                ],
+                where: whereClause,
+                order: [["id", "DESC"]],
+                offset: skip,
+                limit: Limit
+            })
+
+            const formattedData = rows
+                .filter((item) => item.distributers || item.retailers)
+                .map((item) => {
+                    const isDistributor = !!item.distributers;
+                    const base = {
+                        email: isDistributor ? item.distributers.email : item.retailers.email,
+                        phone: isDistributor ? item.distributers.phone : item.retailers.phone,
+                        createdAt: isDistributor ? item.distributers.createdAt : item.retailers.createdAt,
+                        userType: isDistributor ? "Distributor" : "Retailer",
+                        name: isDistributor ? item.distributers.companyName : item.retailers.firmName,
+                        status: item.status,
+                    };
+
+                    // Get the "Business" address
+                    const businessAddress = item.address?.find((addr) => addr.addressType === "Business");
+
+                    return {
+                        ...base,
+                        state: businessAddress?.State || null,
+                        city: businessAddress?.city || null,
+                    };
+                });
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalPage: Math.ceil(Number(count) / Limit),
+                totalItems: count,
+                apiData: formattedData
+            }
+        } catch (error) {
+            console.log("distributor_auth_request_list service errr:", error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
     // async auth_distributer_summary(data) {
     //     try {
     //         const { id, start_date, end_date } = data;
@@ -391,23 +498,23 @@ class AuthService {
 
     async authorizedBy_users(data) {
         try {
-            const { id,search } = data
+            const { id, search } = data
             const checkId = Number(id)
             const Data = await db.authorizations.findAll(
                 {
-                    attributes: ['id','authorizedBy'],
-                    where: { authorizedId: checkId ,status:{[db.Op.in]:['Not Send','Approved']}},
-                    include:[
+                    attributes: ['id', 'authorizedBy'],
+                    where: { authorizedId: checkId, status: { [db.Op.in]: ['Not Send', 'Approved'] } },
+                    include: [
                         {
-                            model:db.distributors,
-                            as:"distributor",
-                            attributes:['companyName','distributorId','type'],
+                            model: db.distributors,
+                            as: "distributor",
+                            attributes: ['companyName', 'distributorId', 'type'],
                             // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                         },
                         {
-                            model:db.manufacturers,
-                            as:"manufacturer",
-                            attributes:['companyName','manufacturerId'],
+                            model: db.manufacturers,
+                            as: "manufacturer",
+                            attributes: ['companyName', 'manufacturerId'],
                             // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                         }
                     ],
@@ -420,17 +527,17 @@ class AuthService {
                 }
             )
 
-            const finalResult  = Data?.map((item)=>{
+            const finalResult = Data?.map((item) => {
                 return {
-                    "companyName":item.distributor? item.distributor?.companyName : item.manufacturer?.companyName,
-                    "id":item.distributor? item.distributor?.distributorId : item.manufacturer?.manufacturerId,
-                    "type":item.distributor? item.distributor?.type: 'Manufacturer'
+                    "companyName": item.distributor ? item.distributor?.companyName : item.manufacturer?.companyName,
+                    "id": item.distributor ? item.distributor?.distributorId : item.manufacturer?.manufacturerId,
+                    "type": item.distributor ? item.distributor?.type : 'Manufacturer'
                 }
             })
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:finalResult
+                status: message.code200,
+                message: message.message200,
+                apiData: finalResult
             }
         } catch (error) {
             console.log('authorizedBy_users service error:', error.message)

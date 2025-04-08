@@ -82,11 +82,28 @@ class RetailerService {
             if(search){
                 whereClause.userName = { [Op.like]: `%${search}%` }
             }
-            const Data = await db.users.findAll({attributes:['id','userName'],where:whereClause})
+            const Data = await db.users.findAll({
+                attributes:['id','userName'],
+                where:whereClause,
+                include:[
+                    {
+                        model:db.distributors,
+                        as:'disuser',
+                        attributes:['companyName'],
+                        required:true
+                    }
+                ]
+            })
+            const result = Data?.map((item)=>{
+                return {
+                    id:item.id,
+                    userName:item?.disuser[0]?.companyName || item.userName
+                }
+            })
             return {
                 status:message.code200,
                 message:message.message200,
-                apiData:Data
+                apiData:result
             }
         } catch (error) {
             console.log('get_distributors_list service error:',error.message)
@@ -408,6 +425,25 @@ class RetailerService {
 
             const [dataa] = await db.sequelize.query(query);
             const transformedData = {};
+            const authorizedBy=await db.authorizations.findAll({
+                where:{authorizedId:Number(id)},
+                attributes:['authorizedId','authorizedBy'],
+                include:[
+                    {
+                        model:db.distributors,
+                        as:"distributor",
+                        attributes:['distributorId','companyName','type'],
+                        required:true
+                    }
+                ]
+            })
+            const auth = authorizedBy?.map((item)=>{
+                return {
+                    authorizedBy:item.authorizedBy,
+                    authorizedByUser:item?.distributor?.companyName || null,
+                    type:item?.distributor?.type
+                }
+            })
             // console.log(dataa)
             dataa.forEach((row) => {
                 const distributorId = row.distributorId;
@@ -462,9 +498,10 @@ class RetailerService {
                 }
 
                 transformedData[distributorId].documents = document
-
+                transformedData[distributorId].authorizedBy=auth
             });
-
+            
+          
             const result = Object.values(transformedData);
             return {
                 status: message.code200,

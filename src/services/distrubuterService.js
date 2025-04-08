@@ -640,7 +640,7 @@ class DistributorService {
             WHERE mn.distributorId = ${id};
           `;
           const authorizedBy=await db.authorizations.findAll({
-            where:{authorizedId:Number(id),status:{[db.Op.or]:['Approved','Not Send','Pending']}},
+            where:{authorizedId:Number(id)},
             attributes:['authorizedId','authorizedBy'],
             include:[
                 {
