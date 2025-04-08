@@ -201,11 +201,27 @@ class RetailerService {
                     { [Op.like]: `${firstThree}%` }
                 ]
             } : null;
-            
+
             let productResults = [];
             if (search) {
                 const products = await db.products.findAll({
                     attributes: ['PId', 'PName','PackagingDetails'],
+                    include:[
+                        {
+                            model:db.stocks,
+                            as:'stocks',
+                            attributes:['SId','PId','Stock','Scheme','MRP','PTR','organisationId'],
+                            required:true,
+                            include:[
+                                {
+                                    model:db.distributors,
+                                    as:'distributor',
+                                    attributes:['companyName'],
+                                    required:true
+                                }
+                            ]
+                        }
+                    ],
                     where: {
                         PName: likeConditions
                     }
@@ -215,9 +231,34 @@ class RetailerService {
                     PId: p.PId,
                     PName: p.PName
                 }));
+                const processed = products.map(product => {
+                    const bestStock = product.stocks.reduce((best, current) => {
+                        const parseScheme = (scheme) => {
+                            const parts = scheme?.split('+').map(Number);
+                            return parts?.length === 2 ? (parts[1] / parts[0]) * 100 : 0;
+                        };
+                
+                        return parseScheme(current.Scheme) > parseScheme(best?.Scheme) ? current : best;
+                    }, null);
+                
+                    return {
+                        PId: product.PId,
+                        PName: product.PName,
+                        PackagingDetails: product.PackagingDetails,
+                        bestStock,
+                        // stocks:product.stocks.Stocks,
+                        // PTR:product.stocks.PTR,
+                        // manufacturer:product?.distributor?.companyName,
+                    };
+                });
+                return {
+                    status:message.code200,
+                    message:message.message200,
+                    apiData:processed
+                }                
             }
         } catch (error) {
-            cocnsole.log('get_search_by_product service error:',error.message)
+            console.log('get_search_by_product service error:',error.message)
             return {
                 status:message.code500,
                 message:error.message

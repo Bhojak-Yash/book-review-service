@@ -50,6 +50,35 @@ exports.get_distributors_list = async (req,res) => {
   }
 }
 
+exports.get_distributors_list = async (req, res) => {
+  try {
+    console.log("Decoded User from Token:", req.user); // Debugging userId
+    const data = {...req.body,...req.user}
+    const response = await RetailerService.get_distributors_list(data);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("get_distributors_list Error:", error.message);
+    return res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+exports.get_search_by_product = async (req,res) => {
+  try {
+    const data = {...req.query}
+    const get_search_by_product = await RetailerService.get_search_by_product(data);
+    
+    // if (!distributor) {
+      return res.json(get_search_by_product);
+  } catch (error) {
+    console.log('get_search_by_product error:',error.message)
+    res.status(500).json({
+      status:message.code500,
+      message:message.message500,
+    })
+  }
+}
+
 // exports.retailer_profile_update = async (req, res) => {
 //   try {
 //     const data = { ...req.user, ...req.body }
