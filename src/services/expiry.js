@@ -180,7 +180,7 @@ class expiryService {
                     "totalSKU": item.dataValues.totalSkus,
                     "totalAmt": item.dataValues.totalAmtPTS,
                     "totalAmtPTR": item.dataValues.totalAmtPTR,
-                    "returnTo":item.manufacturer?item.manufacturer.companyName:item.distributor.companyName,
+                    "returnTo":item.manufacturer?item.manufacturer.companyName:item?.distributor?.companyName ||null,
                     "returnStatus": item?.returnHeader ? "Pending" : "Not Returned",
                     "returnId": item?.returnHeader ? item?.returnHeader?.returnId : null
                 }
@@ -195,7 +195,7 @@ class expiryService {
                 apiData: result,
             }
         } catch (error) {
-            console.log('expired_product_list service error:', error.messagae)
+            console.log('expired_product_list service error:', error.message)
             return {
                 status: message.code500,
                 message: error.message

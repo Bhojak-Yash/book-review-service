@@ -75,42 +75,156 @@ class RetailerService {
 
     }
 
+    // async get_distributors_list(data) {
+    //     try {
+    //         const {search} = data
+    //         let whereClause = {userType: ['distributor', 'cnfs']}
+    //         if (search) {
+    //             const halfLength = Math.floor(search.length / 2);
+    //             const firstHalf = search.substring(0, halfLength);
+    //             const firstThree = search.substring(0, 3);
+            
+    //             whereClause.userName = {
+    //                 [Op.or]: [
+    //                     { [Op.eq]: search },
+    //                     { [Op.like]: `%${search}%` },
+    //                     { [Op.like]: `%${firstHalf}%` },
+    //                     { [Op.like]: `${firstThree}%` }
+    //                 ]
+    //             };
+    //         }
+    //         const Data = await db.users.findAll({
+    //             attributes:['id','userName'],
+    //             where:whereClause,
+    //             include:[
+    //                 {
+    //                     model:db.distributors,
+    //                     as:'disuser',
+    //                     attributes:['companyName'],
+    //                     required:true
+    //                 }
+    //             ]
+    //         })
+    //         const result = Data?.map((item)=>{
+    //             return {
+    //                 id:item.id,
+    //                 userName:item?.disuser[0]?.companyName || item.userName
+    //             }
+    //         })
+    //         return {
+    //             status:message.code200,
+    //             message:message.message200,
+    //             apiData:result
+    //         }
+    //     } catch (error) {
+    //         console.log('get_distributors_list service error:',error.message)
+    //         throw new Error(error.message);
+    //     }
+    // }
+
     async get_distributors_list(data) {
         try {
-            const {search} = data
-            let whereClause = {userType: ['distributor', 'cnfs']}
-            if(search){
-                whereClause.userName = { [Op.like]: `%${search}%` }
-            }
-            const Data = await db.users.findAll({
-                attributes:['id','userName'],
-                where:whereClause,
-                include:[
-                    {
-                        model:db.distributors,
-                        as:'disuser',
-                        attributes:['companyName'],
-                        required:true
-                    }
+            const { search } = data;
+            const halfLength = Math.floor(search?.length / 2);
+            const firstHalf = search?.substring(0, halfLength);
+            const firstThree = search?.substring(0, 3);
+    
+            const likeConditions = search ? {
+                [Op.or]: [
+                    { [Op.eq]: search },
+                    { [Op.like]: `%${search}%` },
+                    { [Op.like]: `%${firstHalf}%` },
+                    { [Op.like]: `${firstThree}%` }
                 ]
-            })
-            const result = Data?.map((item)=>{
-                return {
-                    id:item.id,
-                    userName:item?.disuser[0]?.companyName || item.userName
-                }
-            })
+            } : null;
+    
+            // Get distributors (users + disuser)
+            const whereClause = {
+                userType: ['distributor', 'cnfs']
+            };
+    
+            // if (search) {
+            //     whereClause[Op.or] = [
+            //         { userName: likeConditions }
+            //     ];
+            // }
+    
+            const userInclude = {
+                model: db.distributors,
+                as: 'disuser',
+                attributes: ['companyName'],
+                required: true
+            };
+    
+            if (search) {
+                userInclude.where = {
+                    companyName: likeConditions
+                };
+            }
+    
+            const users = await db.users.findAll({
+                attributes: ['id', 'userName'],
+                where: whereClause,
+                include: [userInclude]
+            });
+    
+            const userResults = users.map(item => ({
+                id: item.id,
+                userName: item?.disuser[0]?.companyName || item.userName
+            }));
+    
+           
+    
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:result
+                status: message.code200,
+                message: message.message200,
+                apiData: userResults
             }
         } catch (error) {
-            console.log('get_distributors_list service error:',error.message)
+            console.log('get_distributors_list service error:', error.message);
             throw new Error(error.message);
         }
     }
 
+    async get_search_by_product(data) {
+        try {
+            const { search } = data;
+            const halfLength = Math.floor(search?.length / 2);
+            const firstHalf = search?.substring(0, halfLength);
+            const firstThree = search?.substring(0, 3);
+    
+            const likeConditions = search ? {
+                [Op.or]: [
+                    { [Op.eq]: search },
+                    { [Op.like]: `%${search}%` },
+                    { [Op.like]: `%${firstHalf}%` },
+                    { [Op.like]: `${firstThree}%` }
+                ]
+            } : null;
+            
+            let productResults = [];
+            if (search) {
+                const products = await db.products.findAll({
+                    attributes: ['PId', 'PName','PackagingDetails'],
+                    where: {
+                        PName: likeConditions
+                    }
+                });
+    
+                productResults = products.map(p => ({
+                    PId: p.PId,
+                    PName: p.PName
+                }));
+            }
+        } catch (error) {
+            cocnsole.log('get_search_by_product service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+    
     // async retailer_profile_update(req) {
     //     let transaction;
     //     try {
@@ -519,7 +633,10 @@ class RetailerService {
 
     async get_stocks_byDistributor(data){
         try {
-            
+            const {distributorId,id} = data
+            const Data = await db.stocks.findAndCountAll({
+                attributes:['SId','PId','BatchNo','MRP','PTR','PTS','']
+            })
         } catch (error) {
             console.log('get_stocks_byDistributor service error:')
         }
