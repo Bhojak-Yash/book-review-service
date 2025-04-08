@@ -192,7 +192,7 @@ class OrdersService {
           );
         });
       }
-      console.log("testttttt");
+      // console.log("testttttt");
       // Sending notification for PO Received
       await notificationsService.createNotification({
         organisationId: order.orderFrom,
@@ -307,7 +307,8 @@ class OrdersService {
 
 
     await this.db.orders.update(updates, { where: { id: orderId } });
-    const aaa= this.db.orders.findByPk(orderId);
+    const aaa=await this.db.orders.findByPk(orderId);
+    console.log(aaa)
     return aaa
     } catch (error) {
       console.log('update order servcie error:',error.message)
