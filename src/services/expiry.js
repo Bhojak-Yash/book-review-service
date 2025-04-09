@@ -340,7 +340,7 @@ class expiryService {
                 ];
             }
             const { count, rows: Data } = await db.stocks.findAndCountAll({
-                attributes: ['SId', 'Stock', 'PId', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme','organisationId'],
+                attributes: ['SId', 'Stock', 'PId','BatchNo','Loose', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme','organisationId'],
                 where: whereCondition,
                 include: [
                     {
@@ -387,6 +387,8 @@ class expiryService {
                     "companyName": item?.manufacturer?.companyName || item?.distributor?.companyName || null,
                     "SId": item.SId,
                     "Scheme": item.Scheme,
+                    "BatchNo":item.BatchNo,
+                    "loose":item.Loose,
                     "Stock": item.Stock,
                     "PId": item.PId,
                     "ExpDate": item.ExpDate,
