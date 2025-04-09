@@ -427,6 +427,115 @@ class AuthService {
         }
     }
 
+    async auth_page_card_data_distributor(data) {
+        try {
+            const { id, start_date, end_date } = data;
+            let whereClause = { authorizedBy: Number(id) };
+
+            // Date range filter
+            if (start_date && end_date) {
+                whereClause.createdAt = {
+                    [Op.between]: [
+                        new Date(start_date + " 00:00:00"),
+                        new Date(end_date + " 23:59:59"),
+                    ],
+                };
+            }
+
+            // Current period result
+            const currentResult = await db.authorizations.findOne({
+                attributes: [
+                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Approved' THEN 1 ELSE 0 END`)), "approvedCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END`)), "rejectedCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Pending' THEN 1 ELSE 0 END`)), "pendingCount"],
+                ],
+                where: whereClause,
+                raw: true,
+            }) || {};
+
+            const { totalCount = 0, approvedCount = 0, rejectedCount = 0, pendingCount = 0 } = currentResult;
+
+            // Calculate previous period (Same duration before start_date)
+            let previousWhereClause = { authorizedBy: Number(id) };
+
+            if (start_date && end_date) {
+                let previousStartDate = new Date(start_date);
+                let previousEndDate = new Date(end_date);
+
+                // Calculate previous period range
+                const diff = previousEndDate.getTime() - previousStartDate.getTime();
+                previousStartDate.setTime(previousStartDate.getTime() - diff);
+                previousEndDate.setTime(previousEndDate.getTime() - diff);
+
+                previousWhereClause.createdAt = {
+                    [Op.between]: [previousStartDate, previousEndDate],
+                };
+            }
+
+            // Previous period result
+            const previousResult = await db.authorizations.findOne({
+                attributes: [
+                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "prevTotalCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Approved' THEN 1 ELSE 0 END`)), "prevApprovedCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END`)), "prevRejectedCount"],
+                    [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN status = 'Pending' THEN 1 ELSE 0 END`)), "prevPendingCount"],
+                ],
+                where: previousWhereClause,
+                raw: true,
+            }) || {};
+
+            const { prevTotalCount = 0, prevApprovedCount = 0, prevRejectedCount = 0, prevPendingCount = 0 } = previousResult;
+
+            // Get count of all Distributors and CNFs
+            console.log(whereClause)
+            const retailerCount = await db.authorizations.count({
+                where:whereClause,
+                include: [{
+                  model: db.retailers,
+                  as:"retailers",
+                  required: true,
+                }]
+              });
+
+              const distributorCount = await db.authorizations.count({
+                where:whereClause,
+                include: [{
+                  model: db.distributors,
+                  as:'distributor',
+                  required: true,
+                }]
+              });
+            const getPercentageChange = (current, previous) => {
+                if (previous === 0) return current === 0 ? 0 : 100;
+                return ((current - previous) / Math.abs(previous)) * 100;
+            };
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: {
+                    totalCount,
+                    approvedCount,
+                    rejectedCount,
+                    pendingCount,
+                    totalChange: getPercentageChange(totalCount, prevTotalCount),
+                    approvedChange: getPercentageChange(approvedCount, prevApprovedCount),
+                    rejectedChange: getPercentageChange(rejectedCount, prevRejectedCount),
+                    pendingChange: getPercentageChange(pendingCount, prevPendingCount),
+                    retailerCount,
+                    distributorCount
+                },
+            };
+        } catch (error) {
+            console.log('auth_page_card_data_distributor service error:', error.message);
+            return {
+                status: message.code500,
+                message: error.message,
+            };
+        }
+    }
+
     async stop_po(data) {
         try {
             const { id, userId } = data

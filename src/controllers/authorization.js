@@ -43,6 +43,16 @@ exports.auth_distributer_summary = async (req, res) => {
       return res.status(500).json({ status:message.code500,message: error.message });
     }
 }
+exports.auth_page_card_data_distributor = async (req, res) => {
+  try {
+      const data = {...req.user,...req.query}
+      const auth = await AuthService.auth_page_card_data_distributor(data);
+      return res.json(auth);
+    } catch (error) {
+      console.error("auth_page_card_data_distributor Error:", error.message);
+      return res.status(500).json({ status:message.code500,message: error.message });
+    }
+}
 
 exports.stop_po = async (req, res) => {
   try {
