@@ -23,6 +23,7 @@ class UsersCartService {
     async addToCart(data) {
         try {
             const { id, quantity, SId, orderTo,PId } = data
+            console.log(data,'check usercart')
             // console.log(id,quantity,SId,orderTo,';;;;;;;')
             if (!id || !String(quantity) || !SId || !orderTo) {
                 return {

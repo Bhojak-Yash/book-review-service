@@ -116,3 +116,28 @@ exports.retailer_profile_get = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
+exports.get_stocks_byDistributor = async (req, res) => {
+  try {
+    // console.log("Decoded User from Token:", req.user); // Debugging userId
+    const data = {...req.user,...req.query}
+    const response = await RetailerService.get_stocks_byDistributor(data);
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("get_stocks_byDistributor Error:", error.message);
+    return res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+exports.get_retailer_po_list = async (req, res) => {
+  try {
+    // console.log("Decoded User from Token:", req.user); // Debugging userId
+    const data = {...req.user,...req.query}
+    const response = await RetailerService.get_retailer_po_list(data);
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("get_retailer_po_list Error:", error.message);
+    return res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};

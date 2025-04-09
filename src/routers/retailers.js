@@ -9,5 +9,7 @@ router.put('/retailer-profile-update', verifyToken, retailerc.retailer_profile_u
 router.get('/get-search-by-product',verifyToken,retailerc.get_search_by_product)
 router.get('/retailer-profile-get',verifyToken,retailerc.retailer_profile_get)
 router.get('/get-distributors-list',verifyToken,retailerc.get_distributors_list)
+router.get('/get-stocks-byDistributor',verifyToken,retailerc.get_stocks_byDistributor)
+router.get('/get-retailer-po-list',verifyToken,retailerc.get_retailer_po_list)
 
 module.exports =router

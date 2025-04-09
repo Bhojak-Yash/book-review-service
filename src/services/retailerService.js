@@ -1,6 +1,7 @@
 const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
+const usercarts = require('../models/usercarts');
 const Users = db.users;
 const Retailers = db.retailers;
 const Op= db.Op
@@ -674,12 +675,254 @@ class RetailerService {
 
     async get_stocks_byDistributor(data){
         try {
-            const {distributorId,id} = data
-            const Data = await db.stocks.findAndCountAll({
-                attributes:['SId','PId','BatchNo','MRP','PTR','PTS','']
+            const {distributorId,id,page,limit,expStatus, search, stockStatus,entityId} = data
+            let Page = page || 1;
+            let Limit = limit || 10;
+            const nearToExpDate = Number(process.env.lowStockDays)
+            // console.log(distributorId)
+            let whereCondition = { organisationId: Number(distributorId) };
+            if (entityId) {
+                whereCondition.entityId = Number(entityId);
+            }
+
+            // Handle expiration status filter
+            if (expStatus) {
+                const today = new Date();
+                const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+                if (expStatus === "expired") {
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.lt]: todayStr, // Expired before today
+                    };
+                } else if (expStatus === "nearToExp") {
+                    const nearToExpDate = new Date();
+                    nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
+                    const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
+
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
+                    };
+                } else if (expStatus === "upToDate") {
+                    const upToDateThreshold = new Date();
+                    upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
+                    const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
+
+                    whereCondition.ExpDate = {
+                        [db.Sequelize.Op.gt]: upToDateStr,
+                    };
+                }
+            }
+
+            if (stockStatus) {
+                const count = Number(process.env.aboutToEmpty)
+                if (stockStatus === "outOfStock") {
+                    whereCondition.stock = {
+                        [db.Op.lte]:0
+                    };
+                } else if (stockStatus === "aboutEmpty") {
+                    whereCondition.stock = {
+                        [db.Op.gt]: 0,
+                        [db.Op.lt]: count
+                    };
+                } else if (stockStatus === "upToDate") {
+                    whereCondition.stock = {
+                        [db.Op.gte]: count
+                    };
+                }
+            }
+
+            if (search) {
+                whereCondition[db.Op.or] = [
+                    { BatchNo: { [db.Op.like]: `%${search}%` } },
+                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
+                ];
+            }
+
+            const checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
+            const checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
+            let skip = (Page - 1) * Number(Limit);
+            const { rows: stocks, count } = await db.stocks.findAndCountAll({
+                // attributes:[]
+                where: whereCondition,
+                include: [
+                    {
+                        model: db.products,
+                        as: 'product',
+                        attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+                    }
+                ],
+                offset: skip,
+                Limit
             })
+            const updatedApiData = stocks.map(item => {
+                const match = checkCart.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
+                // item.quantity=match ? match.quantity : 0
+                // return item
+
+                return {
+                    "SId": item?.SId,
+                    "PId": item?.PId,
+                    "BatchNo": item?.BatchNo,
+                    "ExpDate": item?.ExpDate,
+                    "MRP": item?.MRP,
+                    "PTR": item?.PTR,
+                    "PTS": item?.PTS,
+                    "Scheme": item?.Scheme,
+                    "BoxQty": item?.BoxQty,
+                    "Loose": item?.Loose,
+                    "Stock": item?.Stock,
+                    "organisationId": item?.organisationId,
+                    "entityId": item?.entityId,
+                    "location": item?.location,
+                    "createdAt": item?.createdAt,
+                    "updatedAt": item?.updatedAt,
+                    "purchasedFrom": item?.purchasedFrom,
+                    "quantity":match ? match.quantity : 0,
+                    "product": {
+                        "PId": item?.product?.PId,
+                        "PCode": item?.product?.PCode,
+                        "PName": item?.product?.PName,
+                        "PackagingDetails": item?.product?.PackagingDetails,
+                        "SaltComposition": item?.product?.SaltComposition,
+                        "LOCKED": item?.product?.LOCKED,
+                        "manufacturerId": item?.product?.manufacturerId
+                    }
+                }
+              });
+            // console.log(distributorId,id)
+            return {
+                status:message.code200,
+                message:message.message200,
+                currentPage:Page,
+                totalItem:count,
+                totalPage:Math.ceil(count/Limit),
+                authCheck:checkAuth?checkAuth?.status:'Not Send',
+                apiData:updatedApiData
+            }
         } catch (error) {
-            console.log('get_stocks_byDistributor service error:')
+            console.log('get_stocks_byDistributor service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+
+    async get_retailer_po_list(data){
+        try {
+            const id = Number(data.id);
+            const Page = Number(data.page) || 1;
+            const Limit = Number(data.limit) || 10;
+            let skip = 0;
+            let whereClause = { orderFrom: id };
+      console.log(id)
+            if (Page > 1) {
+              skip = (Page - 1) * Limit;
+            }
+      
+            // Adjust search condition
+            if (data.search) {
+              whereClause[Op.or] = [
+                { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
+                {
+                  '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+                },
+                // {
+                //   '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+                // }
+              ];
+            }
+            if (data.start_date && data.end_date) {
+              const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+              const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+      
+              whereClause.orderDate = {
+                [Op.between]: [startDate, endDate]
+              };
+            }
+            // console.log(whereClause)
+            const { count, rows: orders } = await db.orders.findAndCountAll({
+              attributes: [
+                "id",
+                "orderDate",
+                "dueDate",
+                "deliveredAt",
+                "invAmt",
+                "orderStatus",
+                "orderTo",
+                "orderFrom",
+                "orderTotal",
+                "invNo",
+                "balance",
+                "deliveryType",
+                "reason"
+              ],
+              include: [
+                {
+                  model: db.distributors,
+                  as: "distributor",
+                  attributes: ["companyName"],
+                  required: false, // Ensure manufacturer is included even if no match is found
+                },
+                // {
+                //   model:db.authorizations,
+                //   where:{authorizedId:Number(id)},
+                //   as:"auth",
+                //   attributes:['creditCycle'],
+                //   required:false
+                // }
+              ],
+              where: whereClause,
+              offset: skip,
+              limit: Limit,
+              order: [["orderDate", "DESC"]]
+            });
+            // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
+            // const updatesResult = orders?.map((order) => {
+            //   let overdue = false;
+          
+            //   if (order.deliveredAt && order.auth?.creditCycle) {
+            //       const deliveredDate = new Date(order.deliveredAt);
+          
+            //       deliveredDate.setDate(deliveredDate.getDate() + order.auth.creditCycle);
+            //       const today = new Date();
+            //       today.setHours(0, 0, 0, 0);
+            //       overdue = deliveredDate < today;
+            //   }
+          
+        //       return {
+        //           "id": order.id,
+        //           "orderDate": order.orderDate,
+        //           "dueDate": order.dueDate,
+        //           "deliveredAt": order.deliveredAt,
+        //           "invAmt": order.invAmt,
+        //           "status": order.orderStatus,
+        //           "orderTotal": order.orderTotal,
+        //           "invNo": order.invNo,
+        //           "balance": order.balance,
+        //           "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
+        //           "deliveryType": order.deliveryType,
+        //           // "auth": order.auth,
+        //           "overdue": overdue 
+        //       };
+        //   });
+          
+      
+            return {
+              status: message.code200,
+              message: message.message200,
+              totalItems: count,
+              currentPage: Page,
+              totalPage: Math.ceil(count / Limit),
+              apiData: orders,
+            };
+          } catch (error) {
+            console.log('get_retailer_po_list error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
         }
     }
 }

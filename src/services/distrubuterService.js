@@ -318,12 +318,12 @@ class DistributorService {
                 manufacturer = { ...eee, authorizationId: null, status: 'Not Send' }
             }
             console.log('ppppppp', manufacturer)
-            if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
-                return {
-                    status: 400,
-                    message: "Not authorized"
-                }
-            }
+            // if (manufacturer.status != 'Approved' && manufacturer.status != 'Not Send') {
+            //     return {
+            //         status: 400,
+            //         message: "Not authorized"
+            //     }
+            // }
             let tableName = db.manufacturerStocks
             if (type) {
                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
@@ -1001,7 +1001,7 @@ class DistributorService {
             const toUpdate = existingRecords.map((rec) => rec.id);
             if (toUpdate.length > 0) {
                 await db.authorizations.update(
-                    { status: "Pending" },
+                    { status: "Not Send" },
                     { where: { id: toUpdate }, transaction }
                 );
             }
@@ -1192,19 +1192,20 @@ class DistributorService {
 
 
             let skip = (Page - 1) * Number(Limit);
-            const { rows: stocks, count } = await db.stocks.findAndCountAll({
-                // attributes:[]
-                where: whereCondition,
-                include: [
-                    {
-                        model: db.products,
-                        as: 'product',
-                        attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
-                    }
-                ],
-                offset: skip,
-                Limit
-            })
+            // const { rows: stocks, count } = await db.stocks.findAndCountAll({
+            //     // attributes:[]
+            //     where: whereCondition,
+            //     include: [
+            //         {
+            //             model: db.products,
+            //             as: 'product',
+            //             attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+            //         }
+            //     ],
+            //     offset: skip,
+            //     Limit
+            // })
+            const {rows:products,count} = await db.products.findAndCountAll
             return {
                 status: message.code200,
                 message: message.message200,

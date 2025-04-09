@@ -324,6 +324,9 @@ class expiryService {
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const whereCondition = {
                 organisationId: checkId,
+                Stock: {
+                    [db.Op.gt]: 0 
+                  },
                 [db.Op.and]: [
                     { ExpDate: { [db.Op.lt]: after90Days } },
                     { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
