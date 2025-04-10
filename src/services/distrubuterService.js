@@ -806,11 +806,16 @@ class DistributorService {
                     [db.Op.or]: authhh.map(a => ({
                         authorizedBy: a.authorizedBy,
                         authorizedId: a.authorizedId,
-                        status: "Not Send",
+                        // status: "Not Send",
                     }))
                 },
                 raw: true,
             });
+            // const toCreatearr= []
+
+            // await existingRecords?.map((item)=>{
+            //     if(item.authorizedId)
+            // })
             
             // Step 2: Create a Set of existing combinations
             const existingSet = new Set(
