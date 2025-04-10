@@ -1294,7 +1294,7 @@ class DistributorService {
             const authRecords = await db.authorizations.findAll({
                 where: {
                     authorizedId: Number(id),
-                    status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+                    // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
                 },
                 attributes: ['authorizedBy'],
             });
