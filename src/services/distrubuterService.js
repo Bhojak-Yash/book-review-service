@@ -805,18 +805,18 @@ class DistributorService {
                 where: {
                     authorizedBy: authhh.map((a) => a.authorizedBy),
                     authorizedId: authhh.map((a) => a.authorizedId),
-                    status: { [db.Op.in]: ['Not Send', 'Pending'] },
+                    status: { [db.Op.in]: ['Not Send'] },
                 },
                 raw: true,
             });
 
             // Get the records that need updates
             const toUpdate = existingRecords.map((rec) => rec.id);
-
+console.log(toUpdate,'toupdate')
             // Update existing records
             if (toUpdate.length > 0) {
                 await db.authorizations.update(
-                    { status: "Pending" },
+                    { status: "Not Send" },
                     { where: { id: toUpdate } }
                 );
             }
@@ -824,7 +824,7 @@ class DistributorService {
             // Filter out records that already exist to avoid duplicate inserts
             const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
             const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
-
+console.log(newRecords,';;;;;;newrecored')
             // Insert new records if any
             if (newRecords.length > 0) {
                 await db.authorizations.bulkCreate(newRecords);
