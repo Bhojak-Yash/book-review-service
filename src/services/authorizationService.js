@@ -103,6 +103,7 @@ class AuthService {
                         as: "distributers",
                         required: true,
                         where: {
+                            status:{[db.Op.in]:['Pending','Approved','Rejected']},
                             ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
                             ...(start_date && end_date
                                 ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
