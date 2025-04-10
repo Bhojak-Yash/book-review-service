@@ -827,16 +827,16 @@ class DistributorService {
                 a => !existingSet.has(`${a.authorizedBy}_${a.authorizedId}`)
             );
             
-            // Step 4: Only create new "Not Send" records
-            if (toCreate.length > 0) {
-                await db.authorizations.bulkCreate(toCreate);
-            }
+            // // Step 4: Only create new "Not Send" records
+            // if (toCreate.length > 0) {
+            //     await db.authorizations.bulkCreate(toCreate);
+            // }
             
 
             // Filter out records that already exist to avoid duplicate inserts
             const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
             const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
-console.log(newRecords,';;;;;;newrecored')
+// console.log(newRecords,';;;;;;newrecored')
             // Insert new records if any
             if (newRecords.length > 0) {
                 await db.authorizations.bulkCreate(newRecords);
