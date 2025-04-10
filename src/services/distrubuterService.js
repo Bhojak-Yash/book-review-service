@@ -58,7 +58,7 @@ class DistributorService {
                     distributorCode: distributorCode,
                     type: "Distributor",
                     status: "Active",
-                    email:userName
+                    email: userName
                 },
                 { transaction }
             );
@@ -135,6 +135,14 @@ class DistributorService {
             } else if (type == 'manufacturer') {
                 checkUserType = ['Manufacturer']
             }
+            const whereCondition = { userType: { [db.Op.in]: checkUserType },
+            [db.Op.or]: [
+                { '$disuser.distributorId$': { [db.Op.ne]: null } },
+                { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
+            ] }
+            if (id) {
+                whereCondition.id = { [db.Op.ne]: Number(id) }
+            }
             // Sanitize input values
             // const authorizedId = Number(id);
             // const searchQuery = search ? `%${search}%` : null;
@@ -184,13 +192,7 @@ class DistributorService {
                         where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                     }
                 ],
-                where: {
-                    userType: { [db.Op.in]: checkUserType },
-                    [db.Op.or]: [
-                        { '$disuser.distributorId$': { [db.Op.ne]: null } },
-                        { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
-                    ]
-                }
+                where: whereCondition
             });
 
             const finalResult = result?.map((item) => {
@@ -593,10 +595,10 @@ class DistributorService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['documentId','image', "status", 'updatedAt'],
+                        attributes: ['documentId', 'image', "status", 'updatedAt'],
                         where: {
                             userId: Number(id),
-                            isDeleted:false
+                            isDeleted: false
                         },
                         required: false,
                     },
@@ -639,30 +641,30 @@ class DistributorService {
               ON mn.distributorId = ad.userId
             WHERE mn.distributorId = ${id};
           `;
-          const authorizedBy=await db.authorizations.findAll({
-            where:{authorizedId:Number(id)},
-            attributes:['authorizedId','authorizedBy'],
-            include:[
-                {
-                    model:db.manufacturers,
-                    as:'manufacturer',
-                    attributes:['manufacturerId','companyName']
-                },
-                {
-                    model:db.distributors,
-                    as:"distributor",
-                    attributes:['distributorId','companyName']
-                }
-            ]
-        })
+            const authorizedBy = await db.authorizations.findAll({
+                where: { authorizedId: Number(id) },
+                attributes: ['authorizedId', 'authorizedBy'],
+                include: [
+                    {
+                        model: db.manufacturers,
+                        as: 'manufacturer',
+                        attributes: ['manufacturerId', 'companyName']
+                    },
+                    {
+                        model: db.distributors,
+                        as: "distributor",
+                        attributes: ['distributorId', 'companyName']
+                    }
+                ]
+            })
             const [dataa] = await db.sequelize.query(query);
             // console.log(dataa)
             const transformedData = {};
-            const auth = authorizedBy?.map((item)=>{
+            const auth = authorizedBy?.map((item) => {
                 return {
-                    authorizedBy:item.authorizedBy,
-                    authorizedByUser:item?.manufacturer?.companyName || item?.distributor?.companyName || null,
-                    type:item?.manufacturer?.companyName?"Manufacturer" : 'CNF'
+                    authorizedBy: item.authorizedBy,
+                    authorizedByUser: item?.manufacturer?.companyName || item?.distributor?.companyName || null,
+                    type: item?.manufacturer?.companyName ? "Manufacturer" : 'CNF'
                 }
             })
             // console.log(dataa)
@@ -681,7 +683,7 @@ class DistributorService {
                             phone: row.phone,
                             email: row.userName,
                             GST: row.gst,
-                            companyType:row.companyType,
+                            companyType: row.companyType,
                             wholeSaleDrugLicence: row.wholeSaleDrugLicence,
                             FSSAI: row.FSSAI,
                             distributorId: row.distributorId,
@@ -722,7 +724,7 @@ class DistributorService {
                 }
 
                 transformedData[distributorId].documents = document
-                transformedData[distributorId].authorizedBy=auth
+                transformedData[distributorId].authorizedBy = auth
                 // Add documents (only specific columns that were dynamically added)
                 // columns.forEach((col) => {
                 //   if (row[col] !== undefined) {
@@ -730,7 +732,7 @@ class DistributorService {
                 //   }
                 // });
             });
-            
+
             // Convert transformedData object to an array
             const result = Object.values(transformedData);
             return {
@@ -984,10 +986,10 @@ class DistributorService {
                 status: "Pending",
             }));
             // console.log(manufactureres,';;;;;',authhh)
-            let existingRecords=[]
-            if(authhh.length>0){
+            let existingRecords = []
+            if (authhh.length > 0) {
                 // console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[')
-                 existingRecords = await db.authorizations.findAll({
+                existingRecords = await db.authorizations.findAll({
                     where: {
                         authorizedBy: authhh.map((a) => a.authorizedBy),
                         authorizedId: authhh.map((a) => a.authorizedId),
@@ -997,7 +999,7 @@ class DistributorService {
                     transaction
                 });
             }
-// console.log('ppppp')
+            // console.log('ppppp')
             const toUpdate = existingRecords.map((rec) => rec.id);
             if (toUpdate.length > 0) {
                 await db.authorizations.update(
@@ -1056,16 +1058,16 @@ class DistributorService {
                 image: doc.image,
                 status: 'Verified',
                 userId: Number(distributorId),
-                isDeleted:false
+                isDeleted: false
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", "status",'isDeleted'],
+                updateOnDuplicate: ["image", "status", 'isDeleted'],
                 transaction
             });
 
             //Getting manufcturerName that is passed in the payLoad
-            
+
             const manufacturerNames = await db.manufacturers.findAll({
                 where: { manufacturerId: manufactureres },
                 attributes: ['manufacturerId', 'companyName'],
@@ -1120,196 +1122,318 @@ class DistributorService {
         }
     }
 
+    // async get_distributor_stocks(data) {
+    //     try {
+    //         const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
+    //         // console.log(data)
+    //         //   const userData = await db.users.findOne({ where: { id: Number(id) } })
+    //         //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+    //         let Page = page || 1;
+    //         let Limit = limit || 10;
+    //         const nearToExpDate = Number(process.env.lowStockDays)
+    //         // console.log(nearToExpDate)
+    //         let whereCondition = { organisationId: Number(id) };
+    //         if (entityId) {
+    //             whereCondition["$stocks.entityId"] = Number(entityId);
+    //         }
+
+    //         // Handle expiration status filter
+    //         if (expStatus) {
+    //             const today = new Date();
+    //             const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+    //             if (expStatus === "expired") {
+    //                 whereCondition.ExpDate = {
+    //                     [db.Sequelize.Op.lt]: todayStr, // Expired before today
+    //                 };
+    //             } else if (expStatus === "nearToExp") {
+    //                 const nearToExpDate = new Date();
+    //                 nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
+    //                 const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
+
+    //                 whereCondition.ExpDate = {
+    //                     [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
+    //                 };
+    //             } else if (expStatus === "upToDate") {
+    //                 const upToDateThreshold = new Date();
+    //                 upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
+    //                 const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
+
+    //                 whereCondition.ExpDate = {
+    //                     [db.Sequelize.Op.gt]: upToDateStr,
+    //                 };
+    //             }
+    //         }
+
+    //         if (stockStatus) {
+    //             const count = Number(process.env.aboutToEmpty)
+    //             if (stockStatus === "outOfStock") {
+    //                 whereCondition.stock = {
+    //                     [db.Op.lte]:0
+    //                 };
+    //             } else if (stockStatus === "aboutEmpty") {
+    //                 whereCondition.stock = {
+    //                     [db.Op.gt]: 0,
+    //                     [db.Op.lt]: count
+    //                 };
+    //             } else if (stockStatus === "upToDate") {
+    //                 whereCondition.stock = {
+    //                     [db.Op.gte]: count
+    //                 };
+    //             }
+    //         }
+
+    //         // if (search) {
+    //         //     whereCondition[db.Op.or] = [
+    //         //         { BatchNo: { [db.Op.like]: `%${search}%` } },
+    //         //         { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+    //         //         { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
+    //         //     ];
+    //         // }
+    //         if (search) {
+    //             whereCondition[db.Op.or] = [
+    //                 { BatchNo: { [db.Op.like]: `%${search}%` } },
+    //                 { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+    //                 { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
+    //             ];
+    //         }
+
+
+
+    //         let skip = (Page - 1) * Number(Limit);
+    //          const { rows: stocks, count } = await db.stocks.findAndCountAll({
+    //             // attributes:[]
+    //             where: whereCondition,
+    //             include: [
+    //                 {
+    //                     model: db.products,
+    //                     as: 'product',
+    //                     attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+    //                 }
+    //             ],
+    //             offset: skip,
+    //             Limit
+    //         })
+    //         return {
+    //             status: message.code200,
+    //             message: message.message200,
+    //             totalData: count,
+    //             totalPage: Math.ceil(count / Limit),
+    //             currentPage: Page,
+    //             apiData: stocks
+    //         }
+
+    //         //   const { rows: stocks, count } = await db.products.findAndCountAll({
+    //         //     attributes: [
+    //         //       "PId",
+    //         //       "PCode",
+    //         //       "PName",
+    //         //       "PackagingDetails",
+    //         //       "SaltComposition",
+    //         //       "LOCKED",
+    //         //       "manufacturerId"
+    //         //     ],
+    //         //     include: [
+    //         //       {
+    //         //         model: db.stocks,
+    //         //         as: "stocks", // Adjust alias as per your association
+    //         //         required: false, // LEFT JOIN: include products even if stock is not available
+    //         //         where: whereCondition
+    //         //       },
+    //         //     ],
+    //         //     where: {
+    //         //       manufacturerId: id,
+    //         //       ...(search
+    //         //         ? {
+    //         //           [Op.or]: [
+    //         //             { PCode: { [Op.like]: `%${search}%` } },
+    //         //             { PName: { [Op.like]: `%${search}%` } },
+    //         //             { SaltComposition: { [Op.like]: `%${search}%` } },
+    //         //           ],
+    //         //         }
+    //         //         : {}),
+    //         //     },
+    //         //     offset: skip,
+    //         //     limit: Number(Limit),
+    //         //     subQuery: false,
+    //         //     // raw: true,
+    //         //     // nest: true,
+    //         //   })
+
+    //     } catch (error) {
+    //         console.log('get_distributor_stocks service error:', error.message)
+    //         return {
+    //             status: message.code500,
+    //             message: error.message
+    //         }
+    //     }
+    // }
     async get_distributor_stocks(data) {
         try {
             const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
-            // console.log(data)
-            //   const userData = await db.users.findOne({ where: { id: Number(id) } })
-            //   const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-            let Page = page || 1;
-            let Limit = limit || 10;
-            const nearToExpDate = Number(process.env.lowStockDays)
-            // console.log(nearToExpDate)
-            let whereCondition = { organisationId: Number(id) };
-            if (entityId) {
-                whereCondition.entityId = Number(entityId);
+
+            const Page = Number(page) || 1;
+            const Limit = Number(limit) || 10;
+            const skip = (Page - 1) * Limit;
+
+            const aboutToEmpty = Number(process.env.aboutToEmpty || 10);
+            const lowStockDays = Number(process.env.lowStockDays || 90);
+
+            const authRecords = await db.authorizations.findAll({
+                where: {
+                    authorizedId: Number(id),
+                    status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+                },
+                attributes: ['authorizedBy'],
+            });
+
+            const authorizedBy = authRecords.map(a => a.authorizedBy);
+            if (authorizedBy.length === 0) return { status: 200, apiData: [], message: 'No authorized manufacturers found' };
+
+            const stockFilters = {
+                organisationId: Number(id),
+            };
+            if (entityId) stockFilters.entityId = Number(entityId);
+
+            const today = new Date();
+            const todayStr = today.toISOString().split("T")[0];
+
+            if (expStatus === "expired") {
+                stockFilters.ExpDate = { [db.Sequelize.Op.lt]: todayStr };
+            } else if (expStatus === "nearToExp") {
+                const nearDate = new Date();
+                nearDate.setDate(today.getDate() + lowStockDays);
+                const nearStr = nearDate.toISOString().split("T")[0];
+                stockFilters.ExpDate = { [db.Sequelize.Op.between]: [todayStr, nearStr] };
+            } else if (expStatus === "upToDate") {
+                const upTo = new Date();
+                upTo.setDate(today.getDate() + lowStockDays);
+                const upToStr = upTo.toISOString().split("T")[0];
+                stockFilters.ExpDate = { [db.Sequelize.Op.gt]: upToStr };
             }
 
-            // Handle expiration status filter
-            if (expStatus) {
-                const today = new Date();
-                const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
-
-                if (expStatus === "expired") {
-                    whereCondition.ExpDate = {
-                        [db.Sequelize.Op.lt]: todayStr, // Expired before today
-                    };
-                } else if (expStatus === "nearToExp") {
-                    const nearToExpDate = new Date();
-                    nearToExpDate.setDate(today.getDate() + 90); // Add 90 days
-                    const nearToExpStr = nearToExpDate.toISOString().split("T")[0];
-
-                    whereCondition.ExpDate = {
-                        [db.Sequelize.Op.between]: [todayStr, nearToExpStr], // Between today and 90 days
-                    };
-                } else if (expStatus === "upToDate") {
-                    const upToDateThreshold = new Date();
-                    upToDateThreshold.setDate(today.getDate() + 90); // More than 90 days from today
-                    const upToDateStr = upToDateThreshold.toISOString().split("T")[0];
-
-                    whereCondition.ExpDate = {
-                        [db.Sequelize.Op.gt]: upToDateStr,
-                    };
-                }
+            if (stockStatus === "outOfStock") {
+                stockFilters.stock = { [db.Sequelize.Op.lte]: 0 };
+            } else if (stockStatus === "aboutEmpty") {
+                stockFilters.stock = { [db.Sequelize.Op.gt]: 0, [db.Sequelize.Op.lt]: aboutToEmpty };
+            } else if (stockStatus === "upToDate") {
+                stockFilters.stock = { [db.Sequelize.Op.gte]: aboutToEmpty };
             }
 
-            if (stockStatus) {
-                const count = Number(process.env.aboutToEmpty)
-                if (stockStatus === "outOfStock") {
-                    whereCondition.stock = {
-                        [db.Op.lte]:0
-                    };
-                } else if (stockStatus === "aboutEmpty") {
-                    whereCondition.stock = {
-                        [db.Op.gt]: 0,
-                        [db.Op.lt]: count
-                    };
-                } else if (stockStatus === "upToDate") {
-                    whereCondition.stock = {
-                        [db.Op.gte]: count
-                    };
-                }
-            }
+            const productFilters = {
+                manufacturerId: { [db.Sequelize.Op.in]: authorizedBy }
+            };
 
             if (search) {
-                whereCondition[db.Op.or] = [
-                    { BatchNo: { [db.Op.like]: `%${search}%` } },
-                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
-                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
+                productFilters[db.Sequelize.Op.or] = [
+                    { PName: { [db.Sequelize.Op.like]: `%${search}%` } },
+                    { SaltComposition: { [db.Sequelize.Op.like]: `%${search}%` } },
                 ];
             }
 
+            // Step 1: Get all products to count
+            const allProducts = await db.products.count({
+                where: productFilters,
+            });
 
+            // const totalCount = allProducts.length;
 
-            let skip = (Page - 1) * Number(Limit);
-            // const { rows: stocks, count } = await db.stocks.findAndCountAll({
-            //     // attributes:[]
-            //     where: whereCondition,
-            //     include: [
-            //         {
-            //             model: db.products,
-            //             as: 'product',
-            //             attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
-            //         }
-            //     ],
-            //     offset: skip,
-            //     Limit
-            // })
-            const {rows:products,count} = await db.products.findAndCountAll
+            // Step 2: Get paginated products only
+            const {rows:paginatedProducts,count} = await db.products.findAndCountAll({
+                where: productFilters,
+                include: [
+                    {
+                        model: db.stocks,
+                        as: "stocks",
+                        required: false,
+                        where: stockFilters,
+                    },
+                ],
+                order: [['PName', 'ASC']],
+                offset: skip,
+                limit: Limit
+            });
+            const formattedData = paginatedProducts.flatMap(product => {
+                if (!product.stocks || product.stocks.length === 0) {
+                    return [{
+                        SId: null,
+                        PId: product.PId,
+                        BatchNo: null,
+                        ExpDate: null,
+                        MRP: null,
+                        PTR: null,
+                        PTS: null,
+                        Scheme: null,
+                        BoxQty: null,
+                        Loose: null,
+                        Stock: null,
+                        organisationId: null,
+                        entityId: null,
+                        location: null,
+                        createdAt: null,
+                        updatedAt: null,
+                        purchasedFrom: null,
+                        product: {
+                            PId: product.PId,
+                            PCode: product.PCode,
+                            PName: product.PName,
+                            PackagingDetails: product.PackagingDetails,
+                            SaltComposition: product.SaltComposition,
+                            LOCKED: product.LOCKED,
+                            manufacturerId: product.manufacturerId
+                        }
+                    }];
+                }
+
+                return product.stocks.map(stock => ({
+                    SId: stock.SId,
+                    PId: product.PId,
+                    BatchNo: stock.BatchNo,
+                    ExpDate: stock.ExpDate,
+                    MRP: stock.MRP,
+                    PTR: stock.PTR,
+                    PTS: stock.PTS,
+                    Scheme: stock.Scheme,
+                    BoxQty: stock.BoxQty,
+                    Loose: stock.Loose,
+                    Stock: stock.Stock,
+                    organisationId: stock.organisationId,
+                    entityId: stock.entityId,
+                    location: stock.location,
+                    createdAt: stock.createdAt,
+                    updatedAt: stock.updatedAt,
+                    purchasedFrom: stock.purchasedFrom,
+                    product: {
+                        PId: product.PId,
+                        PCode: product.PCode,
+                        PName: product.PName,
+                        PackagingDetails: product.PackagingDetails,
+                        SaltComposition: product.SaltComposition,
+                        LOCKED: product.LOCKED,
+                        manufacturerId: product.manufacturerId
+                    }
+                }));
+            });
+
             return {
                 status: message.code200,
                 message: message.message200,
                 totalData: count,
                 totalPage: Math.ceil(count / Limit),
                 currentPage: Page,
-                apiData: stocks
+                apiData: formattedData
             }
 
-            //   const { rows: stocks, count } = await db.products.findAndCountAll({
-            //     attributes: [
-            //       "PId",
-            //       "PCode",
-            //       "PName",
-            //       "PackagingDetails",
-            //       "SaltComposition",
-            //       "LOCKED",
-            //       "manufacturerId"
-            //     ],
-            //     include: [
-            //       {
-            //         model: db.stocks,
-            //         as: "stocks", // Adjust alias as per your association
-            //         required: false, // LEFT JOIN: include products even if stock is not available
-            //         where: whereCondition
-            //       },
-            //     ],
-            //     where: {
-            //       manufacturerId: id,
-            //       ...(search
-            //         ? {
-            //           [Op.or]: [
-            //             { PCode: { [Op.like]: `%${search}%` } },
-            //             { PName: { [Op.like]: `%${search}%` } },
-            //             { SaltComposition: { [Op.like]: `%${search}%` } },
-            //           ],
-            //         }
-            //         : {}),
-            //     },
-            //     offset: skip,
-            //     limit: Number(Limit),
-            //     subQuery: false,
-            //     // raw: true,
-            //     // nest: true,
-            //   })
-
-        } catch (error) {
-            console.log('get_distributor_stocks service error:', error.message)
+        } catch (err) {
+            console.log("get_distributor_stocks error:", err.message);
             return {
-                status: message.code500,
-                message: error.message
-            }
+                status: 500,
+                message: err.message
+            };
         }
     }
 
-    // async update_distributorType(data) {
-    //     let transaction;
-    //     try {
-    //         const { userId } = data;
 
-    //         if (!userId) {
-    //             return {
-    //                 status: message.code400,
-    //                 message: "Distributor ID is required",
-    //             };
-    //         }
-
-    //         transaction = await db.sequelize.transaction();
-
-    //         // Check if the distributor exists
-    //         const distributor = await Distributors.findOne({
-    //             where: { distributorId: userId },
-    //             transaction
-    //         });
-
-    //         if (!distributor) {
-    //             await transaction.rollback();
-    //             return {
-    //                 status: message.code404,
-    //                 message: "Distributor not found",
-    //             };
-    //         }
-
-    //         // Update distributor type to CNF
-    //         await Distributors.update(
-    //             { type: "CNF" },
-    //             { where: { distributorId: userId }, transaction }
-    //         );
-
-    //         await transaction.commit();
-
-    //         return {
-    //             status: message.code200,
-    //             message: "Distributor type updated to CNF successfully",
-    //         };
-    //     } catch (error) {
-    //         if (transaction) await transaction.rollback();
-    //         console.error("update_distributorType error:", error.message);
-    //         return {
-    //             status: message.code500,
-    //             message: error.message,
-    //         };
-    //     }
-    // }
 
     async update_distributorType(data, userIdFromToken) {
         let transaction;
@@ -1363,24 +1487,72 @@ class DistributorService {
             };
         }
     }
+    // async update_distributorType(data) {
+    //     let transaction;
+    //     try {
+    //         const { userId } = data;
 
+    //         if (!userId) {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "Distributor ID is required",
+    //             };
+    //         }
+
+    //         transaction = await db.sequelize.transaction();
+
+    //         // Check if the distributor exists
+    //         const distributor = await Distributors.findOne({
+    //             where: { distributorId: userId },
+    //             transaction
+    //         });
+
+    //         if (!distributor) {
+    //             await transaction.rollback();
+    //             return {
+    //                 status: message.code404,
+    //                 message: "Distributor not found",
+    //             };
+    //         }
+
+    //         // Update distributor type to CNF
+    //         await Distributors.update(
+    //             { type: "CNF" },
+    //             { where: { distributorId: userId }, transaction }
+    //         );
+
+    //         await transaction.commit();
+
+    //         return {
+    //             status: message.code200,
+    //             message: "Distributor type updated to CNF successfully",
+    //         };
+    //     } catch (error) {
+    //         if (transaction) await transaction.rollback();
+    //         console.error("update_distributorType error:", error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: error.message,
+    //         };
+    //     }
+    // }
     async delete_document(data) {
         try {
-            const {id,documentId} =data
+            const { id, documentId } = data
             // console.log(id,documentId)
-            await db.documents.update({isDeleted:true},{where:{documentId:Number(documentId),userId:Number(id)}})
+            await db.documents.update({ isDeleted: true }, { where: { documentId: Number(documentId), userId: Number(id) } })
             return {
-                status:message.code200,
-                message:'Document deleted successfully'
+                status: message.code200,
+                message: 'Document deleted successfully'
             }
         } catch (error) {
-            console.log('delete_document service error',error.message)
+            console.log('delete_document service error', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
 }
-  
+
 module.exports = new DistributorService(db);
