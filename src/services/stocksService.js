@@ -481,6 +481,32 @@ class StocksService {
       const { distributorId } = data
       const aboutToEmpty = Number(process.env.aboutToEmpty)
       const nearToExpDate = Number(process.env.lowStockDays)
+      const authRecords = await db.authorizations.findAll({
+        where: {
+            authorizedId: Number(distributorId),
+            // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+        },
+        attributes: ['authorizedBy'],
+    });
+
+    // console.log(authRecords)
+    const authorizedBy = authRecords?.map(a => a.authorizedBy);
+    console.log(authorizedBy)
+    const result = await db.products.findOne({
+      attributes: [
+        [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
+        [
+          db.sequelize.fn(
+            "SUM",
+            db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
+          ),
+          "unlockedProducts"
+        ]
+      ],
+      where: {manufacturerId:{[db.Op.in]:authorizedBy}},
+      raw: true
+    })
+    // console.log(result)
       // let whereCondition = { manufacturerId: Number(manufacturerId) };
       // const result = await db.products.findOne({
       //   attributes: [
@@ -515,7 +541,7 @@ class StocksService {
 
 
       return {
-         ...results
+         ...results,...result
       }
     } catch (error) {
       console.log('getManufacturerStockSummary error:', error.message)

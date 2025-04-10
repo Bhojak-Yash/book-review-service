@@ -409,6 +409,7 @@ class DistributorService {
                 totalPage: totalPage,
                 totalData: count,
                 limit: Limit,
+                authStatus:manufacturer?.status || 'Not Send',
                 apiData: { manufacturer, stocks: updatedStockWithQuantity.length > 0 ? updatedStockWithQuantity : updatedStock }
             }
         } catch (error) {
