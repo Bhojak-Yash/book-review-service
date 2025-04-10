@@ -431,7 +431,8 @@ class AuthService {
     async auth_page_card_data_distributor(data) {
         try {
             const { id, start_date, end_date } = data;
-            let whereClause = { authorizedBy: Number(id) };
+            let whereClause = { authorizedBy: Number(id),
+                status:{[db.Op.in]:['Pending','Approved','Rejected']} };
 
             // Date range filter
             if (start_date && end_date) {
