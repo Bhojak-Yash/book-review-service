@@ -74,7 +74,8 @@ class AuthService {
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
-            let whereClause = { authorizedBy: Number(data.id) }
+            let whereClause = { authorizedBy: Number(data.id),
+                status:{[db.Op.in]:['Pending','Approved','Rejected']}, }
             if (data.status) {
                 if (data.status === 'active') {
                     whereClause.status = 'Approved'
@@ -103,7 +104,6 @@ class AuthService {
                         as: "distributers",
                         required: true,
                         where: {
-                            status:{[db.Op.in]:['Pending','Approved','Rejected']},
                             ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
                             ...(start_date && end_date
                                 ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
