@@ -1362,7 +1362,18 @@ class DistributorService {
                         where: stockFilters,
                     },
                 ],
-                order: [['PName', 'ASC']],
+                // order: [['PName', 'ASC']],
+                order: [
+                    [
+                      db.sequelize.literal(`(
+                        SELECT CASE WHEN SUM(s.Stock) > 0 THEN 1 ELSE 0 END
+                        FROM stocks AS s
+                        WHERE s.PId = products.PId
+                      )`),
+                      'DESC'
+                    ],
+                    ['PName', 'ASC']
+                  ],                 
                 offset: skip,
                 limit: Limit
             });
