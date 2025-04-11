@@ -53,7 +53,7 @@ exports.get_distributors_list = async (req,res) => {
 exports.get_distributors_list = async (req, res) => {
   try {
     console.log("Decoded User from Token:", req.user); // Debugging userId
-    const data = {...req.body,...req.user}
+    const data = {...req.query,...req.user}
     const response = await RetailerService.get_distributors_list(data);
 
     return res.status(response.status).json(response);
