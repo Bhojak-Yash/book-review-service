@@ -150,12 +150,19 @@ class RetailerService {
             //     ];
             // }
     
-            const userInclude = {
+            const userInclude = [{
                 model: db.distributors,
                 as: 'disuser',
                 attributes: ['companyName'],
                 required: true
-            };
+            },
+            {
+                model: db.address,
+                as: 'addresss',
+                attributes: ['addLine1','addLine2','city','state'],
+                required: false
+            }
+        ];
     
             if (search) {
                 userInclude.where = {
@@ -166,12 +173,13 @@ class RetailerService {
             const users = await db.users.findAll({
                 attributes: ['id', 'userName'],
                 where: whereClause,
-                include: [userInclude]
+                include: userInclude
             });
     
             const userResults = users.map(item => ({
                 id: item.id,
-                userName: item?.disuser[0]?.companyName || item.userName
+                userName: item?.disuser[0]?.companyName || item.userName,
+                address:item.addresss[0] || {}
             }));
     
            
@@ -206,7 +214,7 @@ class RetailerService {
             let productResults = [];
             if (search) {
                 const products = await db.products.findAll({
-                    attributes: ['PId', 'PName','PackagingDetails'],
+                    attributes: ['PId', 'PName','PackagingDetails','SaltComposition'],
                     include:[
                         {
                             model:db.stocks,
@@ -246,6 +254,7 @@ class RetailerService {
                         PId: product.PId,
                         PName: product.PName,
                         PackagingDetails: product.PackagingDetails,
+                        SaltComposition:product.SaltComposition,
                         bestStock,
                         // stocks:product.stocks.Stocks,
                         // PTR:product.stocks.PTR,
@@ -676,8 +685,13 @@ class RetailerService {
     async get_stocks_byDistributor(data){
         try {
             const {distributorId,id,page,limit,expStatus, search, stockStatus,entityId} = data
-            let Page = page || 1;
-            let Limit = limit || 10;
+            console.log(data)
+            const Page = Number(data.page) || 1;
+      const Limit = Number(data.limit) || 10;
+      let skip = 0;
+      if (Page > 1) {
+        skip = (Page - 1) * Limit;
+      }
             const nearToExpDate = Number(process.env.lowStockDays)
             // console.log(distributorId)
             let whereCondition = { organisationId: Number(distributorId) };
@@ -741,7 +755,8 @@ class RetailerService {
 
             const checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
             const checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
-            let skip = (Page - 1) * Number(Limit);
+            // let skip = Page>1?(Page - 1) * Number(Limit):Limit
+            console.log(skip)
             const { rows: stocks, count } = await db.stocks.findAndCountAll({
                 // attributes:[]
                 where: whereCondition,
@@ -753,7 +768,7 @@ class RetailerService {
                     }
                 ],
                 offset: skip,
-                Limit
+                limit: Limit,
             })
             const updatedApiData = stocks.map(item => {
                 const match = checkCart.find(cart => cart.stockId === item.SId && cart.PId === item.PId);

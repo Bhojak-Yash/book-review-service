@@ -158,7 +158,7 @@ db.retailers.belongsTo(db.manufacturers,{foreignKey:'retailerId',as:"reuser"})
 db.users.hasMany(db.distributors,{foreignKey:'distributorId',as:"disuser"})
 db.users.hasMany(db.retailers,{foreignKey:'retailerId',as:"reuser"})
 db.users.hasMany(db.manufacturers,{foreignKey:'manufacturerId',as:"manufacturer"})
-
+db.users.hasMany(db.address,{foreignKey:'userId',as:"addresss"})
 
 db.distributors.hasMany(db.orders, {
   foreignKey: 'orderFrom', 
