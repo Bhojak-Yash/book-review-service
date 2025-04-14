@@ -39,6 +39,9 @@ module.exports = (sequelize, Sequelize) => {
         PId: {
           type: Sequelize.INTEGER,
           allowNull: false
+        },
+        PTS:{
+          type:Sequelize.BIGINT
         }
       },
       {
