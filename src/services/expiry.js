@@ -761,7 +761,7 @@ class expiryService {
                     {
                         model: db.creditNotes,
                         as: "creditnote",
-                        attributes: ['id', 'createdAt']
+                        attributes: ['id', 'createdAt','url']
                     }
                 ]
             })
