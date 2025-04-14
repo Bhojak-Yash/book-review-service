@@ -113,7 +113,10 @@ module.exports =(sequelize,Sequelize)=>{
           },
           loose:{
             type: Sequelize.INTEGER,
-          }
+          },
+        PTS:{
+          type:Sequelize.BIGINT
+        }
     },
     {
         tableName: "orderitems"
