@@ -17,8 +17,11 @@ class AuthService {
                     // status: 'Pending'
                 }
             })
-            if (check) {
-                if (check.status === 'Pending') {
+            console.log(check)
+            if (check) {    
+                console.log('check')
+                if (check.status == 'Pending') {
+                    console.log('pendign')
                     return {
                         status: message.code400,
                         message: 'Your authorization request is already pending. Please wait for approval before submitting a new request'
@@ -33,7 +36,13 @@ class AuthService {
                         message: 'Authorization request sent',
                         // apiData: Data
                     }
+                }else if (check.status === 'Approved') {
+                    return {
+                        status:200,
+                        message:"Request already approved"
+                    }
                 }
+
             }
 
             const Data = await db.authorizations.create({

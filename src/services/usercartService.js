@@ -207,7 +207,7 @@ class UsersCartService {
                     {
                         model: db.products, 
                         as: "productDetails",
-                        attributes: ["PName","SaltComposition"], 
+                        attributes: ["PName","SaltComposition",'ProductForm','PackagingDetails'], 
                     },
                     {
                         model:tableName,
@@ -236,7 +236,9 @@ class UsersCartService {
                     "PTS":item.stockDetails.PTS || 0,
                     "scheme":item.stockDetails.Scheme || null,
                     "BatchNo":item.stockDetails.BatchNo,
-                    "stock":item.stockDetails.Stock
+                    "stock":item.stockDetails.Stock,
+                    "ProductForm":item.productDetails.ProductForm,
+                    "PackagingDetails":item.productDetails.PackagingDetails
                     // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
                 }
             })

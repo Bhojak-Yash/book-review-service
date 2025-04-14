@@ -255,6 +255,7 @@ class DistributorService {
                 tablesearch === 'manufacturers' ? 'manufacturerId' : 'distributorId';
             const logoColumn =
                 tablesearch === 'manufacturers' ? 'logo' : 'profilePic';
+                console.log(id,';;;;;;;;;;;;;;;;')
             if (id) {
                 const [eee] = await db.sequelize.query(
                     `SELECT 

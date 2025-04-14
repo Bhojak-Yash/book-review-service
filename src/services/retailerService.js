@@ -2,6 +2,7 @@ const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const usercarts = require('../models/usercarts');
+const { request } = require('express');
 const Users = db.users;
 const Retailers = db.retailers;
 const Op= db.Op
@@ -685,7 +686,7 @@ class RetailerService {
     async get_stocks_byDistributor(data){
         try {
             const {distributorId,id,page,limit,expStatus, search, stockStatus,entityId} = data
-            console.log(data)
+            // console.log(data)
             const Page = Number(data.page) || 1;
       const Limit = Number(data.limit) || 10;
       let skip = 0;
@@ -756,7 +757,22 @@ class RetailerService {
             const checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
             const checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
-            console.log(skip)
+            // console.log(skip)
+            const userData = await db.users.findOne({
+                where:{id:Number(distributorId)},
+                attributes:['id','userName'],
+                include:[
+                    {
+                        model:db.distributors,
+                        as:'disuser',
+                        // attributes:['distributorId','companyName',"profilePic",''],
+                    },
+                    {
+                        model:db.address,
+                        as:'addresss',
+                    }
+                ]
+            })
             const { rows: stocks, count } = await db.stocks.findAndCountAll({
                 // attributes:[]
                 where: whereCondition,
@@ -813,6 +829,7 @@ class RetailerService {
                 totalItem:count,
                 totalPage:Math.ceil(count/Limit),
                 authCheck:checkAuth?checkAuth?.status:'Not Send',
+                userData:userData,
                 apiData:updatedApiData
             }
         } catch (error) {
