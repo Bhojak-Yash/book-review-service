@@ -24,6 +24,9 @@ module.exports = (sequelize, Sequelize) => {
         "isDeleted":{
             type: Sequelize.BOOLEAN,
             defaultValue: false,
+        },
+        "imageSize":{
+            type:Sequelize.STRING
         }
     },
 

@@ -12,6 +12,19 @@ async function hashPassword(password) {
     return hashedPassword;
 }
 
+const formatSize = (size) => {
+    let bytes = Number(size); 
+    if (isNaN(bytes)) return null;
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return `${bytes.toFixed(1)} ${units[i]}`;
+};
+
 class DistributorService {
     constructor(db) {
         this.db = db;
@@ -597,7 +610,7 @@ class DistributorService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['documentId', 'image', "status", 'updatedAt'],
+                        attributes: ['documentId', 'image', "status","imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id),
                             isDeleted: false
@@ -753,7 +766,7 @@ class DistributorService {
 
     async update_distributor(data) {
         let transaction;
-        console.log(data)
+        // console.log(data)
         try {
             const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
 
@@ -776,7 +789,7 @@ class DistributorService {
                     transaction,
                 }
             );
-            console.log('gffxchbjknk', distributor)
+            // console.log('gffxchbjknk', distributor)
 
             if (!distributor) {
                 return {
@@ -882,11 +895,12 @@ class DistributorService {
                 categoryId: doc.id,
                 image: doc.image,
                 status: 'Verified',
+                imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
                 userId: Number(distributorId)
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", 'status'],
+                updateOnDuplicate: ["image", 'status','imageSize'],
                 conflictFields: ["categoryId", "userId"]
             });
 
