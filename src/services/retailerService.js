@@ -255,13 +255,11 @@ class RetailerService {
                         PId: product.PId,
                         PName: product.PName,
                         PackagingDetails: product.PackagingDetails,
-                        SaltComposition:product.SaltComposition,
-                        bestStock,
-                        // stocks:product.stocks.Stocks,
-                        // PTR:product.stocks.PTR,
-                        // manufacturer:product?.distributor?.companyName,
+                        SaltComposition: product.SaltComposition,
+                        bestStock
                     };
-                });
+                }).filter(product => product.bestStock);
+                
                 return {
                     status:message.code200,
                     message:message.message200,
