@@ -772,13 +772,11 @@ class DistributorService {
                    WHERE distributorId = :distributorId`,
                 {
                     replacements: { distributorId },
-                    type: db.Sequelize.QueryTypes.SELECT, // Ensures the query returns plain data
-                    transaction, // Pass the transaction if needed
+                    type: db.Sequelize.QueryTypes.SELECT,
+                    transaction,
                 }
             );
             console.log('gffxchbjknk', distributor)
-            // Ensure you get a single object, not an array
-            //   const manufacturerDetails = distributor.length > 0 ? distributor[0] : null;
 
             if (!distributor) {
                 return {
@@ -787,22 +785,12 @@ class DistributorService {
                 }
             }
 
-            // const authhh = manufactureres?.map((item)=>{
-            //     return {
-            //         authorizedBy:Number(item),
-            //         authorizedId:Number(distributorId),
-            //         status:'Pending'
-            //     }
-            // })
-
-            // await db.authorizations.bulkCreate(authhh)
             const authhh = manufactureres.map((item) => ({
                 authorizedBy: Number(item),
                 authorizedId: Number(distributorId),
                 status: "Not Send",
             }));
             
-            // Step 1: Find existing records with the same authorizedBy + authorizedId and status = "Not Send"
             const existingRecords = await db.authorizations.findAll({
                 where: {
                     [db.Op.or]: authhh.map(a => ({
@@ -813,58 +801,24 @@ class DistributorService {
                 },
                 raw: true,
             });
-            // const toCreatearr= []
-
-            // await existingRecords?.map((item)=>{
-            //     if(item.authorizedId)
-            // })
             
-            // Step 2: Create a Set of existing combinations
             const existingSet = new Set(
                 existingRecords.map(rec => `${rec.authorizedBy}_${rec.authorizedId}`)
             );
             
-            // Step 3: Filter out ones that already exist
             const toCreate = authhh.filter(
                 a => !existingSet.has(`${a.authorizedBy}_${a.authorizedId}`)
             );
             
-            // // Step 4: Only create new "Not Send" records
-            // if (toCreate.length > 0) {
-            //     await db.authorizations.bulkCreate(toCreate);
-            // }
-            
 
-            // Filter out records that already exist to avoid duplicate inserts
             const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
             const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
 // console.log(newRecords,';;;;;;newrecored')
-            // Insert new records if any
+
             if (newRecords.length > 0) {
                 await db.authorizations.bulkCreate(newRecords);
             }
 
-            // Update manufacturer details
-            //   await db.distributors.update(
-            //     {
-            //       profilePic: profilePic ?? db.sequelize.col("profilePic"),
-            //       companyName: companyName ?? db.sequelize.col("companyName"),
-            //       ownerName: ownerName ?? db.sequelize.col("ownerName"),
-            //     //   email: email ?? db.sequelize.col("email"),
-            //       phone: phone ?? db.sequelize.col("phone"),
-            //       address: address ?? db.sequelize.col("address"),
-            //       GST: GST ?? db.sequelize.col("GST"),
-            //       wholeSaleDrugLicence: wholeSaleDrugLicence ?? db.sequelize.col("wholeSaleDrugLicence"),
-            //       PAN: PAN ?? db.sequelize.col("PAN"),
-            //       FSSAI: FSSAI ?? db.sequelize.col("FSSAI"),
-            //       CIN: CIN ?? db.sequelize.col("CIN"),
-            //       updatedAt: db.sequelize.literal("NOW()"), // Update timestamp
-            //     },
-            //     {
-            //       where: { distributorId },
-            //       transaction, // Pass the transaction here
-            //     }
-            //   )
             await db.sequelize.query(
                 `UPDATE distributors_new 
                    SET 
@@ -897,7 +851,7 @@ class DistributorService {
                         CIN,
                         distributorId
                     },
-                    transaction, // Pass the transaction here
+                    transaction, 
                 }
             );
 
@@ -948,6 +902,7 @@ class DistributorService {
                 manufacturerId: manu.manufacturerId,
                 companyName: manu.companyName
             }));
+            await transaction.commit();
             console.log("Distributor details updated successfully");
             return {
                 status: message.code200,
@@ -956,6 +911,7 @@ class DistributorService {
                 documents: documentsData
             };
         } catch (error) {
+            if (transaction) await transaction.rollback();
             console.log('update_distributor service error:', error.message)
             return {
                 status: message.code500,
