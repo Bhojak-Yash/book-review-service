@@ -765,9 +765,12 @@ class RetailerService {
                     { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
                 ];
             }
-
-            const checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
-            const checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
+            let checkAuth;
+            let checkCart;
+            if(id){
+             checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
+             checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
+            }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
             // console.log(skip)
             const userData = await db.users.findOne({
@@ -799,7 +802,7 @@ class RetailerService {
                 limit: Limit,
             })
             const updatedApiData = stocks.map(item => {
-                const match = checkCart.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
+                const match = checkCart?.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
                 // item.quantity=match ? match.quantity : 0
                 // return item
 
