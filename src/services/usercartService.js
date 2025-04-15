@@ -137,8 +137,9 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            const { id,manufacturerId } = data
+            const { id,userType,manufacturerId } = data
             console.log(data)
+            let distributor;
             // Fetch all items in the cart for the logged-in user
             const [manufacturer] = await db.sequelize.query(
                 `SELECT 
@@ -168,7 +169,37 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
-            const [distributor] = await db.sequelize.query(
+            if(userType==='retailer' || userType === 'Retailer'){
+                [distributor] = await db.sequelize.query(
+                    `SELECT 
+                        mn.retailerId, 
+                        mn.firmName,
+                        mn.profilePic,
+                        JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                            'addressType', ad.addressType, 
+                            'name', ad.name, 
+                            'mobile', ad.mobile, 
+                            'city', ad.city, 
+                            'state', ad.state,
+                            'email', ad.email
+                          )
+                        ) AS addresses
+                     FROM retailers AS mn
+                     LEFT JOIN \`address\` AS ad
+                       ON ad.userId = mn.retailerId
+                     WHERE mn.retailerId = :id
+                     GROUP BY mn.retailerId, mn.firmName`,
+                    {
+                        replacements: {
+                            manufacturerId: Number(manufacturerId),
+                            id: Number(id),
+                        },
+                        type: db.Sequelize.QueryTypes.SELECT,
+                    }
+                );
+            }
+             [distributor] = await db.sequelize.query(
                 `SELECT 
                     mn.distributorId, 
                     mn.companyName,
@@ -245,14 +276,36 @@ class UsersCartService {
 
             // Check if the cart is empty
             if (!cartItems.length) {
+                if (userType === 'Retailer') {
+                    return {
+                        status: message.code200,
+                        message: "Your cart is empty.",
+                        manufacturer:manufacturer,
+                        retailer: manufacturer, // Send data in `retailers` key
+                        cart: [],
+                    };
+                } else {
+                    return {
+                        status: message.code200,
+                        message: "Your cart is empty.",
+                        manufacturer:manufacturer,
+                        distributor: manufacturer, // Send data in `distributor` key
+                        cart: [],
+                    };
+                }
+                
+            }
+            if(userType==='Retailer'){
                 return {
                     status: message.code200,
-                    message: "Your cart is empty.",
+                    message: "Cart fetched successfully.",
                     manufacturer:manufacturer,
-                    cart: [],
+                    retailer:distributor,
+                    cart: updateCart,
+                    userType:data?.userType,
+                    orderFrom:orderFromData
                 };
             }
-
             return {
                 status: message.code200,
                 message: "Cart fetched successfully.",

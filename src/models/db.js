@@ -197,6 +197,7 @@ db.returnHeader.belongsTo(db.retailers,{foreignKey: "returnFrom", as: "returnByU
 db.stocks.belongsTo(db.manufacturers,{foreignKey: "purchasedFrom",targetKey:'manufacturerId', as: "manufacturer" })
 db.stocks.belongsTo(db.distributors,{foreignKey: "purchasedFrom",targetKey:'distributorId', as: "distributor" })
 db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"returnTo", as: "returnHeader" })
+db.stocks.belongsTo(db.distributors,{foreignKey: "organisationId",targetKey:'distributorId', as: "distributors" })
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

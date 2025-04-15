@@ -225,7 +225,7 @@ class RetailerService {
                             include:[
                                 {
                                     model:db.distributors,
-                                    as:'distributor',
+                                    as:'distributors',
                                     attributes:['companyName'],
                                     required:true
                                 }
@@ -236,34 +236,48 @@ class RetailerService {
                         PName: likeConditions
                     }
                 });
+                // console.log(products.length,';;;;;;;;;;;;;;;;;;')
     
                 productResults = products.map(p => ({
                     PId: p.PId,
                     PName: p.PName
                 }));
                 const processed = products.map(product => {
+                    const parseScheme = (scheme) => {
+                        const parts = scheme?.split('+').map(Number);
+                        return parts?.length === 2 && parts.every(n => !isNaN(n)) ? (parts[1] / parts[0]) * 100 : 0;
+                    };
+                
+                    // Start reduce with first stock as default (because we know stocks always exist)
                     const bestStock = product.stocks.reduce((best, current) => {
-                        const parseScheme = (scheme) => {
-                            const parts = scheme?.split('+').map(Number);
-                            return parts?.length === 2 ? (parts[1] / parts[0]) * 100 : 0;
-                        };
+                        return parseScheme(current.Scheme) > parseScheme(best.Scheme) ? current : best;
+                    }, product.stocks[0]); // 👈 start with first stock
                 
-                        return parseScheme(current.Scheme) > parseScheme(best?.Scheme) ? current : best;
-                    }, null);
-                
+                    let sss= {
+                        "SId": bestStock?.SId || "",
+                        "PId": bestStock?.PId || "",
+                        "Stock": bestStock?.Stock || 0,
+                        "Scheme": bestStock?.Scheme || "",
+                        "MRP": bestStock.MRP || 0,
+                        "PTR": bestStock.PTR || 0,
+                        "organisationId": bestStock?.organisationId || null,
+                        "distributor":bestStock.distributors || {}
+                    }
                     return {
                         PId: product.PId,
                         PName: product.PName,
                         PackagingDetails: product.PackagingDetails,
                         SaltComposition: product.SaltComposition,
-                        bestStock
-                    };
-                }).filter(product => product.bestStock);
+                        bestStock:sss
+                    };                    
+                });
                 
+                // console.log(processed.length,';;;;;;;;;;;;;;;;;;')
                 return {
                     status:message.code200,
                     message:message.message200,
-                    apiData:processed
+                    apiData:processed,
+                    // products
                 }                
             }
         } catch (error) {
