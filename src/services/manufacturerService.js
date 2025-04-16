@@ -642,7 +642,7 @@ class ManufacturerService {
       const completeOrder = await db.orders.count({
         where: {
           orderFrom: id,
-          orderStatus: { [Op.in]: ["Received", "Paid", "Partial Paid"] }
+          orderStatus: { [Op.in]: ["Inward", "Paid", "Partial Paid"] }
         },
         raw: true
       });
@@ -737,7 +737,7 @@ console.log(checkId)
         db.orders.count({
           where: {
             orderTo: Number(checkId),
-            orderStatus: { [Op.notIn]: ["Paid", "Received", "Partially paid"] },
+            orderStatus: { [Op.notIn]: ["Paid", "Inward", "Partially paid"] },
           },
         }),
         db.authorizations.findAll({

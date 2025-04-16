@@ -1020,7 +1020,7 @@ class RetailerService {
             db.orders.findOne({
                 attributes: [
                     [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Received', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Inward', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
                     [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                     [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                 ],

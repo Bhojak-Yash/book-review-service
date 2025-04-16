@@ -248,7 +248,7 @@ class OrdersService {
       // }
     }
 
-    if (updates.orderStatus === "Received" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
+    if (updates.orderStatus === "Inward" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
       updates.deliveredAt = new Date();
       // Retrieve the items in the order
       // const orderItems = await db.orderitems.findAll({

@@ -53,7 +53,7 @@ module.exports = (sequelize, Sequelize) => {
         orderStatus: {
           type: Sequelize.ENUM(
             'Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 
-            'Received', 'Paid', 'Partially paid', 'Canceled'),
+            'Inward', 'Paid', 'Partially paid', 'Canceled'),
         },
         orderFrom: {
           type: Sequelize.BIGINT,
