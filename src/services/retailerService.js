@@ -5,7 +5,8 @@ const usercarts = require('../models/usercarts');
 const { request } = require('express');
 const Users = db.users;
 const Retailers = db.retailers;
-const Op= db.Op
+const Op = db.Op
+const moment = require("moment");
 const formatSize = (size) => {
     let bytes = Number(size);
     if (isNaN(bytes)) return null;
@@ -98,7 +99,7 @@ class RetailerService {
     //             const halfLength = Math.floor(search.length / 2);
     //             const firstHalf = search.substring(0, halfLength);
     //             const firstThree = search.substring(0, 3);
-            
+
     //             whereClause.userName = {
     //                 [Op.or]: [
     //                     { [Op.eq]: search },
@@ -143,7 +144,7 @@ class RetailerService {
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
             const firstThree = search?.substring(0, 3);
-    
+
             const likeConditions = search ? {
                 [Op.or]: [
                     { [Op.eq]: search },
@@ -152,18 +153,18 @@ class RetailerService {
                     { [Op.like]: `${firstThree}%` }
                 ]
             } : null;
-    
+
             // Get distributors (users + disuser)
             const whereClause = {
                 userType: ['distributor', 'cnfs']
             };
-    
+
             // if (search) {
             //     whereClause[Op.or] = [
             //         { userName: likeConditions }
             //     ];
             // }
-    
+
             const userInclude = [{
                 model: db.distributors,
                 as: 'disuser',
@@ -173,31 +174,31 @@ class RetailerService {
             {
                 model: db.address,
                 as: 'addresss',
-                attributes: ['addLine1','addLine2','city','state'],
+                attributes: ['addLine1', 'addLine2', 'city', 'state'],
                 required: false
             }
-        ];
-    
+            ];
+
             if (search) {
                 userInclude.where = {
                     companyName: likeConditions
                 };
             }
-    
+
             const users = await db.users.findAll({
                 attributes: ['id', 'userName'],
                 where: whereClause,
                 include: userInclude
             });
-    
+
             const userResults = users.map(item => ({
                 id: item.id,
                 userName: item?.disuser[0]?.companyName || item.userName,
-                address:item.addresss[0] || {}
+                address: item.addresss[0] || {}
             }));
-    
-           
-    
+
+
+
             return {
                 status: message.code200,
                 message: message.message200,
@@ -215,7 +216,7 @@ class RetailerService {
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
             const firstThree = search?.substring(0, 3);
-    
+
             const likeConditions = search ? {
                 [Op.or]: [
                     { [Op.eq]: search },
@@ -228,19 +229,19 @@ class RetailerService {
             let productResults = [];
             if (search) {
                 const products = await db.products.findAll({
-                    attributes: ['PId', 'PName','PackagingDetails','SaltComposition'],
-                    include:[
+                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition'],
+                    include: [
                         {
-                            model:db.stocks,
-                            as:'stocks',
-                            attributes:['SId','PId','Stock','Scheme','MRP','PTR','organisationId'],
-                            required:true,
-                            include:[
+                            model: db.stocks,
+                            as: 'stocks',
+                            attributes: ['SId', 'PId', 'Stock', 'Scheme', 'MRP', 'PTR', 'organisationId'],
+                            required: true,
+                            include: [
                                 {
-                                    model:db.distributors,
-                                    as:'distributors',
-                                    attributes:['companyName'],
-                                    required:true
+                                    model: db.distributors,
+                                    as: 'distributors',
+                                    attributes: ['companyName'],
+                                    required: true
                                 }
                             ]
                         }
@@ -250,7 +251,7 @@ class RetailerService {
                     }
                 });
                 // console.log(products.length,';;;;;;;;;;;;;;;;;;')
-    
+
                 productResults = products.map(p => ({
                     PId: p.PId,
                     PName: p.PName
@@ -260,13 +261,13 @@ class RetailerService {
                         const parts = scheme?.split('+').map(Number);
                         return parts?.length === 2 && parts.every(n => !isNaN(n)) ? (parts[1] / parts[0]) * 100 : 0;
                     };
-                
+
                     // Start reduce with first stock as default (because we know stocks always exist)
                     const bestStock = product.stocks.reduce((best, current) => {
                         return parseScheme(current.Scheme) > parseScheme(best.Scheme) ? current : best;
                     }, product.stocks[0]); // 👈 start with first stock
-                
-                    let sss= {
+
+                    let sss = {
                         "SId": bestStock?.SId || "",
                         "PId": bestStock?.PId || "",
                         "Stock": bestStock?.Stock || 0,
@@ -274,34 +275,34 @@ class RetailerService {
                         "MRP": bestStock.MRP || 0,
                         "PTR": bestStock.PTR || 0,
                         "organisationId": bestStock?.organisationId || null,
-                        "distributor":bestStock.distributors || {}
+                        "distributor": bestStock.distributors || {}
                     }
                     return {
                         PId: product.PId,
                         PName: product.PName,
                         PackagingDetails: product.PackagingDetails,
                         SaltComposition: product.SaltComposition,
-                        bestStock:sss
-                    };                    
+                        bestStock: sss
+                    };
                 });
-                
+
                 // console.log(processed.length,';;;;;;;;;;;;;;;;;;')
                 return {
-                    status:message.code200,
-                    message:message.message200,
-                    apiData:processed,
+                    status: message.code200,
+                    message: message.message200,
+                    apiData: processed,
                     // products
-                }                
+                }
             }
         } catch (error) {
-            console.log('get_search_by_product service error:',error.message)
+            console.log('get_search_by_product service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
-    
+
     // async retailer_profile_update(req) {
     //     let transaction;
     //     try {
@@ -417,7 +418,7 @@ class RetailerService {
     //     }
     // }
 
-    async retailer_profile_update(data){
+    async retailer_profile_update(data) {
         let transaction;
         // console.log(data);
         try {
@@ -518,12 +519,12 @@ class RetailerService {
                 categoryId: doc.id,
                 image: doc.image,
                 status: 'Verified',
-                imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
+                imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
                 userId: Number(retailerId)
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", "status",'imageSize'],
+                updateOnDuplicate: ["image", "status", 'imageSize'],
                 conflictFields: ["categoryId", "userId"],
                 transaction
             });
@@ -551,10 +552,10 @@ class RetailerService {
             };
         } catch (error) {
             if (transaction) await transaction.rollback();
-            console.log('retailer_profile_update service error:',error.message)
+            console.log('retailer_profile_update service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
@@ -573,7 +574,7 @@ class RetailerService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['image', "status", "imageSize",'updatedAt'],
+                        attributes: ['image', "status", "imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id)
                         },
@@ -618,23 +619,23 @@ class RetailerService {
 
             const [dataa] = await db.sequelize.query(query);
             const transformedData = {};
-            const authorizedBy=await db.authorizations.findAll({
-                where:{authorizedId:Number(id)},
-                attributes:['authorizedId','authorizedBy'],
-                include:[
+            const authorizedBy = await db.authorizations.findAll({
+                where: { authorizedId: Number(id) },
+                attributes: ['authorizedId', 'authorizedBy'],
+                include: [
                     {
-                        model:db.distributors,
-                        as:"distributor",
-                        attributes:['distributorId','companyName','type'],
-                        required:true
+                        model: db.distributors,
+                        as: "distributor",
+                        attributes: ['distributorId', 'companyName', 'type'],
+                        required: true
                     }
                 ]
             })
-            const auth = authorizedBy?.map((item)=>{
+            const auth = authorizedBy?.map((item) => {
                 return {
-                    authorizedBy:item.authorizedBy,
-                    authorizedByUser:item?.distributor?.companyName || null,
-                    type:item?.distributor?.type
+                    authorizedBy: item.authorizedBy,
+                    authorizedByUser: item?.distributor?.companyName || null,
+                    type: item?.distributor?.type
                 }
             })
             // console.log(dataa)
@@ -691,10 +692,10 @@ class RetailerService {
                 }
 
                 transformedData[distributorId].documents = document
-                transformedData[distributorId].authorizedBy=auth
+                transformedData[distributorId].authorizedBy = auth
             });
-            
-          
+
+
             const result = Object.values(transformedData);
             return {
                 status: message.code200,
@@ -702,24 +703,24 @@ class RetailerService {
                 apiData: result[0]
             }
         } catch (error) {
-            console.log('retailer_profile_get service error:',error.message)
+            console.log('retailer_profile_get service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
 
-    async get_stocks_byDistributor(data){
+    async get_stocks_byDistributor(data) {
         try {
-            const {distributorId,id,page,limit,expStatus, search, stockStatus,entityId} = data
+            const { distributorId, id, page, limit, expStatus, search, stockStatus, entityId } = data
             // console.log(data)
             const Page = Number(data.page) || 1;
-      const Limit = Number(data.limit) || 10;
-      let skip = 0;
-      if (Page > 1) {
-        skip = (Page - 1) * Limit;
-      }
+            const Limit = Number(data.limit) || 10;
+            let skip = 0;
+            if (Page > 1) {
+                skip = (Page - 1) * Limit;
+            }
             const nearToExpDate = Number(process.env.lowStockDays)
             // console.log(distributorId)
             let whereCondition = { organisationId: Number(distributorId) };
@@ -759,7 +760,7 @@ class RetailerService {
                 const count = Number(process.env.aboutToEmpty)
                 if (stockStatus === "outOfStock") {
                     whereCondition.stock = {
-                        [db.Op.lte]:0
+                        [db.Op.lte]: 0
                     };
                 } else if (stockStatus === "aboutEmpty") {
                     whereCondition.stock = {
@@ -782,24 +783,24 @@ class RetailerService {
             }
             let checkAuth;
             let checkCart;
-            if(id){
-             checkAuth = await db.authorizations.findOne({where:{authorizedId:Number(id),authorizedBy:Number(distributorId)}})
-             checkCart = await db.usercarts.findAll({where:{orderFrom:Number(id),orderTo:Number(distributorId)}})
+            if (id) {
+                checkAuth = await db.authorizations.findOne({ where: { authorizedId: Number(id), authorizedBy: Number(distributorId) } })
+                checkCart = await db.usercarts.findAll({ where: { orderFrom: Number(id), orderTo: Number(distributorId) } })
             }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
             // console.log(skip)
             const userData = await db.users.findOne({
-                where:{id:Number(distributorId)},
-                attributes:['id','userName'],
-                include:[
+                where: { id: Number(distributorId) },
+                attributes: ['id', 'userName'],
+                include: [
                     {
-                        model:db.distributors,
-                        as:'disuser',
+                        model: db.distributors,
+                        as: 'disuser',
                         // attributes:['distributorId','companyName',"profilePic",''],
                     },
                     {
-                        model:db.address,
-                        as:'addresss',
+                        model: db.address,
+                        as: 'addresss',
                     }
                 ]
             })
@@ -839,7 +840,7 @@ class RetailerService {
                     "createdAt": item?.createdAt,
                     "updatedAt": item?.updatedAt,
                     "purchasedFrom": item?.purchasedFrom,
-                    "quantity":match ? match.quantity : 0,
+                    "quantity": match ? match.quantity : 0,
                     "product": {
                         "PId": item?.product?.PId,
                         "PCode": item?.product?.PCode,
@@ -850,150 +851,156 @@ class RetailerService {
                         "manufacturerId": item?.product?.manufacturerId
                     }
                 }
-              });
+            });
             // console.log(distributorId,id)
             return {
-                status:message.code200,
-                message:message.message200,
-                currentPage:Page,
-                totalItem:count,
-                totalPage:Math.ceil(count/Limit),
-                authCheck:checkAuth?checkAuth?.status:'Not Send',
-                userData:userData,
-                apiData:updatedApiData
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalItem: count,
+                totalPage: Math.ceil(count / Limit),
+                authCheck: checkAuth ? checkAuth?.status : 'Not Send',
+                userData: userData,
+                apiData: updatedApiData
             }
         } catch (error) {
-            console.log('get_stocks_byDistributor service error:',error.message)
+            console.log('get_stocks_byDistributor service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
 
-    async get_retailer_po_list(data){
+    async get_retailer_po_list(data) {
         try {
             const id = Number(data.id);
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0;
             let whereClause = { orderFrom: id };
-      console.log(id)
+            console.log(id)
             if (Page > 1) {
-              skip = (Page - 1) * Limit;
+                skip = (Page - 1) * Limit;
             }
-      
+
             // Adjust search condition
             if (data.search) {
-              whereClause[Op.or] = [
-                { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
-                {
-                  '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
-                },
-                // {
-                //   '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
-                // }
-              ];
+                whereClause[Op.or] = [
+                    { id: { [Op.like]: `%${data.search}%` } }, // Search by order ID
+                    {
+                        '$distributor.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+                    },
+                    // {
+                    //   '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+                    // }
+                ];
             }
             if (data.start_date && data.end_date) {
-              const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-              const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
-      
-              whereClause.orderDate = {
-                [Op.between]: [startDate, endDate]
-              };
+                const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+                whereClause.orderDate = {
+                    [Op.between]: [startDate, endDate]
+                };
             }
             // console.log(whereClause)
             const { count, rows: orders } = await db.orders.findAndCountAll({
-              attributes: [
-                "id",
-                "orderDate",
-                "dueDate",
-                "deliveredAt",
-                "invAmt",
-                "orderStatus",
-                "orderTo",
-                "orderFrom",
-                "orderTotal",
-                "invNo",
-                "balance",
-                "deliveryType",
-                "reason"
-              ],
-              include: [
-                {
-                  model: db.distributors,
-                  as: "distributor",
-                  attributes: ["companyName"],
-                  required: false, // Ensure manufacturer is included even if no match is found
-                },
-                // {
-                //   model:db.authorizations,
-                //   where:{authorizedId:Number(id)},
-                //   as:"auth",
-                //   attributes:['creditCycle'],
-                //   required:false
-                // }
-              ],
-              where: whereClause,
-              offset: skip,
-              limit: Limit,
-              order: [["orderDate", "DESC"]]
+                attributes: [
+                    "id",
+                    "orderDate",
+                    "dueDate",
+                    "deliveredAt",
+                    "invAmt",
+                    "orderStatus",
+                    "orderTo",
+                    "orderFrom",
+                    "orderTotal",
+                    "invNo",
+                    "balance",
+                    "dMan",
+                    "dMobile",
+                    "deliveryType",
+                    "reason"
+                ],
+                include: [
+                    {
+                        model: db.distributors,
+                        as: "distributor",
+                        attributes: ["companyName"],
+                        required: false, // Ensure manufacturer is included even if no match is found
+                    },
+                    // {
+                    //   model:db.authorizations,
+                    //   where:{authorizedId:Number(id)},
+                    //   as:"auth",
+                    //   attributes:['creditCycle'],
+                    //   required:false
+                    // }
+                ],
+                where: whereClause,
+                offset: skip,
+                limit: Limit,
+                order: [["orderDate", "DESC"]]
             });
             // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
             // const updatesResult = orders?.map((order) => {
             //   let overdue = false;
-          
+
             //   if (order.deliveredAt && order.auth?.creditCycle) {
             //       const deliveredDate = new Date(order.deliveredAt);
-          
+
             //       deliveredDate.setDate(deliveredDate.getDate() + order.auth.creditCycle);
             //       const today = new Date();
             //       today.setHours(0, 0, 0, 0);
             //       overdue = deliveredDate < today;
             //   }
-          
-        //       return {
-        //           "id": order.id,
-        //           "orderDate": order.orderDate,
-        //           "dueDate": order.dueDate,
-        //           "deliveredAt": order.deliveredAt,
-        //           "invAmt": order.invAmt,
-        //           "status": order.orderStatus,
-        //           "orderTotal": order.orderTotal,
-        //           "invNo": order.invNo,
-        //           "balance": order.balance,
-        //           "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
-        //           "deliveryType": order.deliveryType,
-        //           // "auth": order.auth,
-        //           "overdue": overdue 
-        //       };
-        //   });
-          
-      
+
+            //       return {
+            //           "id": order.id,
+            //           "orderDate": order.orderDate,
+            //           "dueDate": order.dueDate,
+            //           "deliveredAt": order.deliveredAt,
+            //           "invAmt": order.invAmt,
+            //           "status": order.orderStatus,
+            //           "orderTotal": order.orderTotal,
+            //           "invNo": order.invNo,
+            //           "balance": order.balance,
+            //           "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
+            //           "deliveryType": order.deliveryType,
+            //           // "auth": order.auth,
+            //           "overdue": overdue 
+            //       };
+            //   });
+
+
             return {
-              status: message.code200,
-              message: message.message200,
-              totalItems: count,
-              currentPage: Page,
-              totalPage: Math.ceil(count / Limit),
-              apiData: orders,
+                status: message.code200,
+                message: message.message200,
+                totalItems: count,
+                currentPage: Page,
+                totalPage: Math.ceil(count / Limit),
+                apiData: orders,
             };
-          } catch (error) {
-            console.log('get_retailer_po_list error:',error.message)
+        } catch (error) {
+            console.log('get_retailer_po_list error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
 
-    async get_po_list_retailer(data){
-        try {
-            
-        } catch (error) {
-            
+  async po_page_card_data_retailer(data){
+    try {
+        const {id} = data
+    } catch (error) {
+        console.log('po_page_card_data_retailer error:',error.message)
+        return {
+            status:message.code500,
+            message:message.message500
         }
     }
+  }
 }
 module.exports = new RetailerService(db);

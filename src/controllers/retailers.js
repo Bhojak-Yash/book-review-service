@@ -142,15 +142,15 @@ exports.get_retailer_po_list = async (req, res) => {
   }
 };
 
-exports.get_po_list_retailer = async (req, res) => {
+exports.po_page_card_data_retailer = async (req, res) => {
   try {
     // console.log("Decoded User from Token:", req.user); // Debugging userId
     const data = {...req.user,...req.query}
-    const response = await RetailerService.get_po_list_retailer(data);
+    const response = await RetailerService.po_page_card_data_retailer(data);
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error("get_po_list_retailer Error:", error.message);
+    console.error("po_page_card_data_retailer Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
