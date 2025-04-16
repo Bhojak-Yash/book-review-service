@@ -916,7 +916,7 @@ class expiryService {
             const orders = await db.orders.findAll({
                 where: {
                     orderFrom: id,
-                    orderStatus: { [db.Sequelize.Op.in]: ["Received", "Partially paid"] },
+                    orderStatus: { [db.Sequelize.Op.in]: ["Inward", "Partially paid"] },
                 },
                 order: [["id", "ASC"]],
             });
