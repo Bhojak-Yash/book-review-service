@@ -11,5 +11,6 @@ router.get('/retailer-profile-get',verifyToken,retailerc.retailer_profile_get)
 router.get('/get-distributors-list',verifyToken,retailerc.get_distributors_list)
 router.get('/get-stocks-byDistributor',retailerc.get_stocks_byDistributor)
 router.get('/get-retailer-po-list',verifyToken,retailerc.get_retailer_po_list)
+router.get('/get-po-list-retailer',verifyToken,retailerc.get_po_list_retailer)
 
 module.exports =router

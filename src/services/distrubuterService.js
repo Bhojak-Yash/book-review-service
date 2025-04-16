@@ -896,7 +896,8 @@ class DistributorService {
                 image: doc.image,
                 status: 'Verified',
                 imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
-                userId: Number(distributorId)
+                userId: Number(distributorId),
+                isDeleted:false
             }));
 
             await db.documents.bulkCreate(documentsData, {

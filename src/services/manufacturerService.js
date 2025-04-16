@@ -297,7 +297,8 @@ class ManufacturerService {
         image: doc.image,
         status: 'Verified',
         imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
-        userId: Number(manufacturerId)
+        userId: Number(manufacturerId),
+        isDeleted:false
       }));
 
       await db.documents.bulkCreate(documentsData, {

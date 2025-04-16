@@ -987,5 +987,13 @@ class RetailerService {
             }
         }
     }
+
+    async get_po_list_retailer(data){
+        try {
+            
+        } catch (error) {
+            
+        }
+    }
 }
 module.exports = new RetailerService(db);
