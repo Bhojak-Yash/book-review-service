@@ -302,8 +302,8 @@ class ManufacturerService {
       }));
 
       await db.documents.bulkCreate(documentsData, {
-        updateOnDuplicate: ["image", 'status','imageSize'],
-        conflictFields: ["categoryId", "userId"]
+        updateOnDuplicate: ["image", 'status','imageSize','isDeleted'],
+        conflictFields: ["categoryId", "userId",'isDeleted']
       });
 
       await transaction.commit();

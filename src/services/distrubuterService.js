@@ -901,8 +901,8 @@ class DistributorService {
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", 'status','imageSize'],
-                conflictFields: ["categoryId", "userId"]
+                updateOnDuplicate: ["image", 'status','imageSize','isDeleted'],
+                conflictFields: ["categoryId", "userId",'isDeleted']
             });
 
             // Fetch manufacturer names for the provided manufacturer IDs
