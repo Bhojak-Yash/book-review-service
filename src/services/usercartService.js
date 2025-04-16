@@ -138,7 +138,8 @@ class UsersCartService {
     async getUserCart(data) {
         try {
             const { id,userType,manufacturerId } = data
-            console.log(data)
+            // console.log(data)
+            // const userData = awa
             let distributor;
             // Fetch all items in the cart for the logged-in user
             const [manufacturer] = await db.sequelize.query(
@@ -146,6 +147,7 @@ class UsersCartService {
                     mn.manufacturerId, 
                     mn.companyName,
                     mn.logo,
+                    us.userType,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
                         'addressType', ad.addressType, 
@@ -159,6 +161,8 @@ class UsersCartService {
                  FROM manufacturers AS mn
                  LEFT JOIN \`address\` AS ad
                    ON ad.userId = mn.manufacturerId
+                   left join \`users\` as us
+                   on mn.manufacturerId=us.id
                  WHERE mn.manufacturerId = :manufacturerId
                  GROUP BY mn.manufacturerId, mn.companyName`,
                 {
@@ -228,7 +232,9 @@ class UsersCartService {
                 }
             );
             let orderFromData =await getData(data?.userType,id)
-            const tableName = data?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            const tableName = manufacturer.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
+            const assss= manufacturer.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
+            // console.log(assss)
             const cartItems = await db.usercarts.findAll({
                 where: {
                     orderFrom: Number(id),
@@ -242,8 +248,8 @@ class UsersCartService {
                     },
                     {
                         model:tableName,
-                        as:"stockDetails",
-                        attributes:['MRP','PTR','BatchNo',"Scheme",'Stock','PTS']
+                        as:assss,
+                        attributes:['MRP','BatchNo',"Scheme",'Stock','PTS']
                     }
                 ],
             });
@@ -253,23 +259,23 @@ class UsersCartService {
                 // console.log(item)
                 // totalAmount+= (Number(item.stockDetails.MRP)*Number(item.quantity))
                 return {
-                    "id":item.id,
-                    "quantity":item.quantity,
-                    "stockId":item.stockId,
-                    "PId":item.PId,
-                    "orderFrom":item.orderFrom,
-                    "orderTo":item.orderTo,
-                    "createdAt":item.createdAt,
-                    "PName":item.productDetails.PName,
-                    "SaltComposition":item.productDetails.SaltComposition,
-                    "MRP":item.stockDetails.MRP,
-                    "PTR":item.stockDetails.PTR || 0,
-                    "PTS":item.stockDetails.PTS || 0,
-                    "scheme":item.stockDetails.Scheme || null,
-                    "BatchNo":item.stockDetails.BatchNo,
-                    "stock":item.stockDetails.Stock,
-                    "ProductForm":item.productDetails.ProductForm,
-                    "PackagingDetails":item.productDetails.PackagingDetails
+                    "id":item?.id,
+                    "quantity":item?.quantity,
+                    "stockId":item?.stockId,
+                    "PId":item?.PId,
+                    "orderFrom":item?.orderFrom,
+                    "orderTo":item?.orderTo,
+                    "createdAt":item?.createdAt,
+                    "PName":item?.productDetails?.PName,
+                    "SaltComposition":item?.productDetails?.SaltComposition,
+                    "MRP":item?.stockDetails?.MRP || item?.stockDetailss?.MRP,
+                    "PTR":item?.stockDetails?.PTR || item?.stockDetailss?.PTR || 0,
+                    "PTS":item?.stockDetails?.PTS || item?.stockDetailss?.PTS || 0,
+                    "scheme":item?.stockDetails?.Scheme || item?.stockDetailss?.Scheme || null,
+                    "BatchNo":item?.stockDetails?.BatchNo || item?.stockDetailss?.BatchNo,
+                    "stock":item?.stockDetails?.Stock || item?.stockDetailss?.Stock,
+                    "ProductForm":item?.productDetails?.ProductForm,
+                    "PackagingDetails":item?.productDetails?.PackagingDetails
                     // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
                 }
             })
