@@ -305,8 +305,15 @@ class OrdersService {
     }
 
 
-
-    await this.db.orders.update(updates, { where: { id: orderId } });
+if(updates.orderStatus === "Inward"){
+  if(order?.dataValues?.balance<order?.dataValues?.invAmt){
+    let sss= updates
+    sss.orderStatus==='Partially paid'
+    await this.db.orders.update(sss, { where: { id: orderId } });
+  }
+}else{
+  await this.db.orders.update(updates, { where: { id: orderId } });
+}
     // const aaa=await this.db.orders.findByPk(orderId);
     // console.log(aaa)
     return await this.db.orders.findByPk(orderId);
