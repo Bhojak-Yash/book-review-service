@@ -306,9 +306,12 @@ class OrdersService {
 
 
 if(updates.orderStatus === "Inward"){
+  // console.log('inwarddddddddd')
   if(order?.dataValues?.balance<order?.dataValues?.invAmt){
-    let sss= updates
-    sss.orderStatus==='Partially paid'
+    // console.log('bda haiiiiiiiiii')
+    let sss = updates
+    sss.orderStatus='Partially paid'
+    // console.log(sss)
     await this.db.orders.update(sss, { where: { id: orderId } });
   }
 }else{
