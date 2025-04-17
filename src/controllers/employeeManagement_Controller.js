@@ -65,8 +65,7 @@ exports.delete_role = async (req, res) => {
         }
 
         const result = await empManagement_Service.delete_role(id);
-
-        return res.json({ status: "success", message: "Data deleted successfully", data: result });
+        return res.status(result.status).json(result);
     } catch (error) {
         console.error("delete_roles Error:", error.message);
         return res.status(500).json({ status: "error", message: error.message });
@@ -172,7 +171,6 @@ exports.bulkUpdateEmployeeStatusController = async (req, res) => {
         res.status(500).json({ status: 500, message: "Internal Server Error" });
     }
 };
-
 
 exports.deleteEmployee = async (req, res) => {
     const employeeId = req.params.id;
