@@ -179,6 +179,7 @@ db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authori
 db.users.hasMany(db.address,{foreignKey: "userId", as: "address"})
 db.orderitems.belongsTo(db.products, { foreignKey: "PId", as: "product" });
 db.orderitems.belongsTo(db.stocks, { foreignKey: "stockId", as: "stock" });
+db.orderitems.belongsTo(db.manufacturerStocks, { foreignKey: "stockId", as: "stocks" });
 db.orders.hasMany(db.payments,{ foreignKey: "orderId", as: "payments" })
 
 db.manufacturers.hasMany(db.products,{ foreignKey: "manufacturerId", as: "products" })

@@ -57,13 +57,13 @@ class OrdersService {
         },
       }, { transaction })
 
-      
+
       // Calling the notificationService.............................................................................
       await notificationsService.createNotification({
-          organisationId: orderData.orderData.orderTo,
-          category: "PO Received",
-          title: "New Purchase Order Received",
-          description: `You have received a new purchase order.`
+        organisationId: orderData.orderData.orderTo,
+        category: "PO Received",
+        title: "New Purchase Order Received",
+        description: `You have received a new purchase order.`
       }, transaction);
 
 
@@ -85,149 +85,158 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    console.log(orderId,updates,loggedInUserId,';;lllll')
+    console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
       // console.log(order?.dataValues)
-      const orderToDeatils = await db.users.findOne({where:{id:order?.dataValues?.orderTo}})
+      const orderToDeatils = await db.users.findOne({ where: { id: order?.dataValues?.orderTo } })
       const orderItems = await db.orderitems.findAll({
         where: { orderId: orderId },
       });
       // console.log('pppppppppppppppppp')
 
-    const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-    const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
-    // console.log(order,orderItems,';pppppp')
+      const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+      const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
+      // console.log(order,orderItems,';pppppp')
       if (!orderItems) {
         throw new Error("Order items not found.");
       }
-    if(updates?.payment){
-      const {amount,mode,image} = updates?.payment
-      await db.payments.create({
-        orderId:Number(orderId),
-        amount:Number(amount),
-        mode:mode,
-        image:image,
-        status:'Pending'
-      })
+      if (updates?.payment) {
+        const { amount, mode, image } = updates?.payment
+        await db.payments.create({
+          orderId: Number(orderId),
+          amount: Number(amount),
+          mode: mode,
+          image: image,
+          status: 'Pending'
+        })
 
-      const data = await db.orders.findOne({where:{id:Number(orderId)}})
+        const data = await db.orders.findOne({ where: { id: Number(orderId) } })
 
-      if (Number(data.dataValues.balance) <= 0) {
-        throw new Error("Payment already completed for this order.");
+        if (Number(data.dataValues.balance) <= 0) {
+          throw new Error("Payment already completed for this order.");
+        }
+
+        let oStatus = 'Paid'
+        if (Number(data.dataValues.balance) > Number(amount)) {
+          oStatus = 'Partially paid'
+        }
+        let amtUpdate = amount;
+        if (Number(data.dataValues.balance) <= Number(amount)) {
+          amtUpdate = Number(data.dataValues.balance)
+        }
+        await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
+        return {
+          status: message.code200,
+          message: message.message200
+        }
       }
 
-      let oStatus = 'Paid'
-      if(Number(data.dataValues.balance)>Number(amount)){
-        oStatus = 'Partially paid'
+      if (updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched') {
+        if (order.orderTo != loggedInUserId) {
+          throw new Error("Unauthorized to update this order.");
+        }
+      } else {
+        if (order.orderFrom != loggedInUserId) {
+          throw new Error("Unauthorized to update this order.");
+        }
       }
-      let amtUpdate = amount;
-      if(Number(data.dataValues.balance)<=Number(amount)){
-        amtUpdate=Number(data.dataValues.balance)
-      }
-      await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`),orderStatus:oStatus },{where:{id:Number(orderId)}})
-      return {
-        status:message.code200,
-        message:message.message200
-      }
-    }
 
-    if (updates.orderStatus === "Confirmed" || updates.orderStatus === 'Rejected' || updates.orderStatus === 'Ready to ship' || updates.orderStatus === 'Ready to pickup' || updates.orderStatus === 'Dispatched') {
-      if (order.orderTo != loggedInUserId) {
-        throw new Error("Unauthorized to update this order.");
-      }
-    } else {
-      if (order.orderFrom != loggedInUserId) {
-        throw new Error("Unauthorized to update this order.");
-      }
-    }
+      if (updates.orderStatus === "Confirmed") {
+        //  console.log(';;;;;;;;;;;;;;;;;;')
+        updates.confirmationDate = new Date();
+        if (orderItems && orderItems.length > 0) {
 
-    if (updates.orderStatus === "Confirmed") {
-    //  console.log(';;;;;;;;;;;;;;;;;;')
-      updates.confirmationDate = new Date();
-      if (orderItems && orderItems.length > 0) {
-
-        await db.sequelize.transaction(async (t) => {
-          // First, check if all items have enough stock before making any updates
-          for (const item of updates.items) {
-            console.log('pppppppp')
-            const [stock] = await db.sequelize.query(
-              `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
-              {
-                replacements: { stockId: item.stockId },
-                type: db.Sequelize.QueryTypes.SELECT,
-                transaction: t, // Use the transaction
-              }
-            );
-            // console.log('ppppp',updates)
-            if (!stock || stock.Stock < item.quantity) {
-              throw new Error(
-                `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
-              );
-            }
-          }
-          console.log(updates?.items);
-
-          for (let item of updates?.items) {
-            console.log('dwekjh')
-            await db.orderitems.update(item, { where: { id: item.id } },{transaction:t});
-          }
-
-          // If all items have sufficient stock, update them
-          await Promise.all(
-            updates?.items?.map(async (item) => {
-              // console.log(item?.stockId)
-              await db.sequelize.query(
-                `UPDATE ${tableNameRow} SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+          await db.sequelize.transaction(async (t) => {
+            // First, check if all items have enough stock before making any updates
+            for (const item of updates.items) {
+              console.log('pppppppp')
+              const [stock] = await db.sequelize.query(
+                `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
-                  replacements: {
-                    itemQuantity: item.quantity,
-                    stockId: item.stockId,
-                  },
-                  transaction: t,
+                  replacements: { stockId: item.stockId },
+                  type: db.Sequelize.QueryTypes.SELECT,
+                  transaction: t, // Use the transaction
                 }
               );
-              // await db.orderitems.update(item)
-            })
-          );
+              // console.log('ppppp',updates)
+              if (!stock || stock.Stock < item.quantity) {
+                throw new Error(
+                  `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
+                );
+              }
+            }
+            console.log(updates?.items);
+
+            for (let item of updates?.items) {
+              console.log('dwekjh')
+              await db.orderitems.update(item, { where: { id: item.id } }, { transaction: t });
+            }
+
+            // If all items have sufficient stock, update them
+            await Promise.all(
+              updates?.items?.map(async (item) => {
+                // console.log(item?.stockId)
+                await db.sequelize.query(
+                  `UPDATE ${tableNameRow} SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+                  {
+                    replacements: {
+                      itemQuantity: item.quantity,
+                      stockId: item.stockId,
+                    },
+                    transaction: t,
+                  }
+                );
+                // await db.orderitems.update(item)
+              })
+            );
+          });
+        }
+        // console.log("testttttt");
+        // Sending notification for PO Received
+        await notificationsService.createNotification({
+          organisationId: order.orderFrom,
+          category: "PO Status update",
+          title: "Purchase Order: Confirmed",
+          description: `Your purchase order has been confirmed for orderId ${orderId}.`
         });
       }
-      // console.log("testttttt");
-      // Sending notification for PO Received
-      await notificationsService.createNotification({
-        organisationId: order.orderFrom,
-        category: "PO Status update",
-        title: "Purchase Order: Confirmed",
-        description: `Your purchase order has been confirmed for orderId ${orderId}.`
-      });
-    }
-    // if(updates.orderStatus === "Rejected"){
+      // if(updates.orderStatus === "Rejected"){
 
-    // }
+      // }
 
-    if (updates.orderStatus === 'Dispatched') {
-      // if (orderItems && orderItems.length > 0) {
+      if (updates.orderStatus === 'Dispatched') {
+        // if (orderItems && orderItems.length > 0) {
 
-      await db.sequelize.transaction(async (t) => {
-        // First, check if all items have enough stock before making any updates
-        // for (const item of updates.items) {
-        // const [stock] = await db.sequelize.query(
-        //   `SELECT * FROM stocks WHERE SId = :stockId`,
-        //   {
-        //     replacements: { stockId: item.stockId },
-        //     type: db.Sequelize.QueryTypes.SELECT,
-        //     transaction: t, // Use the transaction
-        //   }
-        // );
         await db.sequelize.transaction(async (t) => {
           // First, check if all items have enough stock before making any updates
-          for (const item of updates.items) {
-            // console.log(item,';;;;;;')
-            db.orderitems.update({
-              BoxQty: item?.BoxQty || 0,
-              loose: item?.loose || 0
-            }, { where: { id: Number(item.id) } }), { transaction: t }
-          }
+          // for (const item of updates.items) {
+          // const [stock] = await db.sequelize.query(
+          //   `SELECT * FROM stocks WHERE SId = :stockId`,
+          //   {
+          //     replacements: { stockId: item.stockId },
+          //     type: db.Sequelize.QueryTypes.SELECT,
+          //     transaction: t, // Use the transaction
+          //   }
+          // );
+          await db.sequelize.transaction(async (t) => {
+            // First, check if all items have enough stock before making any updates
+            for (const item of updates.items) {
+              // console.log(item,';;;;;;')
+              db.orderitems.update({
+                BoxQty: item?.BoxQty || 0,
+                loose: item?.loose || 0
+              }, { where: { id: Number(item.id) } }), { transaction: t }
+            }
+
+            // If all items have sufficient stock, update them
+            // await Promise.all(
+            //   orderItems.map(async (item) => {
+
+            //   })
+            // );          
+          });
+          // }
 
           // If all items have sufficient stock, update them
           // await Promise.all(
@@ -237,95 +246,86 @@ class OrdersService {
           // );          
         });
         // }
+      }
 
-        // If all items have sufficient stock, update them
-        // await Promise.all(
-        //   orderItems.map(async (item) => {
+      if (updates.orderStatus === "Inward" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
+        updates.deliveredAt = new Date();
+        // Retrieve the items in the order
+        // const orderItems = await db.orderitems.findAll({
+        //   where: { orderId: orderId },
+        // });
 
-        //   })
-        // );          
-      });
-      // }
-    }
+        if (orderItems && orderItems.length > 0) {
 
-    if (updates.orderStatus === "Inward" || updates.orderStatus === "Paid" || updates.orderStatus === "Partially paid") {
-      updates.deliveredAt = new Date();
-      // Retrieve the items in the order
-      // const orderItems = await db.orderitems.findAll({
-      //   where: { orderId: orderId },
-      // });
-
-      if (orderItems && orderItems.length > 0) {
-
-        await db.sequelize.transaction(async (t) => {
-          // First, check if all items have enough stock before making any updates
-          for (const item of orderItems) {
-            const [stock] = await db.sequelize.query(
-              `SELECT * FROM stocks WHERE SId = :stockId`,
-              {
-                replacements: { stockId: item.stockId },
-                type: db.Sequelize.QueryTypes.SELECT,
-                transaction: t, // Use the transaction
-              }
-            );
-            await db.sequelize.query(
-              `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+          await db.sequelize.transaction(async (t) => {
+            // First, check if all items have enough stock before making any updates
+            for (const item of orderItems) {
+              const [stock] = await db.sequelize.query(
+                `SELECT * FROM stocks WHERE SId = :stockId`,
+                {
+                  replacements: { stockId: item.stockId },
+                  type: db.Sequelize.QueryTypes.SELECT,
+                  transaction: t, // Use the transaction
+                }
+              );
+              await db.sequelize.query(
+                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
-              {
-                replacements: {
-                  itemQuantity: item.quantity,
-                  PId: item.PId,
-                  BatchNo: stock.BatchNo,
-                  ExpDate: stock.ExpDate,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  organisationId: order.orderFrom,
-                  MRP: item.MRP,
-                  PTR: item.PTR,
-                  Scheme: item.Scheme,
-                  BoxQty: item.BoxQty,
-                  loose: item.loose,
-                  purchasedFrom:order?.dataValues?.orderTo
-                },
-                transaction: t, // Use the transaction
-              }
-            );
+                {
+                  replacements: {
+                    itemQuantity: item.quantity,
+                    PId: item.PId,
+                    BatchNo: stock.BatchNo,
+                    ExpDate: stock.ExpDate,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    organisationId: order.orderFrom,
+                    MRP: item.MRP,
+                    PTR: item.PTR,
+                    Scheme: item.Scheme,
+                    BoxQty: item.BoxQty,
+                    loose: item.loose,
+                    purchasedFrom: order?.dataValues?.orderTo
+                  },
+                  transaction: t, // Use the transaction
+                }
+              );
 
-          }
+            }
 
-          // If all items have sufficient stock, update them
-          // await Promise.all(
-          //   orderItems.map(async (item) => {
+            // If all items have sufficient stock, update them
+            // await Promise.all(
+            //   orderItems.map(async (item) => {
 
-          //   })
-          // );          
-        });
+            //   })
+            // );          
+          });
+        }
       }
-    }
 
 
-if(updates.orderStatus === "Inward"){
-  // console.log('inwarddddddddd')
-  if(order?.dataValues?.balance<order?.dataValues?.invAmt){
-    // console.log('bda haiiiiiiiiii')
-    let sss = updates
-    sss.orderStatus='Partially paid'
-    // console.log(sss)
-    await this.db.orders.update(sss, { where: { id: orderId } });
-  }
-}else{
-  await this.db.orders.update(updates, { where: { id: orderId } });
-}
-    // const aaa=await this.db.orders.findByPk(orderId);
-    // console.log(aaa)
-    return await this.db.orders.findByPk(orderId);
+      if (updates.orderStatus === "Inward") {
+        // console.log('inwarddddddddd')
+        if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
+          // console.log('bda haiiiiiiiiii')
+          let sss = updates
+          sss.orderStatus = 'Partially paid'
+          // console.log(sss)
+          await this.db.orders.update(sss, { where: { id: orderId } });
+        }
+      } else {
+        await this.db.orders.update(updates, { where: { id: orderId } });
+      }
+      // const aaa=await this.db.orders.findByPk(orderId);
+      // console.log(aaa)
+      return await this.db.orders.findByPk(orderId);
     } catch (error) {
-      console.log('update order servcie error:',error.message)
-     return {
-      status:message.code500,
-      message:error.message
-     }
+      console.log('update order servcie error:', error.message)
+      return {
+        status: message.code500,
+        message: error.message
+      }
     }
   }
 
@@ -403,7 +403,7 @@ if(updates.orderStatus === "Inward"){
       const Limit = Number(data.limit) || 10;
       let skip = 0;
       let whereClause = { orderFrom: id };
-console.log(id)
+      console.log(id)
       if (Page > 1) {
         skip = (Page - 1) * Limit;
       }
@@ -459,11 +459,11 @@ console.log(id)
             required: false, // Ensure manufacturer is included even if no match is found
           },
           {
-            model:db.authorizations,
-            where:{authorizedId:Number(id)},
-            as:"auth",
-            attributes:['creditCycle'],
-            required:false
+            model: db.authorizations,
+            where: { authorizedId: Number(id) },
+            as: "auth",
+            attributes: ['creditCycle'],
+            required: false
           }
         ],
         where: whereClause,
@@ -474,33 +474,33 @@ console.log(id)
       // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
       const updatesResult = orders?.map((order) => {
         let overdue = false;
-    
+
         if (order.deliveredAt && order.auth?.creditCycle) {
-            const deliveredDate = new Date(order.deliveredAt);
-    
-            deliveredDate.setDate(deliveredDate.getDate() + order.auth.creditCycle);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            overdue = deliveredDate < today;
+          const deliveredDate = new Date(order.deliveredAt);
+
+          deliveredDate.setDate(deliveredDate.getDate() + order.auth.creditCycle);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          overdue = deliveredDate < today;
         }
-    
+
         return {
-            "id": order.id,
-            "orderDate": order.orderDate,
-            "dueDate": order.dueDate,
-            "deliveredAt": order.deliveredAt,
-            "invAmt": order.invAmt,
-            "status": order.orderStatus,
-            "orderTotal": order.orderTotal,
-            "invNo": order.invNo,
-            "balance": order.balance,
-            "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
-            "deliveryType": order.deliveryType,
-            // "auth": order.auth,
-            "overdue": overdue 
+          "id": order.id,
+          "orderDate": order.orderDate,
+          "dueDate": order.dueDate,
+          "deliveredAt": order.deliveredAt,
+          "invAmt": order.invAmt,
+          "status": order.orderStatus,
+          "orderTotal": order.orderTotal,
+          "invNo": order.invNo,
+          "balance": order.balance,
+          "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
+          "deliveryType": order.deliveryType,
+          // "auth": order.auth,
+          "overdue": overdue
         };
-    });
-    
+      });
+
 
       return {
         status: message.code200,
@@ -633,13 +633,12 @@ console.log(id)
     try {
       const { id, orderId } = data
       const userId = Number(id)
-      if(!id || !userId){
+      if (!id || !userId) {
         return {
-          status:message.code400,
-          message:'orderId is required'
+          status: message.code400,
+          message: 'orderId is required'
         }
       }
-
       // const user = await db.users.findOne({
       //   where: { id: Number(userId) },
       //   attributes: ['id'],
@@ -670,82 +669,176 @@ console.log(id)
       //   "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
       // }
 
+      const aaa = await db.orders.findOne({ where: { id: Number(orderId) } })
+      const checkUser = await db.users.findOne({ where: { id: Number(aaa?.dataValues?.orderTo) } })
+      const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+      const as = checkUser?.dataValues?.userType === 'Manufacturer' ? 'stocks' : 'stock';
       const order = await db.orders.findOne({
         // attributes:[''],
-        where:{id:Number(orderId)},
-        include:[
+        where: { id: Number(orderId) },
+        include: [
           {
-            model:db.orderitems,
-            as:"orderItems",
-            include:[
+            model: db.orderitems,
+            as: "orderItems",
+            include: [
               {
-                model:db.products,
-                as:"product",
-                attributes:['PId','PName','SaltComposition']
+                model: db.products,
+                as: "product",
+                attributes: ['PId', 'PName', 'SaltComposition']
               },
               {
-                model:db.stocks,
-                as:'stock',
-                attributes:['SId','BatchNo','stock','PTS']
+                model: tableName,
+                as: as,
+                attributes: ['SId', 'BatchNo', 'stock', 'PTS']
               }
             ]
           },
           {
-            model:db.payments,
-            as:'payments',
+            model: db.payments,
+            as: 'payments',
           }
         ]
       })
+
+      const plainOrder = order.toJSON();
+
+      // ✅ Normalize "stock" key in orderItems
+      plainOrder.orderItems = plainOrder.orderItems.map(item => {
+        // If there's a dynamic stock key, move it to `stock`
+        const stockSource = item[as]; // get by dynamic alias name
+        return {
+          ...item,
+          stock: stockSource || null,
+          [as]: undefined, // optional: remove the original dynamic key
+        };
+      });
 
       order.balance = parseFloat(order.balance).toFixed(2);
 
       const Op = db.Op
 
-const users = await db.users.findAll({
-  where: { id: { [Op.or]: [Number(order.orderTo), Number(order.orderFrom)] } },
-  attributes: ["id"],
-  include: [
-    {
-      model: db.distributors,
-      as: "disuser",
-      attributes: ["distributorId", "companyName", "PAN", "GST"],
-      required: false,
-    },
-    {
-      model: db.retailers,
-      as: "reuser",
-      attributes: ["retailerId", "firmName", "PAN", "GST"],
-      required: false,
-    },
-    {
-      model: db.address,
-      as: "address",
-      required: false,
-    },
-  ],
-});
+      const users = await db.users.findAll({
+        where: { id: { [Op.or]: [Number(order.orderTo), Number(order.orderFrom)] } },
+        attributes: ["id"],
+        include: [
+          {
+            model: db.distributors,
+            as: "disuser",
+            attributes: ["distributorId", "companyName", "PAN", "GST"],
+            required: false,
+          },
+          {
+            model: db.retailers,
+            as: "reuser",
+            attributes: ["retailerId", "firmName", "PAN", "GST"],
+            required: false,
+          },
+          {
+            model: db.address,
+            as: "address",
+            required: false,
+          },
+        ],
+      });
 
-// Extract users based on their IDs
-const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
-const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
+      // Extract users based on their IDs
+      const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
+      const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
 
-// Format the response for both users
-const formatUser = (user) => ({
-  id: user?.id || null,
-  companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
-  PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
-  GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
-  address: user?.address || null,
-});
+      // Format the response for both users
+      const formatUser = (user) => ({
+        id: user?.id || null,
+        companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
+        PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
+        GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
+        address: user?.address || null,
+      });
 
-return {
-  status: message.code200,
-  message: "Order fetched successfully.",
-  distributor: formatUser(userFrom), // Distributor details (orderFrom)
-  manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
-  order: order,
-};
-;
+      // const formattedOrder = {
+      //     "id": order?.id,
+      //     "orderDate": order?.orderData,
+      //     "invNo": order?.invNo,
+      //     "confirmationDate": order?.confirmationDate,
+      //     "dueDate": order?.dueDate,
+      //     "barcode": order?.barcode,
+      //     "invAmt": order?.invAmt,
+      //     "cNAmt": order?.cNAmt,
+      //     "recdAmt": order?.recdAmt,
+      //     "balance": order?.balance,
+      //     "sMan": order?.sMan,
+      //     "sMobile": order?.sMobile,
+      //     "dMan": order?.dMan,
+      //     "dMobile": order?.dMo,
+      //     "orderStatus": "Pending",
+      //     "orderFrom": 7,
+      //     "orderTo": 10,
+      //     "orderTotal": 98000,
+      //     "deliveredAt": null,
+      //     "entityId": null,
+      //     "reason": null,
+      //     "invUrl": null,
+      //     "deliveryType": null,
+      //     "dispatchDate": null,
+      //     "createdAt": "2025-04-17T09:39:25.000Z",
+      //     "updatedAt": "2025-04-17T09:39:25.000Z",
+      //     "orderItems": [
+      //         {
+      //             "id": 1,
+      //             "invNo": null,
+      //             "PId": 211,
+      //             "quantity": 100000,
+      //             "schQty": null,
+      //             "price": "1",
+      //             "MRP": "1",
+      //             "PTR": null,
+      //             "sch_Per": null,
+      //             "cD_Per": null,
+      //             "iGST_Per": null,
+      //             "cGST_Per": null,
+      //             "sGST_Per": null,
+      //             "gCESS_Per": null,
+      //             "grsAmt": null,
+      //             "netAmt": null,
+      //             "wPAmt": null,
+      //             "schAmt": null,
+      //             "cDAmt": null,
+      //             "gSTAmt": null,
+      //             "gCESSAmt": null,
+      //             "taxable": "100000",
+      //             "createdAt": "2025-04-17T09:39:25.000Z",
+      //             "updatedAt": "2025-04-17T09:39:25.000Z",
+      //             "deletedAt": null,
+      //             "orderId": 1,
+      //             "stockId": 1,
+      //             "BoxQty": null,
+      //             "Scheme": null,
+      //             "loose": null,
+      //             "PTS": 1,
+      //             "product": {
+      //                 "PId": 211,
+      //                 "PName": "Apple",
+      //                 "SaltComposition": "Cyanide"
+      //             },
+      //             "stocks": {
+      //                 "SId": 1,
+      //                 "BatchNo": "123",
+      //                 "stock": 1000000000,
+      //                 "PTS": 1
+      //             }
+      //         }
+      //     ],
+      //     "payments": []
+
+      // }
+
+      return {
+        status: message.code200,
+        message: "Order fetched successfully.",
+        distributor: formatUser(userFrom), // Distributor details (orderFrom)
+        manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
+        order: plainOrder,
+      };
+      ;
     } catch (error) {
       console.log('purchase_order_summary service error:', error.message)
       return {
@@ -758,20 +851,20 @@ return {
 
   async confirm_payment(data) {
     try {
-      const {id,paymentId} = data
+      const { id, paymentId } = data
       await db.payments.update(
-        { status: 'Confirmed' }, 
+        { status: 'Confirmed' },
         { where: { id: Number(paymentId) } }
-    );
-    return {
-      status:message.code200,
-      message:message.code200
-    }
-    } catch (error) {
-      console.log('confirm_payment service error:',error.message)
+      );
       return {
-        status:message.code500,
-        message:message.message500
+        status: message.code200,
+        message: message.code200
+      }
+    } catch (error) {
+      console.log('confirm_payment service error:', error.message)
+      return {
+        status: message.code500,
+        message: message.message500
       }
     }
   }
