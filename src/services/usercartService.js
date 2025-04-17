@@ -138,7 +138,7 @@ class UsersCartService {
     async getUserCart(data) {
         try {
             const { id,userType,manufacturerId } = data
-            // console.log(data)
+            console.log(data)
             // const userData = awa
             let distributor;
             // Fetch all items in the cart for the logged-in user
@@ -232,8 +232,8 @@ class UsersCartService {
                 }
             );
             let orderFromData =await getData(data?.userType,id)
-            const tableName = manufacturer.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
-            const assss= manufacturer.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
+            const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
+            const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
             // console.log(assss)
             const cartItems = await db.usercarts.findAll({
                 where: {
