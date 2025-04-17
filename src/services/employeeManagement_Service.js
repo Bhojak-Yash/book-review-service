@@ -406,15 +406,119 @@ class DistributorService {
         }
     }
 
+    // async create_employee(userIdFromToken, data) {
+    //     let transaction;
+    //     try {
+    //         const { userName, phone, email, roleId, entityId } = data;
+    //         const employeeOf = userIdFromToken.id;
+
+    //         console.log("tokenData:", data);
+
+    //         // Validate required fields
+    //         if (!userName || !phone || !email || !roleId || !entityId) {
+    //             return {
+    //                 status: message.code400,
+    //                 message: "All fields are required",
+    //             };
+    //         }
+
+    //         const nameParts = userName.trim().split(" ");
+    //         let firstName = "";
+    //         let lastName = "";
+
+    //         if (nameParts.length === 1) {
+    //             firstName = nameParts[0];
+    //             lastName = "";
+    //         } else {
+    //             lastName = nameParts.pop();
+    //             firstName = nameParts.join(" ");
+    //         }
+
+
+    //         transaction = await db.sequelize.transaction();
+
+    //         const generatedPassword = Math.random().toString(36).slice(-8);
+    //         const hashedPassword = await hashPassword(generatedPassword);
+
+    //         const user = await Users.create(
+    //             {
+    //                 userName: email,
+    //                 password: hashedPassword,
+    //                 userType: 'Employee',
+    //                 status: "Active",
+    //                 email,
+    //                 phone
+    //             },
+    //             { transaction }
+    //         );
+
+    //         // Create employee
+    //         await db.employees.create(
+    //             {
+    //                 employeeId: user.id,
+    //                 firstName,
+    //                 lastName,
+    //                 employeeCode: "EMP" + user.id,
+    //                 employeeOf,
+    //                 entityId,
+    //                 email: email,
+    //                 phone: phone,
+    //                 roleId: roleId,
+    //                 employeeStatus: "Active",
+    //             },
+    //             { transaction }
+    //         );
+    //         console.log(roleId);
+
+    //         if (email) {
+    //             const transporter = nodemailer.createTransport({
+    //                 service: 'gmail',
+    //                 auth: {
+    //                     user: process.env.EMAIL,
+    //                     pass: process.env.EMAIL_PASSWORD
+    //                 }
+    //             });
+
+    //             const mailOptions = {
+    //                 from: process.env.EMAIL_USER,
+    //                 to: email,
+    //                 subject: "Your Employee Account Password",
+    //                 text: `Hello ${firstName},\n\nYour employee account has been created.\n\nUsername: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password.`,
+    //             };
+
+    //             // Sending email inside try-catch block to avoid failure breaking transaction
+    //             try {
+    //                 await transporter.sendMail(mailOptions);
+    //                 console.log("📧 Email sent successfully!");
+    //             } catch (emailError) {
+    //                 console.log("⚠️ Email sending failed:", emailError);
+    //                 // throw new Error("User registration successful, but email could not be sent.");
+    //             }
+    //         }
+
+    //         await transaction.commit();
+
+    //         return {
+    //             status: message.code200,
+    //             message: "Employee created successfully and password sent via email.",
+    //         };
+
+    //     } catch (error) {
+    //         if (transaction) await transaction.rollback();
+    //         console.log('createEmployee error:', error.message);
+    //         return {
+    //             status: message.code500,
+    //             message: message.message500,
+    //         };
+    //     }
+    // }
+
     async create_employee(userIdFromToken, data) {
         let transaction;
         try {
             const { userName, phone, email, roleId, entityId } = data;
             const employeeOf = userIdFromToken.id;
 
-            console.log("tokenData:", data);
-
-            // Validate required fields
             if (!userName || !phone || !email || !roleId || !entityId) {
                 return {
                     status: message.code400,
@@ -422,81 +526,48 @@ class DistributorService {
                 };
             }
 
-            const nameParts = userName.trim().split(" ");
-            let firstName = "";
-            let lastName = "";
+            // Fast name split
+            const [firstName, ...rest] = userName.trim().split(" ");
+            const lastName = rest.join(" ");
 
-            if (nameParts.length === 1) {
-                firstName = nameParts[0];
-                lastName = "";
-            } else {
-                lastName = nameParts.pop();
-                firstName = nameParts.join(" ");
-            }
-
-
+            // Begin transaction
             transaction = await db.sequelize.transaction();
 
+            // Generate and hash password
             const generatedPassword = Math.random().toString(36).slice(-8);
             const hashedPassword = await hashPassword(generatedPassword);
 
-            const user = await Users.create(
-                {
-                    userName: email,
-                    password: hashedPassword,
-                    userType: 'Employee',
-                    status: "Active",
-                    email,
-                    phone
-                },
-                { transaction }
-            );
+            // Create user
+            const user = await Users.create({
+                userName: email,
+                password: hashedPassword,
+                userType: 'Employee',
+                status: "Active",
+                email,
+                phone
+            }, { transaction });
 
             // Create employee
-            await db.employees.create(
-                {
-                    employeeId: user.id,
-                    firstName,
-                    lastName,
-                    employeeCode: "EMP" + user.id,
-                    employeeOf,
-                    entityId,
-                    email: email,
-                    phone: phone,
-                    roleId: roleId,
-                    employeeStatus: "Active",
-                },
-                { transaction }
-            );
-            console.log(roleId);
+            await db.employees.create({
+                employeeId: user.id,
+                firstName,
+                lastName,
+                employeeCode: "EMP" + user.id,
+                employeeOf,
+                entityId,
+                email,
+                phone,
+                roleId,
+                employeeStatus: "Active",
+            }, { transaction });
 
-            if (email) {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: process.env.EMAIL,
-                        pass: process.env.EMAIL_PASSWORD
-                    }
-                });
-
-                const mailOptions = {
-                    from: process.env.EMAIL_USER,
-                    to: email,
-                    subject: "Your Employee Account Password",
-                    text: `Hello ${firstName},\n\nYour employee account has been created.\n\nUsername: ${userName}\nPassword: ${generatedPassword}\n\nPlease log in and change your password.`,
-                };
-
-                // Sending email inside try-catch block to avoid failure breaking transaction
-                try {
-                    await transporter.sendMail(mailOptions);
-                    console.log("📧 Email sent successfully!");
-                } catch (emailError) {
-                    console.log("⚠️ Email sending failed:", emailError);
-                    // throw new Error("User registration successful, but email could not be sent.");
-                }
-            }
-
+            // Commit transaction before sending email
             await transaction.commit();
+
+            // Send email (outside transaction to save DB time)
+            if (email) {
+                sendEmployeeEmail(email, firstName, generatedPassword);
+            }
 
             return {
                 status: message.code200,
@@ -845,5 +916,30 @@ class DistributorService {
         }
     }    
 }
+
+async function sendEmployeeEmail(email, name, password) {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Your Employee Account Password",
+            text: `Hello ${name},\n\nYour employee account has been created.\n\nUsername: ${email}\nPassword: ${password}\n\nPlease log in and change your password.`,
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log("📧 Email sent successfully!");
+    } catch (emailError) {
+        console.log("⚠️ Email sending failed:", emailError.message);
+    }
+}
+
 
 module.exports = new DistributorService(db);
