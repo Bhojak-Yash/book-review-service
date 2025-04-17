@@ -41,7 +41,7 @@ module.exports =(sequelize,Sequelize)=>{
     {
         tableName: "entities",
         timestamps: true,
-        paranoid: true
+        // paranoid: true
       })
     return entities
 }

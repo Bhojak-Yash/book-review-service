@@ -165,24 +165,18 @@ exports.updateWarehouse = async (entityId, data) => {
 
 exports.deleteWarehouse = async (entityId) => {
     try {
-        const warehouse = await db.entities.findOne({
-            where: {
-                entityId,
-                deletedAt: null
-            }
-        });
+        const [updateCount] = await db.entities.update(
+            { deletedAt: new Date() },
+            { where: { entityId } }
+        );
 
-        if (!warehouse) {
+        if (!updateCount) {
             return {
                 status: 404,
                 message: "Warehouse not found or already deleted"
             };
         }
-
-        await db.entities.update(
-            { deletedAt: new Date() },
-            { where: { entityId } }
-        );
+        console.log("updateCount: ", updateCount);
 
         return {
             status: 200,
@@ -201,23 +195,6 @@ exports.bulkUpdate = async (entityIds, status, userIdFromToken) => {
     try {
         // console.log("Input - Warehouse IDs:", entityIds, "Status:", status, "UserID:", userIdFromToken);
 
-        const matchingWarehouses = await db.entities.findAll({
-            where: {
-                entityId: { [Op.in]: entityIds },
-                organisationId: userIdFromToken,
-                deletedAt: null
-            }
-        });
-
-        // console.log("🔍 Matching warehouses found:", matchingWarehouses.length);
-
-        if (matchingWarehouses.length === 0) {
-            return {
-                status: 404,
-                message: "No matching warehouses found to update"
-            };
-        }
-
         const [updatedCount] = await db.entities.update(
             { status },
             {
@@ -228,8 +205,13 @@ exports.bulkUpdate = async (entityIds, status, userIdFromToken) => {
                 }
             }
         );
-
-        // console.log("Updated warehouse count:", updatedCount);
+        if (!updatedCount) {
+            return {
+                status: 404,
+                message: "No matching warehouses found to update"
+            };
+        }
+        console.log("Updated warehouse count:", updatedCount);
 
         return {
             status: 200,
@@ -302,4 +284,3 @@ exports.getWarehouseStats = async (userIdFromToken) => {
         };
     }
 };
-

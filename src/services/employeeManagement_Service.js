@@ -6,6 +6,7 @@ const Distributors = db.distributors;
 const Sequelize = require('sequelize');
 const nodemailer = require('nodemailer');
 const { Op } = require("sequelize");
+const { delete_role } = require('../controllers/employeeManagement_Controller');
 
     
 async function hashPassword(password) {
@@ -116,20 +117,18 @@ class DistributorService {
             // Generate the roleCode by transforming the roleName:
             const roleCode = newRoleName
                 .toUpperCase()              // Capitalize all characters
-                .replace(/\s+/g, "_");      // Replace spaces with underscores
+                .replace(/\s+/g, "_");      // Replace spaces with underscore
 
-            // Find role by ID
-            const role = await db.roles.findOne({ where: { id } });
-
-            if (!role) {
-                return null; // Role not found
-            }
 
             // Update the role with the new roleName and generated roleCode
-            await db.roles.update(
+            const[updateCount] = await db.roles.update(
                 { roleName: newRoleName, roleCode: roleCode, status: status },
                 { where: { id } }
             );
+            if (updateCount === 0) {
+                throw new Error("Role not found.");
+            }
+            console.log("updateCount: ", updateCount);
 
             return { id, newRoleName, roleCode, status }; // Return updated role details
 
@@ -144,18 +143,24 @@ class DistributorService {
                 throw new Error("roleId is required");
             }
 
-            const role = await db.roles.findByPk(roleId);
-            if (!role) {
-                throw new Error("Role not found.");
-            }
-
-            await db.roles.update(
+            const [updatedCount] = await db.roles.update(
                 { deletedAt: new Date() },
                 { where: { id: roleId } }
             );
+            if(!updatedCount){
+                return {
+                    status: 404,
+                    message: "Employee not found or unauthorized"
+                };
+            }
+            console.log("updateCount :", updatedCount);
 
             console.log(`Role with ID ${roleId} soft deleted`);
 
+            return {
+                status: 200,
+                message: "Data deleted successfully",
+            }
         } catch (error) {
             console.error("Error soft deleting role:", error.message);
             throw new Error(error.message);
@@ -404,13 +409,13 @@ class DistributorService {
     async create_employee(userIdFromToken, data) {
         let transaction;
         try {
-            const { userName, phone, email, roleId, warehouse, entityId } = data;
+            const { userName, phone, email, roleId, entityId } = data;
             const employeeOf = userIdFromToken.id;
 
             console.log("tokenData:", data);
 
             // Validate required fields
-            if (!userName || !phone || !email || !roleId || !warehouse || !entityId) {
+            if (!userName || !phone || !email || !roleId || !entityId) {
                 return {
                     status: message.code400,
                     message: "All fields are required",
@@ -459,7 +464,6 @@ class DistributorService {
                     email: email,
                     phone: phone,
                     roleId: roleId,
-                    warehouse,
                     employeeStatus: "Active",
                 },
                 { transaction }
@@ -677,17 +681,7 @@ class DistributorService {
 
     async updateEmployee(employeeId, data, userIdFromToken){
         try {
-            const employee = await db.employees.findOne({
-                where: { employeeId, employeeOf: userIdFromToken }
-            });
-
-            if (!employee) {
-                return {
-                    status: 404,
-                    message: "Employee not found or unauthorized"
-                };
-            }
-
+            
             const updates = {};
             if (data.employeeName) {
                 const nameParts = data.employeeName.trim().split(" ");
@@ -700,9 +694,16 @@ class DistributorService {
             if (data.roleId) updates.roleId = data.roleId;
             if (data.status) updates.employeeStatus = data.status;
 
-            await db.employees.update(updates, {
-                where: { employeeId },
+            const [updatedCount] = await db.employees.update(updates, {
+                where: { employeeId, employeeOf: userIdFromToken },
             });
+
+            if(!updatedCount){
+                return {
+                    status: 404,
+                    message: "Employee not found or unauthorized"
+                };
+            }
 
             return {
                 status: 200,
@@ -723,25 +724,6 @@ class DistributorService {
             // First, log the incoming data
             console.log("🔍 Input - IDs:", employeeIds, "Status:", status, "UserID:", userIdFromToken);
 
-            // Find matching employees first
-            const matchingEmployees = await db.employees.findAll({
-                where: {
-                    employeeId: employeeIds,
-                    employeeOf: userIdFromToken,
-                    deletedAt: null
-                }
-            });
-
-            console.log("🔍 Matching employees found:", matchingEmployees.length);
-
-            if (matchingEmployees.length === 0) {
-                return {
-                    status: 404,
-                    message: "No matching employees found to update"
-                };
-            }
-
-            // Perform bulk update
             const [updatedCount] = await db.employees.update(
                 { employeeStatus: status },
                 {
@@ -752,7 +734,14 @@ class DistributorService {
                     }
                 }
             );
-            console.log("Looking for employees where:");
+            if (!updatedCount) {
+                return {
+                    status: 404,
+                    message: "No matching employees found to update"
+                };
+            }
+            console.log("updatedCount:", updatedCount);
+
             console.log("employeeId IN:", employeeIds);
             console.log("employeeOf:", userIdFromToken);
             console.log("deletedAt is NULL");
@@ -772,25 +761,21 @@ class DistributorService {
         }
     };
 
-
     async deleteEmployeeById(employeeId, userIdFromToken) {
         try {
-            const employee = await db.employees.findOne({
-                where: { employeeId, employeeOf: userIdFromToken }
-            });
+            const [updatedCount] = await db.employees.update(
+                { deletedAt: new Date() },
+                { where: { employeeId } },
+                { employeeOf: userIdFromToken },
+            );
 
-            if (!employee) {
+            if (!updatedCount) {
                 return {
                     status: 404,
                     message: "Employee not found or unauthorized"
                 };
             }
-
-            // ✅ Soft delete by setting deletedAt timestamp
-            await db.employees.update(
-                { deletedAt: new Date() },
-                { where: { employeeId } }
-            );
+            // console.log("updatedCount : ", updatedCount);
 
             return {
                 status: 200,

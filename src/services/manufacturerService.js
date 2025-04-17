@@ -500,6 +500,9 @@ class ManufacturerService {
           whereCondition.orderStatus = data.status
         }
       }
+      if (data?.entityId) {
+        whereCondition.entityId = data.entityId;
+      }
       if (data?.search) {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
@@ -520,18 +523,18 @@ class ManufacturerService {
           [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
         };
       }
-      // console.log(whereCondition)
-      const totalData = await db.orders.count({ where: whereCondition })
       console.log(whereCondition)
-      const result = await db.orders.findAll({
-        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'balance', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType'],
+      // const totalData = await db.orders.count({ where: whereCondition })
+      console.log(whereCondition)
+      const { count,rows:result} = await db.orders.findAndCountAll({
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'balance', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType', 'entityId'],
         where: whereCondition,
         include: [
           {
             model: db.distributors,
             as: 'distributer',
             attributes: ['distributorId', 'companyName'],
-            required:false,
+            required:true,
             include:{
               model:db.authorizations,
               as:'auth',
@@ -542,9 +545,11 @@ class ManufacturerService {
         ],
         order: [['id', 'DESC']],
         limit: Limit,
-        offset: Skip
+        offset: Skip,
+        distinct: true
       })
-      // console.log(result)
+
+      // console.log(count,result)
       const formattedResult = result.map(order => {
         const distributer = order.distributer;
         const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
@@ -567,6 +572,7 @@ class ManufacturerService {
       
         return {
           ...order.toJSON(),
+          entityId: order.entityId,
           distributer: distributer
             ? {
               companyName: distributer.companyName,
@@ -595,14 +601,14 @@ class ManufacturerService {
 
       //   return { ...plainItem, deliveryType };
       // })
-      const totalPage = Math.ceil(Number(totalData) / Limit)
+      const totalPage = Math.ceil(Number(count) / Limit)
 
       return {
         status: message.code200,
         message: message.message200,
         currentPage: Page,
         totalPage: totalPage,
-        totalData: totalData,
+        totalData: count,
         apiData: formattedResult || null
       }
     } catch (error) {

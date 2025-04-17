@@ -62,7 +62,7 @@ exports.updateWarehouseController = async (req, res) => {
     }
 };
 
-exports.deleteWarehouse = async (req, res) => {arehouse
+exports.deleteWarehouse = async (req, res) => {
     try {
         const { entityId } = req.params;
 
