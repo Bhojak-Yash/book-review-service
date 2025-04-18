@@ -121,6 +121,9 @@ class OrdersService {
         if (Number(data.dataValues.balance) > Number(amount)) {
           oStatus = 'Partially paid'
         }
+        if(data?.dataValues?.orderStatus==='Confirmed' || data?.dataValues?.orderStatus==='Pending' || data?.dataValues?.orderStatus==='Dispatched'){
+          oStatus = data?.dataValues?.orderStatus
+        }
         let amtUpdate = amount;
         if (Number(data.dataValues.balance) <= Number(amount)) {
           amtUpdate = Number(data.dataValues.balance)
