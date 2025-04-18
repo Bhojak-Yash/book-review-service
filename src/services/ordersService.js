@@ -685,7 +685,7 @@ class OrdersService {
               {
                 model: db.products,
                 as: "product",
-                attributes: ['PId', 'PName', 'SaltComposition']
+                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails']
               },
               {
                 model: tableName,
