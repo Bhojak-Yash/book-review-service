@@ -137,8 +137,8 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            const { id,userType,manufacturerId } = data
-            // console.log(data)
+            // const { id,userType,manufacturerId } = data
+            console.log(data)
             // const userData = awa
             let distributor;
             // Fetch all items in the cart for the logged-in user
@@ -202,7 +202,7 @@ class UsersCartService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
-            }
+            }else{
              [distributor] = await db.sequelize.query(
                 `SELECT 
                     mn.distributorId, 
@@ -231,6 +231,7 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+        }
             let orderFromData =await getData(data?.userType,id)
             const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
             const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
@@ -303,6 +304,7 @@ class UsersCartService {
                 
             }
             if(userType==='Retailer'){
+                // console.log('ppppppppppppppppretailers',manufacturer,distributor)
                 return {
                     status: message.code200,
                     message: "Cart fetched successfully.",
