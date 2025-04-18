@@ -179,14 +179,20 @@ class UsersCartService {
                         mn.retailerId, 
                         mn.firmName,
                         mn.profilePic,
+                        mn.GST,
+                        mn.PAN,
                         JSON_ARRAYAGG(
                           JSON_OBJECT(
                             'addressType', ad.addressType, 
                             'name', ad.name, 
                             'mobile', ad.mobile, 
-                            'city', ad.city, 
-                            'state', ad.state,
-                            'email', ad.email
+                            'email', ad.email,
+                            'addLine1',ad.addLine1,
+                            'addLine2',ad.addLine2,
+                            'State',ad.State,
+                            'city',ad.city,
+                            'country',ad.country,
+                            'pinCode',ad.pinCode
                           )
                         ) AS addresses
                      FROM retailers AS mn
@@ -210,12 +216,16 @@ class UsersCartService {
                     mn.profilePic,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
-                        'addressType', ad.addressType, 
-                        'name', ad.name, 
-                        'mobile', ad.mobile, 
-                        'city', ad.city, 
-                        'state', ad.state,
-                        'email', ad.email
+                       'addressType', ad.addressType, 
+                            'name', ad.name, 
+                            'mobile', ad.mobile, 
+                            'email', ad.email,
+                            'addLine1',ad.addLine1,
+                            'addLine2',ad.addLine2,
+                            'State',ad.State,
+                            'city',ad.city,
+                            'country',ad.country,
+                            'pinCode',ad.pinCode
                       )
                     ) AS addresses
                  FROM distributors_new AS mn
