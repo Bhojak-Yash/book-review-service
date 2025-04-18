@@ -137,8 +137,8 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            // const { id,userType,manufacturerId } = data
-            console.log(data)
+            const { id,userType,manufacturerId } = data
+            // console.log(data)
             // const userData = awa
             let distributor;
             // Fetch all items in the cart for the logged-in user
