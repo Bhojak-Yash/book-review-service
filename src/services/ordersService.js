@@ -744,7 +744,7 @@ class OrdersService {
 
       const formattedOrder = {
           "id": order?.id,
-          "orderDate": order?.orderData,
+          "orderDate": order?.orderDate,
           "invNo": order?.invNo,
           "confirmationDate": order?.confirmationDate,
           "dueDate": order?.dueDate,
