@@ -214,6 +214,8 @@ class UsersCartService {
                     mn.distributorId, 
                     mn.companyName,
                     mn.profilePic,
+                    mn.GST,
+                        mn.PAN,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
                        'addressType', ad.addressType, 
