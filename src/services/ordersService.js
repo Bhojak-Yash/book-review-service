@@ -803,7 +803,7 @@ class OrdersService {
               "loose": item?.loose,
               "PTS": item?.PTS,
               "product": item?.product,
-              "stocks": item?.stocks || item?.stock || {}
+              "stock": item?.stocks || item?.stock || {}
           }
           }),
           "payments": []
