@@ -33,7 +33,7 @@ class UsersCartService {
             }
 // console.log(data)
             let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
-            console.log(check)
+            // console.log(check)
             if (check) {
                 if(quantity==0){
                     await db.usercarts.destroy({
@@ -234,6 +234,7 @@ class UsersCartService {
             let orderFromData =await getData(data?.userType,id)
             const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
             const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
+            const attr = manufacturer?.userType==='Manufacturer'?['MRP','BatchNo',"Scheme",'Stock','PTS']:['MRP','BatchNo',"Scheme",'Stock','PTS','PTR']
             // console.log(assss)
             const cartItems = await db.usercarts.findAll({
                 where: {
@@ -249,7 +250,7 @@ class UsersCartService {
                     {
                         model:tableName,
                         as:assss,
-                        attributes:['MRP','BatchNo',"Scheme",'Stock','PTS']
+                        attributes:attr
                     }
                 ],
             });
