@@ -166,6 +166,14 @@ db.distributors.hasMany(db.orders, {
   as: 'distributer'
 });
 
+db.orders.belongsTo(db.authorizations, {
+  foreignKey: 'orderTo',
+  targetKey: 'authorizedBy',
+  as: 'authorization'
+});
+
+
+
 db.authorizations.belongsTo(db.distributors,{foreignKey:'authorizedId',as:"distributers"})
 db.distributors.hasMany(db.authorizations,{foreignKey:'authorizedId',as:"auth"})
 db.authorizations.belongsTo(db.users,{foreignKey:'authorizedId',as:"user"})

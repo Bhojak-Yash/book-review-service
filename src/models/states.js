@@ -8,6 +8,14 @@ module.exports = (sequelize, DataTypes) => {
         state: {
             type: DataTypes.STRING,
             allowNull: false
+        },
+        GSTIN:{
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        stateCode:{
+            type: DataTypes.STRING,
+            allowNull: false
         }
     }, {
         timestamps: false 
