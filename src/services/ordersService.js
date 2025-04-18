@@ -806,7 +806,7 @@ class OrdersService {
               "stock": item?.stocks || item?.stock || {}
           }
           }),
-          "payments": []
+          "payments": order?.payments
 
       }
 
