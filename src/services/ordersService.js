@@ -314,8 +314,10 @@ class OrdersService {
           // console.log('bda haiiiiiiiiii')
           let sss = updates
           sss.orderStatus = 'Partially paid'
-          // console.log(sss)
+          console.log(sss)
           await this.db.orders.update(sss, { where: { id: orderId } });
+        }else{
+         await this.db.orders.update(updates, { where: { id: orderId } });
         }
       } else {
         await this.db.orders.update(updates, { where: { id: orderId } });
@@ -552,7 +554,7 @@ class OrdersService {
           { id: { [Op.like]: `%${data.search}%` } }, // Search by orderId
         ];
       }
-
+// console.log(whereClause,'oppppppp')
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
@@ -583,7 +585,7 @@ class OrdersService {
         where: whereClause,
         offset: skip,
         limit: Limit,
-        order: [["orderDate", "DESC"]]
+        order: [["id", "DESC"]]
       });
 
       // Formatting Result
