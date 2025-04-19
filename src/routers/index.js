@@ -20,8 +20,9 @@ const notificationsRouter = require('./notificationsRoutes')
 const expiryRouter = require('./expiry')
 const employeeManagement_Router = require('./employeeManagement_Routes')
 const warehouseManagement_Router = require('./warehouseManagement_Routes')
+const accountsRouter = require('./accountsRoutes')
 
 
 
 
-module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryRouter,productRouter,manufacturerRouter,expiryRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, statesRouter, notificationsRouter, employeeManagement_Router, warehouseManagement_Router}
+module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryRouter,productRouter,manufacturerRouter,expiryRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, statesRouter, notificationsRouter, employeeManagement_Router, warehouseManagement_Router, accountsRouter}
