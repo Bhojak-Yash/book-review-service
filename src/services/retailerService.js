@@ -715,7 +715,7 @@ class RetailerService {
     async get_stocks_byDistributor(data) {
         try {
             const { distributorId, id, page, limit, expStatus, search, stockStatus, entityId } = data
-            // console.log(data)
+            console.log(data)
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0;
@@ -789,7 +789,7 @@ class RetailerService {
                 checkCart = await db.usercarts.findAll({ where: { orderFrom: Number(id), orderTo: Number(distributorId) } })
             }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
-            // console.log(skip)
+            console.log(id,"checkCart")
             const userData = await db.users.findOne({
                 where: { id: Number(distributorId) },
                 attributes: ['id', 'userName'],

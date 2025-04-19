@@ -33,7 +33,7 @@ class UsersCartService {
             }
 // console.log(data)
             let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
-            console.log(check)
+            // console.log(check)
             if (check) {
                 if(quantity==0){
                     await db.usercarts.destroy({
@@ -179,14 +179,20 @@ class UsersCartService {
                         mn.retailerId, 
                         mn.firmName,
                         mn.profilePic,
+                        mn.GST,
+                        mn.PAN,
                         JSON_ARRAYAGG(
                           JSON_OBJECT(
                             'addressType', ad.addressType, 
                             'name', ad.name, 
                             'mobile', ad.mobile, 
-                            'city', ad.city, 
-                            'state', ad.state,
-                            'email', ad.email
+                            'email', ad.email,
+                            'addLine1',ad.addLine1,
+                            'addLine2',ad.addLine2,
+                            'State',ad.State,
+                            'city',ad.city,
+                            'country',ad.country,
+                            'pinCode',ad.pinCode
                           )
                         ) AS addresses
                      FROM retailers AS mn
@@ -202,20 +208,26 @@ class UsersCartService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
-            }
+            }else{
              [distributor] = await db.sequelize.query(
                 `SELECT 
                     mn.distributorId, 
                     mn.companyName,
                     mn.profilePic,
+                    mn.GST,
+                        mn.PAN,
                     JSON_ARRAYAGG(
                       JSON_OBJECT(
-                        'addressType', ad.addressType, 
-                        'name', ad.name, 
-                        'mobile', ad.mobile, 
-                        'city', ad.city, 
-                        'state', ad.state,
-                        'email', ad.email
+                       'addressType', ad.addressType, 
+                            'name', ad.name, 
+                            'mobile', ad.mobile, 
+                            'email', ad.email,
+                            'addLine1',ad.addLine1,
+                            'addLine2',ad.addLine2,
+                            'State',ad.State,
+                            'city',ad.city,
+                            'country',ad.country,
+                            'pinCode',ad.pinCode
                       )
                     ) AS addresses
                  FROM distributors_new AS mn
@@ -231,9 +243,11 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+        }
             let orderFromData =await getData(data?.userType,id)
             const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
             const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
+            const attr = manufacturer?.userType==='Manufacturer'?['MRP','BatchNo',"Scheme",'Stock','PTS']:['MRP','BatchNo',"Scheme",'Stock','PTS','PTR']
             // console.log(assss)
             const cartItems = await db.usercarts.findAll({
                 where: {
@@ -249,7 +263,7 @@ class UsersCartService {
                     {
                         model:tableName,
                         as:assss,
-                        attributes:['MRP','BatchNo',"Scheme",'Stock','PTS']
+                        attributes:attr
                     }
                 ],
             });
@@ -302,6 +316,7 @@ class UsersCartService {
                 
             }
             if(userType==='Retailer'){
+                // console.log('ppppppppppppppppretailers',manufacturer,distributor)
                 return {
                     status: message.code200,
                     message: "Cart fetched successfully.",
