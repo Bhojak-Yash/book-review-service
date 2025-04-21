@@ -69,6 +69,7 @@ class RetailerService {
                 {
                     retailerId: user.id, // Assuming `id` is the primary key of the `users` table
                     firmName: companyName,
+                    email:userName,
                     retailerCode: retailerCode, // Adding retailerCode
                 },
                 { transaction }

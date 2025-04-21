@@ -85,7 +85,7 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    console.log(orderId, updates, loggedInUserId, ';;lllll')
+    // console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
       // console.log(order?.dataValues)
@@ -119,6 +119,7 @@ class OrdersService {
 
         let oStatus = 'Paid'
         if (Number(data.dataValues.balance) > Number(amount)) {
+          console.log('[[[[[[[[[[')
           oStatus = 'Partially paid'
         }
         if(data?.dataValues?.orderStatus==='Confirmed' || data?.dataValues?.orderStatus==='Pending' || data?.dataValues?.orderStatus==='Dispatched'){
@@ -128,6 +129,7 @@ class OrdersService {
         if (Number(data.dataValues.balance) <= Number(amount)) {
           amtUpdate = Number(data.dataValues.balance)
         }
+        console.log(oStatus,'llllllllllllll')
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
         return {
           status: message.code200,
@@ -308,9 +310,13 @@ class OrdersService {
       }
 
 
-      if (updates.orderStatus === "Inward") {
+      if (updates?.orderStatus === "Inward") {
         // console.log('inwarddddddddd')
-        if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
+        if(order?.dataValues?.balance ==0){
+          let sss = updates
+          sss.orderStatus = 'Paid'
+          await this.db.orders.update(sss, { where: { id: orderId } })
+        }else if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
           // console.log('bda haiiiiiiiiii')
           let sss = updates
           sss.orderStatus = 'Partially paid'
