@@ -149,6 +149,38 @@ class OrdersController {
     }
   }
 
+  static async getAddressDetails(req, res){
+    try{
+      const userIdFromToken = req.user?.id;
+      const getAddress = await ordersService.getAddressDetails(userIdFromToken);
+      res.json(getAddress)
+    }catch(error){
+      console.log("Error in getAddressDetails Controller", error.message);
+      res.json({
+        status: message.code500,
+        message:error.message
+      })
+    }
+  }
+
+  static async updateAddressDetails(req, res) {
+    try {
+      const userIdFromToken = req.user?.id;
+      const addressPayload = req.body; // assuming address fields are passed in the body
+
+      const result = await ordersService.updateAddressDetails(userIdFromToken, addressPayload);
+
+      res.json(result);
+    } catch (error) {
+      console.log("Error in updateAddressDetails Controller", error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+
 }
 
 module.exports = OrdersController;

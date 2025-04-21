@@ -6,14 +6,13 @@ const accountsService = require('../services/accountsServices');
 //Payable accounts
 exports.getOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status = '' } = req.query;
+        const { page = 1, limit = 10 } = req.query;
         const orderFrom = req.user?.id;
 
         const result = await accountsService.getOrders({
             orderFrom,
             page: parseInt(page),
-            limit: parseInt(limit),
-            status
+            limit: parseInt(limit)
         });
 
         res.status(200).json({
@@ -27,6 +26,43 @@ exports.getOrders = async (req, res) => {
             success: false,
             message: "Failed to fetch orders",
             error: error.message
+        });
+    }
+};
+
+exports.getOrdersDetails = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const orderFrom = req.user?.id;
+        const orderToParam = req.params.id;
+
+        // Validate and parse orderTo
+        const orderTo = parseInt(orderToParam);
+        if (isNaN(orderTo)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid orderTo ID provided in URL.",
+            });
+        }
+
+        const result = await accountsService.getOrdersDetails({
+            orderFrom,
+            orderTo,
+            page: parseInt(page),
+            limit: parseInt(limit),
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Orders fetched successfully",
+            data: result,
+        });
+    } catch (error) {
+        console.error("getOrdersDetails controller error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch orders",
+            error: error.message,
         });
     }
 };
@@ -97,6 +133,43 @@ exports.getOrdersReceived = async (req, res) => {
             success: false,
             message: "Failed to fetch orders received",
             error: error.message
+        });
+    }
+};
+
+exports.getOrdersDetailsReceived = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const orderTo = req.user?.id;
+        const orderFromParam = req.params.id;
+
+        // Validate and parse orderTo
+        const orderFrom = parseInt(orderFromParam);
+        if (isNaN(orderTo)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid orderTo ID provided in URL.",
+            });
+        }
+
+        const result = await accountsService.getOrdersDetailsReceived({
+            orderTo,
+            orderFrom,
+            page: parseInt(page),
+            limit: parseInt(limit),
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Orders fetched successfully",
+            data: result,
+        });
+    } catch (error) {
+        console.error("getOrdersDetails controller error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch orders",
+            error: error.message,
         });
     }
 };

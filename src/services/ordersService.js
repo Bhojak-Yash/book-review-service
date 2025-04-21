@@ -1037,6 +1037,77 @@ class OrdersService {
     }
   }
 
+
+  async getAddressDetails(userId) {
+    try {
+      const billingAddress = await db.address.findOne({
+        where: {
+          userId: userId,
+          addressType: 'Billing'
+        }
+      });
+
+      const businessAddress = await db.address.findOne({
+        where: {
+          userId: userId,
+          addressType: 'Business'
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          billingAddress,
+          businessAddress
+        }
+      };
+    } catch (error) {
+      console.error("Error in getAddressDetails Service:", error.message);
+      throw new Error("Failed to fetch address details");
+    }
+  }
+
+  async updateAddressDetails(userId, addressPayload) {
+    try {
+      const results = {};
+
+      // Update Billing Address if provided
+      if (addressPayload.billingAddress) {
+        const [billingUpdated] = await db.address.update(addressPayload.billingAddress, {
+          where: {
+            userId: userId,
+            addressType: 'Billing'
+          }
+        });
+
+        results.billing = billingUpdated > 0
+          ? "Billing address updated successfully"
+          : "No billing address found to update";
+      }
+
+      // Update Business Address if provided
+      if (addressPayload.businessAddress) {
+        const [businessUpdated] = await db.address.update(addressPayload.businessAddress, {
+          where: {
+            userId: userId,
+            addressType: 'Business'
+          }
+        });
+
+        results.business = businessUpdated > 0
+          ? "Business address updated successfully"
+          : "No business address found to update";
+      }
+
+      return {
+        success: true,
+        message: results
+      };
+    } catch (error) {
+      console.error("Error in updateAddressDetails Service:", error.message);
+      throw new Error("Failed to update address details");
+    }
+  }
 }
 
 module.exports = OrdersService;
