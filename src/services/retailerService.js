@@ -169,7 +169,7 @@ class RetailerService {
             const userInclude = [{
                 model: db.distributors,
                 as: 'disuser',
-                attributes: ['companyName'],
+                attributes: ['companyName', 'type'],
                 required: true
             },
             {
@@ -192,12 +192,13 @@ class RetailerService {
                 include: userInclude
             });
 
+
             const userResults = users.map(item => ({
                 id: item.id,
+                userType: item?.disuser[0]?.type || null,
                 userName: item?.disuser[0]?.companyName || item.userName,
                 address: item.addresss[0] || {}
             }));
-
 
 
             return {
@@ -595,6 +596,7 @@ class RetailerService {
 
             const query = `
             SELECT 
+            mn.retailerId,
               mn.firmName, 
         mn.ownerName, 
         mn.profilePic, 
@@ -646,6 +648,7 @@ class RetailerService {
                 if (!transformedData[distributorId]) {
                     transformedData[distributorId] = {
                         retailer: {
+                            retailerId: row.retailerId,
                             companyName: row.firmName,
                             ownerName: row.ownerName,
                             logo: row.profilePic,
@@ -992,73 +995,73 @@ class RetailerService {
         }
     }
 
-  async po_page_card_data_retailer(data){
-    try {
-        const { id } = data;
-        const userId = Number(id);
-        let whereauthApproved = {authorizedId:userId,status:"Approved"}
-        let whereauthPending = { authorizedId: userId, status: "Pending" }
-        let whereorders={ orderFrom: userId }
+    async po_page_card_data_retailer(data){
+        try {
+            const { id } = data;
+            const userId = Number(id);
+            let whereauthApproved = {authorizedId:userId,status:"Approved"}
+            let whereauthPending = { authorizedId: userId, status: "Pending" }
+            let whereorders={ orderFrom: userId }
 
-        if (data.start_date && data.end_date) {
-            const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-            const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+            if (data.start_date && data.end_date) {
+                const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
 
-            whereorders.orderDate = {
-                [Op.between]: [startDate, endDate]
+                whereorders.orderDate = {
+                    [Op.between]: [startDate, endDate]
+                };
+                whereauthPending.createdAt = {
+                    [Op.between]: [startDate, endDate]
+                };
+                whereauthApproved.createdAt = {
+                    [Op.between]: [startDate, endDate]
+                };
+            }
+
+            // Parallelizing queries for better performance
+            const [orderStats, distributors, pendingAuthorizations] = await Promise.all([
+                db.orders.findOne({
+                    attributes: [
+                        [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Inward', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                        [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+                    ],
+                    where: whereorders,
+                    raw: true,
+                }),
+
+                // Fetch total retailers grouped by companyType
+                db.authorizations.count({where:whereauthApproved}),
+
+                // Count pending authorizations
+                db.authorizations.count({ where:whereauthPending  }),
+            ]);
+
+
+            // Extract retailer counts based on companyType
+            // const totalRetailersCount = retailerCounts.length > 0 ? Number(retailerCounts[0]?.totalRetailers) || 0 : 0;
+
+            return {
+                status: 200,
+                message: "Data fetched successfully",
+                data: {
+                    totalOrders: Number(orderStats?.totalOrders) || 0,
+                    completedOrders: Number(orderStats?.completedOrders) || 0,
+                    pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
+                    totalDueAmtOrders: orderStats?.totalDueAmtOrders ? Number(orderStats.totalDueAmtOrders.toFixed(2)) : 0.0,
+                    totalDueAmount: orderStats?.totalDueAmount ? Number(orderStats.totalDueAmount.toFixed(2)) : 0.0,
+                    distributors: distributors,
+                    pendingAuthorizations,
+                },
             };
-            whereauthPending.createdAt = {
-                [Op.between]: [startDate, endDate]
-            };
-            whereauthApproved.createdAt = {
-                [Op.between]: [startDate, endDate]
-            };
-        }
-
-        // Parallelizing queries for better performance
-        const [orderStats, distributors, pendingAuthorizations] = await Promise.all([
-            db.orders.findOne({
-                attributes: [
-                    [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Inward', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
-                    [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
-                ],
-                where: whereorders,
-                raw: true,
-            }),
-
-            // Fetch total retailers grouped by companyType
-            db.authorizations.count({where:whereauthApproved}),
-
-            // Count pending authorizations
-            db.authorizations.count({ where:whereauthPending  }),
-        ]);
-
-
-        // Extract retailer counts based on companyType
-        // const totalRetailersCount = retailerCounts.length > 0 ? Number(retailerCounts[0]?.totalRetailers) || 0 : 0;
-
-        return {
-            status: 200,
-            message: "Data fetched successfully",
-            data: {
-                totalOrders: Number(orderStats?.totalOrders) || 0,
-                completedOrders: Number(orderStats?.completedOrders) || 0,
-                pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
-                totalDueAmtOrders: orderStats?.totalDueAmtOrders ? Number(orderStats.totalDueAmtOrders.toFixed(2)) : 0.0,
-                totalDueAmount: orderStats?.totalDueAmount ? Number(orderStats.totalDueAmount.toFixed(2)) : 0.0,
-                distributors: distributors,
-                pendingAuthorizations,
-            },
-        };
-    } catch (error) {
-        console.log('po_page_card_data_retailer error:',error.message)
-        return {
-            status:message.code500,
-            message:message.message500
+        } catch (error) {
+            console.log('po_page_card_data_retailer error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
         }
     }
-  }
 }
 module.exports = new RetailerService(db);

@@ -421,7 +421,7 @@ class OrdersService {
             '$manufacturer.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
           },
           {
-            '$distributor_new.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
+            '$distributor.companyName$': { [Op.like]: `%${data.search}%` } // Search by manufacturer name
           }
         ];
       }
@@ -634,6 +634,205 @@ class OrdersService {
     }
   }
 
+  // async purchase_order_summary(data) {
+  //   try {
+  //     const { id, orderId } = data
+  //     const userId = Number(id)
+  //     if (!id || !userId) {
+  //       return {
+  //         status: message.code400,
+  //         message: 'orderId is required'
+  //       }
+  //     }
+  //     // const user = await db.users.findOne({
+  //     //   where: { id: Number(userId) },
+  //     //   attributes: ['id'],
+  //     //   include: [
+  //     //     {
+  //     //       model: db.manufacturers,
+  //     //       as: "manufacturer",
+  //     //       attributes: ["manufacturerId", "companyName"],
+  //     //       required: false,
+  //     //     },
+  //     //     {
+  //     //       model: db.distributors,
+  //     //       as: "disuser",
+  //     //       attributes: ["distributorId", "companyName"],
+  //     //       required: false,
+  //     //     },
+  //     //     {
+  //     //       model: db.address,
+  //     //       as: "address",
+  //     //       required: false,
+  //     //     }
+  //     //   ]
+  //     // })
+
+  //     // const updatedUser = {
+  //     //   "id":user?.id,
+  //     //   "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
+  //     //   "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
+  //     // }
+
+  //     const aaa = await db.orders.findOne({ where: { id: Number(orderId) } })
+  //     const checkUser = await db.users.findOne({ where: { id: Number(aaa?.dataValues?.orderTo) } })
+  //     const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+  //     const as = checkUser?.dataValues?.userType == 'Manufacturer' ? 'stocks' : 'stock';
+  //     console.log(as,tableName,';;;;;;;;',checkUser?.dataValues?.userType)
+  //     const order = await db.orders.findOne({
+  //       // attributes:[''],
+  //       where: { id: Number(orderId) },
+  //       include: [
+  //         {
+  //           model: db.orderitems,
+  //           as: "orderItems",
+  //           include: [
+  //             {
+  //               model: db.products,
+  //               as: "product",
+  //               attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails']
+  //             },
+  //             {
+  //               model: tableName,
+  //               as: as,
+  //               attributes: ['SId', 'BatchNo', 'stock', 'PTS']
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           model: db.payments,
+  //           as: 'payments',
+  //         }
+  //       ]
+  //     })
+
+  //     order.balance = parseFloat(order.balance).toFixed(2);
+
+  //     const Op = db.Op
+
+  //     const users = await db.users.findAll({
+  //       where: { id: { [Op.or]: [Number(order.orderTo), Number(order.orderFrom)] } },
+  //       attributes: ["id"],
+  //       include: [
+  //         {
+  //           model: db.distributors,
+  //           as: "disuser",
+  //           attributes: ["distributorId", "companyName", "PAN", "GST"],
+  //           required: false,
+  //         },
+  //         {
+  //           model: db.retailers,
+  //           as: "reuser",
+  //           attributes: ["retailerId", "firmName", "PAN", "GST"],
+  //           required: false,
+  //         },
+  //         {
+  //           model: db.address,
+  //           as: "address",
+  //           required: false,
+  //         },
+  //       ],
+  //     });
+
+  //     // Extract users based on their IDs
+  //     const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
+  //     const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
+
+  //     // Format the response for both users
+  //     const formatUser = (user) => ({
+  //       id: user?.id || null,
+  //       companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
+  //       PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
+  //       GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
+  //       address: user?.address || null,
+  //     });
+
+  //     const formattedOrder = {
+  //         "id": order?.id,
+  //         "orderDate": order?.orderDate,
+  //         "invNo": order?.invNo,
+  //         "confirmationDate": order?.confirmationDate,
+  //         "dueDate": order?.dueDate,
+  //         "barcode": order?.barcode,
+  //         "invAmt": order?.invAmt,
+  //         "cNAmt": order?.cNAmt,
+  //         "recdAmt": order?.recdAmt,
+  //         "balance": order?.balance,
+  //         "sMan": order?.sMan,
+  //         "sMobile": order?.sMobile,
+  //         "dMan": order?.dMan,
+  //         "dMobile": order?.dMo,
+  //         "orderStatus": order?.orderStatus,
+  //         "orderFrom": order?.orderFrom,
+  //         "orderTo": order?.orderTo,
+  //         "orderTotal": order?.orderTotal,
+  //         "deliveredAt": order?.deliveredAt,
+  //         "entityId": order?.entityId,
+  //         "reason": order?.reason,
+  //         "invUrl": order?.invUrl,
+  //         "deliveryType": order?.deliveryType,
+  //         "dispatchDate": order?.dispatchDate,
+  //         "createdAt": order?.createdAt,
+  //         "updatedAt": order?.updatedAt,
+  //         "orderItems": order?.orderItems?.map((item)=>{
+  //           return {
+  //             "id": item?.id,
+  //             "invNo": item?.invNo,
+  //             "PId": item?.PId,
+  //             "quantity": item?.quantity,
+  //             "schQty": item?.schQty,
+  //             "price": item?.price,
+  //             "MRP": item?.MRP,
+  //             "PTR": item?.PTR,
+  //             "sch_Per": item?.sch_Per,
+  //             "cD_Per": item?.cD_Per,
+  //             "iGST_Per": item?.iGST_Per,
+  //             "cGST_Per": item?.cGST_Per,
+  //             "sGST_Per": item?.sGST_Per,
+  //             "gCESS_Per": item?.gCESS_Per,
+  //             "grsAmt": item?.grsAmt,
+  //             "netAmt": item?.netAmt,
+  //             "wPAmt": item?.wPAmt,
+  //             "schAmt": item?.schAmt,
+  //             "cDAmt": item?.cDAmt,
+  //             "gSTAmt": item?.gSTAmt,
+  //             "gCESSAmt": item?.gCESSAmt,
+  //             "taxable": item?.taxable,
+  //             "createdAt": item?.createdAt,
+  //             "updatedAt": item?.updatedAt,
+  //             "deletedAt": item?.deletedAt,
+  //             "orderId": item?.orderId,
+  //             "stockId": item?.stockId,
+  //             "BoxQty": item?.BoxQty,
+  //             "Scheme": item?.Scheme,
+  //             "loose": item?.loose,
+  //             "PTS": item?.PTS,
+  //             "product": item?.product,
+  //             "stock": item?.stocks || item?.stock || {}
+  //         }
+  //         }),
+  //         "payments": order?.payments
+
+  //     }
+
+  //     return {
+  //       status: message.code200,
+  //       message: "Order fetched successfully.",
+  //       distributor: formatUser(userFrom), // Distributor details (orderFrom)
+  //       manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
+  //       order: formattedOrder,
+  //     };
+  //     ;
+  //   } catch (error) {
+  //     console.log('purchase_order_summary service error:', error.message)
+  //     return {
+  //       status: message.code500,
+  //       message: message.message500,
+  //       // apiData: null
+  //     }
+  //   }
+  // }
+
   async purchase_order_summary(data) {
     try {
       const { id, orderId } = data
@@ -644,41 +843,12 @@ class OrdersService {
           message: 'orderId is required'
         }
       }
-      // const user = await db.users.findOne({
-      //   where: { id: Number(userId) },
-      //   attributes: ['id'],
-      //   include: [
-      //     {
-      //       model: db.manufacturers,
-      //       as: "manufacturer",
-      //       attributes: ["manufacturerId", "companyName"],
-      //       required: false,
-      //     },
-      //     {
-      //       model: db.distributors,
-      //       as: "disuser",
-      //       attributes: ["distributorId", "companyName"],
-      //       required: false,
-      //     },
-      //     {
-      //       model: db.address,
-      //       as: "address",
-      //       required: false,
-      //     }
-      //   ]
-      // })
-
-      // const updatedUser = {
-      //   "id":user?.id,
-      //   "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
-      //   "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
-      // }
 
       const aaa = await db.orders.findOne({ where: { id: Number(orderId) } })
       const checkUser = await db.users.findOne({ where: { id: Number(aaa?.dataValues?.orderTo) } })
       const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const as = checkUser?.dataValues?.userType == 'Manufacturer' ? 'stocks' : 'stock';
-      console.log(as,tableName,';;;;;;;;',checkUser?.dataValues?.userType)
+      console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
       const order = await db.orders.findOne({
         // attributes:[''],
         where: { id: Number(orderId) },
@@ -810,9 +980,23 @@ class OrdersService {
               "product": item?.product,
               "stock": item?.stocks || item?.stock || {}
           }
-          }),
-          "payments": order?.payments
+        }),
+        "payments": order?.payments
+      }
 
+      // Determine tax type based on state
+      const getStateFromAddress = (user) => {
+        const billingAddress = user?.address?.find(addr => addr.addressType === 'Billing');
+        return billingAddress?.State || null;  
+      };
+
+
+      const fromState = getStateFromAddress(userFrom);
+      const toState = getStateFromAddress(userTo);
+
+      let taxType = null;
+      if (fromState && toState) {
+        taxType = (fromState === toState) ? 'SGST_CGST' : 'IGST';
       }
 
       return {
@@ -821,8 +1005,8 @@ class OrdersService {
         distributor: formatUser(userFrom), // Distributor details (orderFrom)
         manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
         order: formattedOrder,
+        taxType: taxType || 'Unknown'
       };
-      ;
     } catch (error) {
       console.log('purchase_order_summary service error:', error.message)
       return {
@@ -852,135 +1036,6 @@ class OrdersService {
       }
     }
   }
-
-//   async purchase_order_summary(data) {
-//     try {
-//       const { id, orderId } = data
-//       const userId = Number(id)
-//       if(!id || !userId){
-//         return {
-//           status:message.code400,
-//           message:'orderId is required'
-//         }
-//       }
-
-//       // const user = await db.users.findOne({
-//       //   where: { id: Number(userId) },
-//       //   attributes: ['id'],
-//       //   include: [
-//       //     {
-//       //       model: db.manufacturers,
-//       //       as: "manufacturer",
-//       //       attributes: ["manufacturerId", "companyName"],
-//       //       required: false,
-//       //     },
-//       //     {
-//       //       model: db.distributors,
-//       //       as: "disuser",
-//       //       attributes: ["distributorId", "companyName"],
-//       //       required: false,
-//       //     },
-//       //     {
-//       //       model: db.address,
-//       //       as: "address",
-//       //       required: false,
-//       //     }
-//       //   ]
-//       // })
-
-//       // const updatedUser = {
-//       //   "id":user?.id,
-//       //   "companyName":user?.manufacturer[0]?user?.manufacturer[0].companyName:user?.disuser[0].companyName,
-//       //   "address":user?.address[0]?.addressType==='Billing'?user?.address[0]:user?.address[1]
-//       // }
-
-//       const order = await db.orders.findOne({
-//         // attributes:[''],
-//         where:{id:Number(orderId)},
-//         include:[
-//           {
-//             model:db.orderitems,
-//             as:"orderItems",
-//             include:[
-//               {
-//                 model:db.products,
-//                 as:"product",
-//                 attributes:['PId','PName','SaltComposition']
-//               },
-//               {
-//                 model:db.stocks,
-//                 as:'stock',
-//                 attributes:['SId','BatchNo','stock','PTS']
-//               }
-//             ]
-//           },
-//           {
-//             model:db.payments,
-//             as:'payments',
-//           }
-//         ]
-//       })
-
-//       order.balance = parseFloat(order.balance).toFixed(2);
-
-//       const Op = db.Op
-
-// const users = await db.users.findAll({
-//   where: { id: { [Op.or]: [Number(order.orderTo), Number(order.orderFrom)] } },
-//   attributes: ["id"],
-//   include: [
-//     {
-//       model: db.distributors,
-//       as: "disuser",
-//       attributes: ["distributorId", "companyName", "PAN", "GST"],
-//       required: false,
-//     },
-//     {
-//       model: db.retailers,
-//       as: "reuser",
-//       attributes: ["retailerId", "firmName", "PAN", "GST"],
-//       required: false,
-//     },
-//     {
-//       model: db.address,
-//       as: "address",
-//       required: false,
-//     },
-//   ],
-// });
-
-// // Extract users based on their IDs
-// const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
-// const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
-
-// // Format the response for both users
-// const formatUser = (user) => ({
-//   id: user?.id || null,
-//   companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
-//   PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
-//   GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
-//   address: user?.address || null,
-// });
-
-// return {
-//   status: message.code200,
-//   message: "Order fetched successfully.",
-//   distributor: formatUser(userFrom), // Distributor details (orderFrom)
-//   manufacturer: formatUser(userTo),  // Manufacturer details (orderTo)
-//   order: order,
-// };
-// ;
-//     } catch (error) {
-//       console.log('purchase_order_summary service error:', error.message)
-//       return {
-//         status: message.code500,
-//         message: message.message500,
-//         // apiData: null
-//       }
-//     }
-//   }
-
-
 
 }
 
