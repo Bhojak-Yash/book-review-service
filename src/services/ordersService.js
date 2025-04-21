@@ -923,13 +923,13 @@ class OrdersService {
       // Extract users based on their IDs
       const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
       const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
-
+// console.log(userTo.dataValues.manufacturer,'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[')
       // Format the response for both users
       const formatUser = (user) => ({
         id: user?.id || null,
-        companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
-        PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
-        GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
+        companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || user?.manufacturer?.[0]?.companyName || null,
+        PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || user?.manufacturer?.[0]?.PAN || null,
+        GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || user?.manufacturer?.[0]?.GST || null,
         address: user?.address || null,
       });
 
