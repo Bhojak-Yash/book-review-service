@@ -151,8 +151,14 @@ db.orders.belongsTo(db.distributors, {
 db.orders.hasMany(db.orderitems,{foreignKey: "orderId", as: "orderItems"})
 db.orders.belongsTo(db.manufacturers,{foreignKey:'orderTo',as: 'manufacturer'})
 db.orders.belongsTo(db.distributors,{foreignKey:'orderTo',as: 'distributor'})
+db.orders.belongsTo(db.retailers, {foreignKey: 'orderTo', targetKey: 'retailerId', as: 'retailer'});
 // db.orders.hasMany(db.authorizations, { foreignKey: "authorizedBy", targetKey: "orderTo", as: "auth" });
 db.orders.belongsTo(db.authorizations, { foreignKey: "orderTo", targetKey: "authorizedBy", as: "auth" });
+
+db.orders.belongsTo(db.manufacturers, { foreignKey: 'orderFrom', as: 'fromManufacturer' });
+db.orders.belongsTo(db.distributors, { foreignKey: 'orderFrom', as: 'fromDistributor' });
+db.orders.belongsTo(db.retailers, { foreignKey: 'orderFrom', as: 'fromRetailer' });
+
 
 db.distributors.belongsTo(db.manufacturers,{foreignKey:'distributorId',as:"disuser"})
 db.retailers.belongsTo(db.manufacturers,{foreignKey:'retailerId',as:"reuser"})
