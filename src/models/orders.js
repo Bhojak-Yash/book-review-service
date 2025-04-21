@@ -85,6 +85,18 @@ module.exports = (sequelize, Sequelize) => {
         },
         dispatchDate:{
           type:Sequelize.DATE
+        },
+        IGST:{
+          type: Sequelize.INTEGER
+        },
+        CGST:{
+          type: Sequelize.INTEGER
+        },
+        SGST:{
+          type: Sequelize.INTEGER
+        },
+        subTotal:{
+          type: Sequelize.STRING
         }
       },
       {
