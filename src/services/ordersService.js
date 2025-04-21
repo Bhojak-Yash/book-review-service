@@ -512,7 +512,8 @@ class OrdersService {
           "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
           "deliveryType": order.deliveryType,
           // "auth": order.auth,
-          "overdue": overdue
+          "overdue": overdue,
+          "reason":order?.reason || ''
         };
       });
 

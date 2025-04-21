@@ -87,7 +87,7 @@ class RetailerService {
             console.log("createRetailer error:", error.message);
             return {
                 status: message.code500,
-                message: message.message500,
+                message: error.message,
             };
         }
 
@@ -577,7 +577,7 @@ class RetailerService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['image', "status", "imageSize", 'updatedAt'],
+                        attributes: ['documentId','image', "status", "imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id)
                         },
@@ -609,6 +609,8 @@ class RetailerService {
         mn.GST as gst, 
         mn.retailerId,
         mn.FSSAI,
+        mn.drugLicense,
+        mn.companyType,
         mn.PAN as pan, 
         mn.CIN as cin,
               us.*, 
@@ -652,6 +654,8 @@ class RetailerService {
                             retailerId: row.retailerId,
                             companyName: row.firmName,
                             ownerName: row.ownerName,
+                            companyType:row.companyType,
+                            wholeSaleDrugLicence:row.drugLicense,
                             logo: row.profilePic,
                             createdAt: row.createdAt,
                             updatedAt: row.updatedAt,
