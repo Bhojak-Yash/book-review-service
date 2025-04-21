@@ -112,13 +112,14 @@ class OrdersService {
         })
 
         const data = await db.orders.findOne({ where: { id: Number(orderId) } })
+        const aaa=  Number(Number(data.dataValues.balance).toFixed(2))
 
-        if (Number(data.dataValues.balance) <= 0) {
+        if (Number(aaa) <= 0) {
           throw new Error("Payment already completed for this order.");
         }
 
         let oStatus = 'Paid'
-        if (Number(data.dataValues.balance) > Number(amount)) {
+        if (Number(aaa) > Number(amount)) {
           console.log('[[[[[[[[[[')
           oStatus = 'Partially paid'
         }
@@ -126,10 +127,13 @@ class OrdersService {
           oStatus = data?.dataValues?.orderStatus
         }
         let amtUpdate = amount;
-        if (Number(data.dataValues.balance) <= Number(amount)) {
-          amtUpdate = Number(data.dataValues.balance)
+        if (Number(aaa) <= Number(amount)) {
+          amtUpdate = Number(aaa)
         }
-        console.log(oStatus,'llllllllllllll')
+        if(aaa-Number(amtUpdate)==0){
+          oStatus='Paid'
+        }
+        console.log(oStatus,'llllllllllllll',aaa,amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
         return {
           status: message.code200,
@@ -900,6 +904,12 @@ class OrdersService {
             model: db.retailers,
             as: "reuser",
             attributes: ["retailerId", "firmName", "PAN", "GST"],
+            required: false,
+          },
+          {
+            model: db.manufacturers,
+            as: "manufacturer",
+            attributes: ["manufacturerId", "companyName", "PAN", "GST"],
             required: false,
           },
           {
