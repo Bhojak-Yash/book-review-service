@@ -128,7 +128,7 @@ class OrdersService {
         }
         let amtUpdate = amount;
         if (Number(aaa) <= Number(amount)) {
-          amtUpdate = Number(aaa)
+          amtUpdate = Number(data.dataValues.balance)
         }
         if(aaa-Number(amtUpdate)==0){
           oStatus='Paid'
