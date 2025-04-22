@@ -426,7 +426,7 @@ class expiryService {
     async expire_details_card_data(data) {
         try {
             const { id, manufacturerId } = data
-            const checkId = Number(id)
+            let checkId = Number(id)
             if (data?.userType === 'Employee') {
                 checkId = data.data.employeeOf
             }
