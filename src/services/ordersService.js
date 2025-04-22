@@ -112,13 +112,14 @@ class OrdersService {
         })
 
         const data = await db.orders.findOne({ where: { id: Number(orderId) } })
+        const aaa=  Number(Number(data.dataValues.balance).toFixed(2))
 
-        if (Number(data.dataValues.balance) <= 0) {
+        if (Number(aaa) <= 0) {
           throw new Error("Payment already completed for this order.");
         }
 
         let oStatus = 'Paid'
-        if (Number(data.dataValues.balance) > Number(amount)) {
+        if (Number(aaa) > Number(amount)) {
           console.log('[[[[[[[[[[')
           oStatus = 'Partially paid'
         }
@@ -126,10 +127,13 @@ class OrdersService {
           oStatus = data?.dataValues?.orderStatus
         }
         let amtUpdate = amount;
-        if (Number(data.dataValues.balance) <= Number(amount)) {
-          amtUpdate = Number(data.dataValues.balance)
+        if (Number(aaa) <= Number(amount)) {
+          amtUpdate = Number(aaa)
         }
-        console.log(oStatus,'llllllllllllll')
+        if(aaa-Number(amtUpdate)==0){
+          oStatus='Paid'
+        }
+        console.log(oStatus,'llllllllllllll',aaa,amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
         return {
           status: message.code200,
@@ -508,7 +512,8 @@ class OrdersService {
           "orderTo": order.manufacturer?.companyName || order?.distributor.companyName || order?.order,
           "deliveryType": order.deliveryType,
           // "auth": order.auth,
-          "overdue": overdue
+          "overdue": overdue,
+          "reason":order?.reason || ''
         };
       });
 
@@ -903,6 +908,12 @@ class OrdersService {
             required: false,
           },
           {
+            model: db.manufacturers,
+            as: "manufacturer",
+            attributes: ["manufacturerId", "companyName", "PAN", "GST"],
+            required: false,
+          },
+          {
             model: db.address,
             as: "address",
             required: false,
@@ -913,13 +924,13 @@ class OrdersService {
       // Extract users based on their IDs
       const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
       const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
-
+// console.log(userTo.dataValues.manufacturer,'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[')
       // Format the response for both users
       const formatUser = (user) => ({
         id: user?.id || null,
-        companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || null,
-        PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || null,
-        GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || null,
+        companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || user?.manufacturer?.[0]?.companyName || null,
+        PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || user?.manufacturer?.[0]?.PAN || null,
+        GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || user?.manufacturer?.[0]?.GST || null,
         address: user?.address || null,
       });
 

@@ -243,6 +243,27 @@ class ProductsService {
         }
     }
 
+    async get_upload_error(data){
+        try {
+            const {id} = data
+            const [Data] = await db.sequelize.query(`
+                
+                select * from uploaderrors where archiveId = ${id} order by id desc`)
+
+                return {
+                    status:message.code200,
+                    message:message.message200,
+                    apiData:Data
+                }
+        } catch (error) {
+            console.log('get_upload_error error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+
 }
 
 module.exports = new ProductsService(db);

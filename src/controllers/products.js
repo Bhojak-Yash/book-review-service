@@ -121,3 +121,19 @@ exports.product_page_data = async (req, res) => {
     return res.status(500).json({ status: message.code500, message: message.message500 });
   }
 }
+
+exports.get_upload_error = async (req, res) => {
+  try {
+    const data = {...req.query}
+    const Product = await ProductsService.get_upload_error(data);
+
+    // if (!distributor) {
+    return res.json(Product);
+    // }
+
+    // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+  } catch (error) {
+    console.error("Error fetching product_page_data:", error.message);
+    return res.status(500).json({ status: message.code500, message: message.message500 });
+  }
+}
