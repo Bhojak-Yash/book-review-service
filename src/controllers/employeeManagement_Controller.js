@@ -194,3 +194,19 @@ exports.getEmployeeStats = async (req, res) => {
         return res.status(500).json({ status: 500, message: error.message });
     }
 };
+
+exports.getEmployeeById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const employee = await empManagement_Service.getEmployeeById(id);
+
+        if (!employee) {
+            return res.status(404).json({ status: 404, message: "Employee not found" });
+        }
+
+        return res.status(200).json({ status: 200, message: "Employee details fetched successfully", data: employee });
+    } catch (error) {
+        console.error("getEmployeeById Error:", error.message);
+        return res.status(500).json({ status: 500, message: "Internal Server Error" });
+    }
+};

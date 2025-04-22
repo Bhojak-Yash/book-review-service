@@ -161,7 +161,7 @@ class expiryService {
                     {
                         model: db.returnHeader,
                         as: "returnHeader",
-                        attributes: ['returnId'],
+                        attributes: ['returnId', 'returnDate'],
                         where: { returnFrom: Number(id), returnStatus: 'Pending' },
                         required: false
                     }
@@ -182,7 +182,8 @@ class expiryService {
                     "totalAmtPTR": item.dataValues.totalAmtPTR,
                     "returnTo":item.manufacturer?item.manufacturer.companyName:item?.distributor?.companyName ||null,
                     "returnStatus": item?.returnHeader ? "Pending" : "Not Returned",
-                    "returnId": item?.returnHeader ? item?.returnHeader?.returnId : null
+                    "returnId": item?.returnHeader ? item?.returnHeader?.returnId : null,
+                    "returnDate": item?.returnHeader ? item.returnHeader.returnDate : null
                 }
             })
             
@@ -409,6 +410,8 @@ class expiryService {
                 }
             })
             return {
+                status: 200,
+                message: "Data Fetched Successfully",
                 totalData: count,
                 totalPages: Math.ceil(count / limit),
                 currentPage: page,
@@ -426,7 +429,7 @@ class expiryService {
     async expire_details_card_data(data) {
         try {
             const { id, manufacturerId } = data
-            const checkId = Number(id)
+            let checkId = Number(id)
             if (data?.userType === 'Employee') {
                 checkId = data.data.employeeOf
             }
@@ -481,11 +484,18 @@ class expiryService {
                     ]
                 }
             });
+
+            let lastUpdated = null;
             // console.log(Data)
             await Data?.forEach((item) => {
                 // console.log(item.dataValues.unitCount)
                 unitCount = unitCount + Number(item.dataValues.unitCount)
                 totalExpiryValue = totalExpiryValue + Number(item.dataValues.totalExpiryValue)
+
+                const updatedAt = item.dataValues.lastUpdated;
+                if (!lastUpdated || new Date(updatedAt) > new Date(lastUpdated)) {
+                    lastUpdated = updatedAt;
+                }
             })
             return {
                 status: message.code200,
@@ -493,7 +503,8 @@ class expiryService {
                 // Data,
                 unitCount,
                 totalExpiryValue,
-                totalSKU
+                totalSKU,
+                lastUpdated
             }
         } catch (error) {
             console.log('expire_details_card_data service error:', error.message)

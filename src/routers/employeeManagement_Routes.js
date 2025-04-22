@@ -19,6 +19,7 @@ router.put('/employees/:id',verifyToken, empManagement.updateEmployee);
 router.put("/bulkUpdateEmployeeStatus",verifyToken, empManagement.bulkUpdateEmployeeStatusController);
 router.delete('/delete_employees/:id', verifyToken, empManagement.deleteEmployee);
 router.get("/getEmployeeStats", verifyToken, empManagement.getEmployeeStats);
+router.get('/employees/:id', verifyToken, empManagement.getEmployeeById);
 
 
 

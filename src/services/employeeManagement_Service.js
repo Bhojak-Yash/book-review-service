@@ -914,7 +914,37 @@ class DistributorService {
                 message: "Internal Server Error"
             };
         }
-    }    
+    }
+    
+    async getEmployeeById(employeeId) {
+        try {
+            const employee = await db.employees.findOne({
+                where: { employeeId },
+                attributes: [
+                    'employeeId',
+                    'employeeCode',
+                    'firstName',
+                    'lastName',
+                    'address',
+                    'phone',
+                    'email',
+                    'employeeOf',
+                    'entityId',
+                    'createdAt',
+                    'updatedAt',
+                    'deletedAt',
+                    'employeeStatus',
+                    'roleId'
+                ],
+                raw: true,
+            });
+
+            return employee;
+        } catch (error) {
+            console.error("getEmployeeById Service Error:", error.message);
+            throw error;
+        }
+    }
 }
 
 async function sendEmployeeEmail(email, name, password) {
