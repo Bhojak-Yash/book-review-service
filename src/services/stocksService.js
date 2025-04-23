@@ -333,7 +333,7 @@ class StocksService {
           organisationId: stock.organisationId,
           entityId: stock.entityId,
           location: stock.location,
-          PTS: stock.PTS,
+          Selling_Price: stock.PTS,
           createdAt: stock.createdAt,
           updatedAt: stock.updatedAt,
           product: {
