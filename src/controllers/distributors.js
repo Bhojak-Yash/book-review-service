@@ -13,7 +13,7 @@ exports.createDistributor = async (req, res) => {
     const distributor = await DistributorService.createDistributors(data);
 
     // if (!distributor) {
-      return res.json({ status:distributor.status,message:distributor.message, });
+      return res.status(distributor?.status || 200).json({ status:distributor.status,message:distributor.message, });
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -29,7 +29,7 @@ exports.updateDistributors = async (req, res) => {
     const data = req.body
     const distributor = await DistributorService.updateDistributors(data);
 
-    return res.json({ status:distributor.status,message:distributor.message, });
+    return res.status(distributor?.status || 200).json({ status:distributor.status,message:distributor.message, });
 
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
@@ -44,7 +44,7 @@ exports.getManufacturer = async (req, res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.getManufacturer(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
 
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
@@ -58,7 +58,7 @@ exports.getStocksByManufacturer = async (req, res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.getStocksByManufacturer(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
 
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
@@ -73,7 +73,7 @@ exports.po_page_data = async (req, res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.po_page_data(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
 
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
@@ -88,7 +88,7 @@ exports.so_page_data = async (req, res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.so_page_data(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
 
     // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
   } catch (error) {
@@ -101,7 +101,7 @@ exports.distributor_profile = async (req,res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.distributor_profile(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("distributor_profile Error:", error.message);
     return res.status(500).json({ status:message.code500,message: error.message });
@@ -113,7 +113,7 @@ exports.update_distributor = async (req,res) => {
     const data = {...req.user,...req.body}
     const distributor = await DistributorService.update_distributor(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("update_distributor Error:", error.message);
     return res.status(500).json({ status:message.code500,message: error.message });
@@ -125,7 +125,7 @@ exports.check_profile = async (req,res) => {
     const data = {...req.user,...req.body}
     const distributor = await DistributorService.check_profile(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("check_profile Error:", error.message);
     return res.status(500).json({ status:message.code500,message: error.message });
@@ -137,7 +137,7 @@ exports.get_distributor_stocks = async (req,res) => {
     const data = {...req.user,...req.query}
     const distributor = await DistributorService.get_distributor_stocks(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("get_distributor_stocks Error:", error.message);
     return res.status(500).json({ status:message.code500,message: error.message });
@@ -151,7 +151,7 @@ exports.update_distributorType = async (req, res) => {
 
     const distributor = await DistributorService.update_distributorType(data, userIdFromToken);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("update_distributorType Error:", error.message);
     return res.status(500).json({ status: message.code500, message: error.message });
@@ -164,7 +164,7 @@ exports.delete_document = async (req, res) => {
 
     const distributor = await DistributorService.delete_document(data);
 
-    return res.json(distributor);
+    return res.status(distributor?.status || 200).json(distributor);
   } catch (error) {
     console.error("delete_document Error:", error.message);
     return res.status(500).json({ status: message.code500, message: error.message });

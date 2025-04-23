@@ -13,7 +13,7 @@ exports.addProduct = async (req, res) => {
     const Product = await ProductsService.addProduct(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -29,7 +29,7 @@ exports.updateProduct = async (req, res) => {
     const Product = await ProductsService.updateProduct(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -47,7 +47,7 @@ exports.getAllProductsByManufacturerId = async (req, res) => {
     const Product = await ProductsService.getAllProductsByManufacturerId(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -63,7 +63,7 @@ exports.getProductDetails = async (req, res) => {
     const Product = await ProductsService.productDetails(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -80,7 +80,7 @@ exports.getproducts = async (req, res) => {
     const Product = await ProductsService.getproducts(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -97,7 +97,7 @@ exports.bulk_product_update = async (req, res) => {
     const Product = await ProductsService.bulk_product_update(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -112,7 +112,7 @@ exports.product_page_data = async (req, res) => {
     const Product = await ProductsService.product_page_data(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -128,7 +128,7 @@ exports.get_upload_error = async (req, res) => {
     const Product = await ProductsService.get_upload_error(data);
 
     // if (!distributor) {
-    return res.json(Product);
+      return res.status(Product?.status || 200).json(Product);
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
