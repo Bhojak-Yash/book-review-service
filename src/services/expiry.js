@@ -430,9 +430,11 @@ class expiryService {
         try {
             const { id, manufacturerId } = data
             let checkId = Number(id)
+            console.log("manufacturer Id.............", manufacturerId);
             if (data?.userType === 'Employee') {
                 checkId = data.data.employeeOf
             }
+            console.log("check Id...........", checkId);
             const daysforexpiry = Number(process.env.lowStockDays)
             const today = moment().startOf("day");
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
@@ -444,6 +446,7 @@ class expiryService {
                 attributes: [
                     [db.sequelize.fn("SUM", db.sequelize.col("Stock")), "unitCount"],
                     [db.sequelize.fn("SUM", db.sequelize.literal("Stock * PTS")), "totalExpiryValue"],
+                    [db.sequelize.fn("MAX", db.sequelize.col("stocks.updatedAt")), "updatedAt"],
                     "PId"
                 ],
                 include: [
@@ -492,10 +495,11 @@ class expiryService {
                 unitCount = unitCount + Number(item.dataValues.unitCount)
                 totalExpiryValue = totalExpiryValue + Number(item.dataValues.totalExpiryValue)
 
-                const updatedAt = item.dataValues.lastUpdated;
+                const updatedAt = item.dataValues.updatedAt;
                 if (!lastUpdated || new Date(updatedAt) > new Date(lastUpdated)) {
                     lastUpdated = updatedAt;
                 }
+                // console.log("updatedAt: ", lastUpdated);
             })
             return {
                 status: message.code200,
@@ -504,7 +508,7 @@ class expiryService {
                 unitCount,
                 totalExpiryValue,
                 totalSKU,
-                lastUpdated
+                lastUpdated: moment(lastUpdated).add(5, 'hours').add(30, 'minutes').toISOString()
             }
         } catch (error) {
             console.log('expire_details_card_data service error:', error.message)
