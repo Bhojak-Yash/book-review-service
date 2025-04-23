@@ -24,7 +24,7 @@ exports.createRetailer = async (req,res) => {
         const Retailer = await RetailerService.createRetailers(data);
     
         // if (!distributor) {
-          return res.json({ status:Retailer.status,message:Retailer.message, });
+          return res.status(Retailer?.status || 200).json({ status:Retailer.status,message:Retailer.message, });
         // }
     
         // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -40,7 +40,7 @@ exports.get_distributors_list = async (req,res) => {
     const distributors = await RetailerService.get_distributors_list(data);
     
     // if (!distributor) {
-      return res.json(distributors);
+      return res.status(distributors?.status || 200).json(distributors);
   } catch (error) {
     console.log('get_distributors_list error:',error.message)
     res.status(500).json({
@@ -69,7 +69,7 @@ exports.get_search_by_product = async (req,res) => {
     const get_search_by_product = await RetailerService.get_search_by_product(data);
     
     // if (!distributor) {
-      return res.json(get_search_by_product);
+      return res.status(get_search_by_product?.status || 200).json(get_search_by_product);
   } catch (error) {
     console.log('get_search_by_product error:',error.message)
     res.status(500).json({
@@ -97,7 +97,7 @@ exports.retailer_profile_update = async (req, res) => {
     const data = {...req.body,...req.user}
     const response = await RetailerService.retailer_profile_update(data);
 
-    return res.status(response.status).json(response);
+    return res.status(response?.status || 200).json(response);
   } catch (error) {
     console.error("Retailer Profile Update Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
@@ -110,7 +110,7 @@ exports.retailer_profile_get = async (req, res) => {
     const data = {...req.user}
     const response = await RetailerService.retailer_profile_get(data);
 
-    return res.status(response.status).json(response);
+    return res.status(response?.status || 200).json(response);
   } catch (error) {
     console.error("retailer_profile_get Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
@@ -122,7 +122,7 @@ exports.get_stocks_byDistributor = async (req, res) => {
     const data = {...req.user,...req.query}
     const response = await RetailerService.get_stocks_byDistributor(data);
 
-    return res.status(200).json(response);
+    return res.status(response?.status || 200).json(response);
   } catch (error) {
     console.error("get_stocks_byDistributor Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
@@ -135,7 +135,7 @@ exports.get_retailer_po_list = async (req, res) => {
     const data = {...req.user,...req.query}
     const response = await RetailerService.get_retailer_po_list(data);
 
-    return res.status(200).json(response);
+    return res.status(response?.status || 200).json(response);
   } catch (error) {
     console.error("get_retailer_po_list Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
@@ -148,7 +148,7 @@ exports.po_page_card_data_retailer = async (req, res) => {
     const data = {...req.user,...req.query}
     const response = await RetailerService.po_page_card_data_retailer(data);
 
-    return res.status(200).json(response);
+    return res.status(response?.status || 200).json(response);
   } catch (error) {
     console.error("po_page_card_data_retailer Error:", error.message);
     return res.status(500).json({ status: 500, message: "Internal Server Error" });

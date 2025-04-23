@@ -48,7 +48,8 @@ exports.expire_details_card_data = async (req, res) => {
       const data ={...req.query,...req.user}
       const expiry = await expiryService.expire_details_card_data(data);
   
-        return res.json(expiry);
+        // return res.json(expiry);
+        return res.status(expiry?.status || 200).json(expiry);
      
       } catch (error) {
       console.error("Error fetching expire_details_card_data:", error);
@@ -61,7 +62,7 @@ exports.raise_expiry = async (req, res) => {
       const data ={...req.body,...req.user}
       const expiry = await expiryService.raise_expiry(data);
   
-        return res.json(expiry);
+      return res.status(expiry?.status || 200).json(expiry);
       
       } catch (error) {
       console.error("Error fetching raise_expiry:", error);
@@ -74,7 +75,7 @@ exports.expiry_return_list = async (req, res) => {
       const data ={...req.query,...req.user}
       const expiry = await expiryService.expiry_return_list(data);
   
-        return res.json(expiry);
+      return res.status(expiry?.status || 200).json(expiry);
       
       } catch (error) {
       console.error("Error fetching expiry_return_list:", error);
@@ -87,7 +88,7 @@ exports.update_expiry_return = async (req, res) => {
       const data ={...req.body,...req.user}
       const expiry = await expiryService.update_expiry_return(data);
   
-        return res.json(expiry);
+      return res.status(expiry?.status || 200).json(expiry);
       
       } catch (error) {
       console.error("Error fetching update_expiry_return:", error);
@@ -100,7 +101,7 @@ exports.returned_details = async (req, res) => {
       const data ={...req.query,...req.user}
       const expiry = await expiryService.returned_details(data);
   
-        return res.json(expiry);
+      return res.status(expiry?.status || 200).json(expiry);
       
       } catch (error) {
       console.error("Error fetching returned_details:", error);
@@ -113,7 +114,7 @@ exports.expiry_list_card_data = async (req, res) => {
       const data ={...req.query,...req.user}
       const expiry = await expiryService.expiry_list_card_data(data);
   
-        return res.json(expiry);
+      return res.status(expiry?.status || 200).json(expiry);
       
       } catch (error) {
       console.error("Error fetching expiry_list_card_data:", error);
@@ -126,7 +127,7 @@ exports.get_credit_notes = async (req, res) => {
       const data ={...req.query,...req.user}
       const creditNote = await expiryService.get_credit_notes(data);
   
-        return res.json(creditNote);
+      return res.status(creditNote?.status || 200).json(creditNote);
       
       } catch (error) {
       console.error("Error fetching get_credit_note:", error);
@@ -139,7 +140,7 @@ exports.redeem_cn = async (req, res) => {
       const data ={...req.query,...req.user}
       const creditNote = await expiryService.redeem_cn(data);
   
-        return res.json(creditNote);
+      return res.status(creditNote?.status || 200).json(creditNote);
       
       } catch (error) {
       console.error("Error fetching redeem_cn:", error);

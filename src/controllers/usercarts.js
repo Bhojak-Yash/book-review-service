@@ -100,7 +100,7 @@ exports.addToCart = async (req, res) => {
       const data = {...req.user,...req.body}
       const cart = await UsersCartService.addToCart(data);
   
-      return res.json(cart);
+      return res.status(cart?.status || 200).json(cart);
   
       // return res.status(200).json({ status:message.code200,message: "Distributer updated successfully." });
     } catch (error) {
@@ -124,7 +124,7 @@ exports.deleteCartItem = async (req, res) => {
   try {
     const data = {...req.user,...req.params}
     const cart = await UsersCartService.deleteCartItem(data);
-    return res.json(cart);
+    return res.status(cart?.status || 200).json(cart);
   } catch (error) {
     console.error("deleteCartItem Error:", error.message);
     return res.status(500).json({ status:message.code500,message: error.message });
@@ -135,7 +135,7 @@ exports.getUserCart = async (req, res) => {
     try {
       const data = {...req.user,...req.query}
       const cart = await UsersCartService.getUserCart(data);
-      return res.json(cart);
+      return res.status(cart?.status || 200).json(cart);
     } catch (error) {
       console.error("deleteCartItem Error:", error.message);
       return res.status(500).json({ status:message.code500,message: error.message });

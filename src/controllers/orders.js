@@ -27,7 +27,7 @@ class OrdersController {
       const data = req.user
       const orderData = req.body
       const order = await ordersService.createOrder(data, orderData);
-      return res.json(order);
+      return res.status(order?.status || 200).json(order);
     } catch (error) {
       console.error("Error in createOrder:", error.message);
       return res.status(500).json({ status: message.code500, message: error.message });
@@ -58,7 +58,7 @@ class OrdersController {
         loggedInUserId = req.user.data.employeeOf;
       }
       const updatedOrder = await ordersService.updateOrder(orderId, updates, loggedInUserId);
-      res.status(200).json(updatedOrder);
+      return res.status(updatedOrder?.status || 200).json(updatedOrder);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -69,7 +69,7 @@ class OrdersController {
       const filters = req.query;
 
       const ordersList = await ordersService.getOrdersByFilters(filters);
-      res.status(200).json(ordersList);
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -87,7 +87,7 @@ class OrdersController {
         loggedInUserId = employee.employeeOf;
       }
       const ordersList = await ordersService.getOrdersByType(filters, filters.orderType, loggedInUserId);
-      res.status(200).json(ordersList);
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -97,7 +97,7 @@ class OrdersController {
     try {
       const data ={...req.user,...req.query }
       const ordersList = await ordersService.distributer_purchase_orders(data);
-      res.json(ordersList)
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       console.log('distributer_purchase_orders error:',error.message)
       res.json({
@@ -111,7 +111,7 @@ class OrdersController {
     try {
       const data ={...req.user,...req.query }
       const ordersList = await ordersService.distributer_sales_orders(data);
-      res.json(ordersList)
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       console.log('distributer_sales_orders error:',error.message)
       res.json({
@@ -125,7 +125,7 @@ class OrdersController {
     try {
       const data ={...req.user,...req.query }
       const ordersList = await ordersService.purchase_order_summary(data);
-      res.json(ordersList)
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       console.log('purchase_order_summary error:',error.message)
       res.json({
@@ -139,7 +139,7 @@ class OrdersController {
     try {
       const data ={...req.user,...req.query }
       const ordersList = await ordersService.confirm_payment(data);
-      res.json(ordersList)
+      return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
       console.log('confirm_payment error:',error.message)
       res.json({
@@ -153,7 +153,7 @@ class OrdersController {
     try{
       const userIdFromToken = req.user?.id;
       const getAddress = await ordersService.getAddressDetails(userIdFromToken);
-      res.json(getAddress)
+      return res.status(getAddress?.status || 200).json(getAddress);
     }catch(error){
       console.log("Error in getAddressDetails Controller", error.message);
       res.json({
@@ -170,7 +170,7 @@ class OrdersController {
 
       const result = await ordersService.updateAddressDetails(userIdFromToken, addressPayload);
 
-      res.json(result);
+      return res.status(result?.status || 200).json(result);
     } catch (error) {
       console.log("Error in updateAddressDetails Controller", error.message);
       res.status(500).json({
