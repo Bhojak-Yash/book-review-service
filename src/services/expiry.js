@@ -430,7 +430,6 @@ class expiryService {
         try {
             const { id, manufacturerId } = data
             let checkId = Number(id)
-            console.log("manufacturer Id.............", manufacturerId);
             if (data?.userType === 'Employee') {
                 checkId = data.data.employeeOf
             }
