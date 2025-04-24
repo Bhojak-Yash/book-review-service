@@ -9,7 +9,7 @@ module.exports =(sequelize,Sequelize)=>{
         "mobile":{
             type: Sequelize.BIGINT,
             allowNull: false,
-            unique:true
+            // unique:true
         },
         "name":{
             type:Sequelize.STRING,

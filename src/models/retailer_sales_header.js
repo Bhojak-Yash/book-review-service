@@ -33,6 +33,9 @@ module.exports =(sequelize,Sequelize)=>{
         "totalAmt":{
             type:Sequelize.DOUBLE
         },
+        "balance":{
+            type:Sequelize.DOUBLE
+        },
         "SGST":{
             type:Sequelize.DOUBLE
         },
