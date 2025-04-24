@@ -180,6 +180,26 @@ class OrdersController {
     }
   }
 
+  static async calculate_price(req, res) {
+    try {
+      const data = {
+        ...req.user,
+        ...req.body // This includes orderId, orderItems, and orderData
+      };
+
+      // console.log("data", data.orderItems);
+      const ordersList = await ordersService.calculate_price(data.orderItems, data.orderData);
+
+      return res.status(ordersList?.status || 200).json(ordersList);
+    } catch (error) {
+      console.error('calculate_price Controller error:', error.message);
+      res.status(500).json({
+        status: message.code500,
+        message: 'Internal Server Error'
+      });
+    }
+  }
+
 
 }
 

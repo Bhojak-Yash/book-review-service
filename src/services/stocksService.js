@@ -359,7 +359,7 @@ class StocksService {
           organisationId: null,
           entityId: null,
           location: null,
-          PTS: null,
+          Selling_Price: null,
           createdAt: null,
           updatedAt: null,
           product: {
