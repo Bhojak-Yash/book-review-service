@@ -97,6 +97,7 @@ class OrdersService {
 
       const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
+      const orderFromRow = orderToDeatils?.userType === 'Manufacturer' ? 'stocks' : "manufacturer_stocks";
       // console.log(order,orderItems,';pppppp')
       if (!orderItems) {
         throw new Error("Order items not found.");
@@ -277,8 +278,9 @@ class OrdersService {
                   transaction: t, // Use the transaction
                 }
               );
+              console.log(orderFromRow)
               await db.sequelize.query(
-                `INSERT INTO ${tableNameRow} (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+                `INSERT INTO ${orderFromRow} (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
                 {
