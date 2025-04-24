@@ -32,7 +32,7 @@ const modulemappings = require('./modulemappings');
 const retailerSalesHeader = require('./retailer_sales_header');
 const retailerSalesDetails = require('./retailer_sales_details');
 const patients = require('./patient');
-const doctors =require('./doctors')
+const doctors =require('./doctors');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -222,6 +222,8 @@ db.stocks.belongsTo(db.manufacturers,{foreignKey: "purchasedFrom",targetKey:'man
 db.stocks.belongsTo(db.distributors,{foreignKey: "purchasedFrom",targetKey:'distributorId', as: "distributor" })
 db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"returnTo", as: "returnHeader" })
 db.stocks.belongsTo(db.distributors,{foreignKey: "organisationId",targetKey:'distributorId', as: "distributors" })
+db.retailerSalesHeader.belongsTo(db.patients,{foreignKey: "patientId", as: "patient" })
+db.retailerSalesHeader.belongsTo(db.doctors,{foreignKey: "doctorId", as: "doctor" })
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

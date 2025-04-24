@@ -156,8 +156,25 @@ class RetailerSalesService {
                 skip = (Page - 1) * Limit
             }
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes:['id']
+                attributes:['id','patientId','doctorId','totalAmt'],
+                include:[
+                    {
+                        model:db.patients,
+                        as:'patient',
+                        attributes:['id','name','mobile']
+                    },
+                    {
+                        model:db.doctors,
+                        as:"doctor",
+                        attributes:['id','name','mobile','commission']
+                    }
+                ]
             })
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:orders
+            }
         } catch (error) {
             console.log('retailer_sales_orders service error:', error.message)
             return {
