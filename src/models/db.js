@@ -30,7 +30,9 @@ const manufacturerStocks = require('./manufacturerStocks')
 const moduleconfigs = require('./moduleconfigs')
 const modulemappings = require('./modulemappings');
 const retailerSalesHeader = require('./retailer_sales_header');
-const retailerSalesDetails = require('./retailer_sales_details')
+const retailerSalesDetails = require('./retailer_sales_details');
+const patients = require('./patient');
+const doctors =require('./doctors')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -87,7 +89,9 @@ const db = {
   moduleconfigs: moduleconfigs(sequelize, Sequelize),
   modulemappings: modulemappings(sequelize, Sequelize),
   retailerSalesHeader:retailerSalesHeader(sequelize,Sequelize),
-  retailerSalesDetails:retailerSalesDetails(sequelize,Sequelize)
+  retailerSalesDetails:retailerSalesDetails(sequelize,Sequelize),
+  patients:patients(sequelize,Sequelize),
+  doctors:doctors(sequelize,Sequelize)
 };
 
 db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
