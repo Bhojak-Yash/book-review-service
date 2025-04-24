@@ -109,6 +109,7 @@ class OrdersService {
 
       const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
+      const orderFromRow = orderToDeatils?.userType === 'Manufacturer' ? 'stocks' : "manufacturer_stocks";
       // console.log(order,orderItems,';pppppp')
       if (!orderItems) {
         throw new Error("Order items not found.");
@@ -171,7 +172,7 @@ class OrdersService {
           await db.sequelize.transaction(async (t) => {
             // First, check if all items have enough stock before making any updates
             for (const item of updates.items) {
-              console.log('pppppppp')
+              // console.log('pppppppp')
               const [stock] = await db.sequelize.query(
                 `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
@@ -282,15 +283,16 @@ class OrdersService {
             // First, check if all items have enough stock before making any updates
             for (const item of orderItems) {
               const [stock] = await db.sequelize.query(
-                `SELECT * FROM stocks WHERE SId = :stockId`,
+                `SELECT * FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
                   replacements: { stockId: item.stockId },
                   type: db.Sequelize.QueryTypes.SELECT,
                   transaction: t, // Use the transaction
                 }
               );
+              console.log(orderFromRow)
               await db.sequelize.query(
-                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+                `INSERT INTO ${orderFromRow} (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
                 {
