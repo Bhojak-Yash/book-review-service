@@ -113,12 +113,12 @@ class RetailerSalesService {
                 "totalAmt": data?.order?.totalAmt,
                 "SGST": data?.order?.SGST,
                 "CGST": data?.order?.CGST,
-                "balance":data?.order?.balance
+                "balance": data?.order?.balance
             }
-            const order = await db.retailerSalesHeader.create(orderDetails,{transaction})
-            const orderItmes = data?.items?.map((item)=>{
+            const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
+            const orderItmes = data?.items?.map((item) => {
                 return {
-                    "headerId":order?.id,
+                    "headerId": order?.id,
                     "PId": item?.PId,
                     "SId": item?.SId,
                     "qty": item?.qty,
@@ -127,18 +127,39 @@ class RetailerSalesService {
                     "SGST": item?.SGST,
                     "CGST": item?.CGST,
                     "amount": item?.amount
-                  }
+                }
             })
             // console.log(orderItmes,order.items)
-            const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes,{transaction})
+            const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
             await transaction.commit();
             return {
-                status:message.code200,
-                message:message.message200,
+                status: message.code200,
+                message: message.message200,
             }
         } catch (error) {
             if (transaction) await transaction.rollback();
             console.log('create_sales_order service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async retailer_sales_orders(data) {
+        try {
+            const { id, page, limit } = data
+            const Limit = Number(limit) || 10
+            const Page = Number(page) || 1
+            let skip = 0
+            if (Page > 1) {
+                skip = (Page - 1) * Limit
+            }
+            const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
+                attributes:['id']
+            })
+        } catch (error) {
+            console.log('retailer_sales_orders service error:', error.message)
             return {
                 status: message.code500,
                 message: error.message

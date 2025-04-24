@@ -159,7 +159,7 @@ class OrdersService {
           await db.sequelize.transaction(async (t) => {
             // First, check if all items have enough stock before making any updates
             for (const item of updates.items) {
-              console.log('pppppppp')
+              // console.log('pppppppp')
               const [stock] = await db.sequelize.query(
                 `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
@@ -270,7 +270,7 @@ class OrdersService {
             // First, check if all items have enough stock before making any updates
             for (const item of orderItems) {
               const [stock] = await db.sequelize.query(
-                `SELECT * FROM stocks WHERE SId = :stockId`,
+                `SELECT * FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
                   replacements: { stockId: item.stockId },
                   type: db.Sequelize.QueryTypes.SELECT,
@@ -278,7 +278,7 @@ class OrdersService {
                 }
               );
               await db.sequelize.query(
-                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+                `INSERT INTO ${tableNameRow} (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
                 {

@@ -34,3 +34,19 @@ exports.create_sales_order = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.retailer_sales_orders = async (req,res) => {
+  try {
+      // const data = {...req.body,...req.user}
+      const Data = await RetailerSalesService.retailer_sales_orders(req.user);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error retailer_sales_orders:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};
