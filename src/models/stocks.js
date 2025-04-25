@@ -52,6 +52,9 @@ module.exports =(sequelize,Sequelize)=>{
             type: Sequelize.STRING,
             // allowNull: false
         },
+        "purchasedFrom":{
+            type:Sequelize.BIGINT
+        }
     },
     {
         tableName: "stocks"

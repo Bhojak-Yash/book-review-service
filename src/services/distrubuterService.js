@@ -1332,6 +1332,18 @@ class DistributorService {
                         as: "stocks",
                         required: false,
                         where: stockFilters,
+                        include:[
+                            {
+                                model:db.manufacturers,
+                                as:"manufacturer",
+                                attributes:['companyName']
+                            },
+                            {
+                                model:db.distributors,
+                                as:"distributor",
+                                attributes:['companyName']
+                            }
+                        ]
                     },
                 ],
                 // order: [['PName', 'ASC']],
@@ -1398,7 +1410,7 @@ class DistributorService {
                     location: stock.location,
                     createdAt: stock.createdAt,
                     updatedAt: stock.updatedAt,
-                    purchasedFrom: stock.purchasedFrom,
+                    purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
                     product: {
                         PId: product.PId,
                         PCode: product.PCode,
