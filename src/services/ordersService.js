@@ -40,14 +40,15 @@ class OrdersService {
         orderby = data.id
       }
       transaction = await db.sequelize.transaction();
-
+      console.log(orderData.orderItems);
+      
       // double check cart item prices
-      var mismatched = this.calculate_price(orderitems, orderData);
-      if (mismatched)
-      {
+      var mismatched = this.calculate_price(orderData.orderItems, orderData.orderData);
+      
+      if (mismatched == true){
         return {
           status: 409,
-          message: '.'
+          message: 'Mismatch in between the price of the items.'
         };
       }
 
@@ -948,6 +949,9 @@ class OrdersService {
         address: user?.address || null,
       });
 
+      const discount = Number(order?.subTotal) - Number(order?.orderTotal);
+      const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
+
       const formattedOrder = {
           "id": order?.id,
           "orderDate": order?.orderDate,
@@ -976,6 +980,8 @@ class OrdersService {
           "createdAt": order?.createdAt,
           "updatedAt": order?.updatedAt,
           "subTotal" : Number(order?.subTotal),
+          "discount" : Number(discount.toFixed(2)),
+          "discountPercentage" : Number(discountPercentage.toFixed(2)), 
           "CGST": order?.CGST,
           "SGST": order?.SGST,
           "IGST": order?.IGST,
@@ -1141,15 +1147,18 @@ class OrdersService {
 
   async calculate_price(orderItems, orderData) {
 
+    // console.log(orderData);
+
     var mismatched = false;
     try {
       ///const { orderId, orderItems } = data;
 
       if (!Array.isArray(orderItems)) {
-        return {
-          status: 400,
-          message: 'Order ID and orderItems are required.'
-        };
+        // return {
+        //   status: 400,
+        //   message: 'Order ID and orderItems are required.'
+        // };
+        return true;
       }
 
       const stockIds = [];
@@ -1168,10 +1177,11 @@ class OrdersService {
       });
 
       if (!user) {
-        return {
-          status: 404,
-          message: `User with orderTo ${orderTo} not found.`
-        };
+        // return {
+        //   status: 404,
+        //   message: `User with orderTo ${orderTo} not found.`
+        // };
+        return true;
       }
 
       console.log("User:", user);
@@ -1198,19 +1208,22 @@ class OrdersService {
         const matchingStock = existingStocks.find(stock => stock.SId === payloadItem.stockId);
 
         if (!matchingStock) {
-          return {
-            status: 404,
-            message: `StockId ${payloadItem.stockId} not found in existing stocks.`
-          };
+          // return {
+          //   status: 404,
+          //   message: `StockId ${payloadItem.stockId} not found in existing stocks.`
+          // };
+          return true;
         }
 
         if (Number(matchingStock.MRP) !== Number(payloadItem.MRP)) {
           console.log(`MRP mismatch for stockId ${payloadItem.stockId}:`);
           console.log(`Payload MRP: ${payloadItem.MRP}, DB MRP: ${matchingStock.MRP}`);
-          return {
-            status: 400,
-            message: `MRP mismatch for stockId ${payloadItem.stockId}. Payload MRP: ${payloadItem.MRP}, DB MRP: ${matchingStock.MRP}`
-          };
+          mismatched = true;
+          // return {
+          //   status: 400,
+          //   message: `MRP mismatch for stockId ${payloadItem.stockId}. Payload MRP: ${payloadItem.MRP}, DB MRP: ${matchingStock.MRP}`
+          // };
+          return mismatched;
         }
         
         let price = user.userType === 'Manufacturer' ? payloadItem.PTS : payloadItem.PTR;
@@ -1219,22 +1232,26 @@ class OrdersService {
           console.log(payloadItem.price);
           console.log(`Price mismatch for stockId ${payloadItem.stockId}:`);
           console.log(`Payload price: ${payloadItem.price}, DB Price: ${price}`);
-          return {
-            status: 400,
-            message: `Price mismatch for stockId ${payloadItem.stockId}. Payload price: ${payloadItem.price}, DB Price: ${price}`
-          };
+          mismatched = true;
+          // return {
+          //   status: 400,
+          //   message: `Price mismatch for stockId ${payloadItem.stockId}. Payload price: ${payloadItem.price}, DB Price: ${price}`
+          // };
+          return mismatched;
         }
       }
-      return {
-        status: 200,
-        message: 'All MRP values matched successfully.'
-      };
+      // return {
+      //   status: 200,
+      //   message: 'All MRP values matched successfully.'
+      // };
+      return mismatched;
     } catch (error) {
       console.error('Error in calculate_price:', error.message);
-      return {
-        status: 500,
-        message: 'Internal server error.'
-      };
+      // return {
+      //   status: 500,
+      //   message: 'Internal server error.'
+      // };
+      return true;
     }
   }
 
