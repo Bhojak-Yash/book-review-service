@@ -79,7 +79,7 @@ exports.update_auth_request = async (req, res) => {
 exports.authorizedBy_users = async (req,res) => {
   try {
     const data = {...req.user,...req.query}
-    const updatedStock = await AuthService.authorizedBy_users(data);
+    const auth = await AuthService.authorizedBy_users(data);
 
     return res.status(auth?.status || 200).json(auth);
   } catch (error) {

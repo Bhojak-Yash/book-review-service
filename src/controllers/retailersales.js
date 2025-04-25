@@ -37,8 +37,8 @@ exports.create_sales_order = async (req,res) => {
 
 exports.retailer_sales_orders = async (req,res) => {
   try {
-      // const data = {...req.body,...req.user}
-      const Data = await RetailerSalesService.retailer_sales_orders(req.user);
+      const data = {...req.query,...req.user}
+      const Data = await RetailerSalesService.retailer_sales_orders(data);
   
       // if (!distributor) {
         return res.status(Data?.status || 200).json(Data);

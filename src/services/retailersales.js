@@ -148,32 +148,79 @@ class RetailerSalesService {
 
     async retailer_sales_orders(data) {
         try {
-            const { id, page, limit } = data
+            const { id, page, limit, search, unpaid, startDate, endDate } = data
             const Limit = Number(limit) || 10
             const Page = Number(page) || 1
             let skip = 0
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
+            // console.log(data)
+            let whereCondition = {};
+            if (search) {
+                whereCondition = {
+                    [Op.or]: [
+                        { id: { [Op.like]: `%${search}%` } },
+                        { '$patient.name$': { [Op.like]: `%${search}%` } },
+                        { '$doctor.name$': { [Op.like]: `%${search}%` } }
+                    ]
+                };
+            }
+            if (unpaid == true || unpaid == 'true') {
+                whereCondition.balance = { [Op.gt]: 0 }
+            }
+            if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereCondition.date = {
+                    [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
+            // console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes:['id','patientId','doctorId','totalAmt'],
-                include:[
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date'],
+                include: [
                     {
-                        model:db.patients,
-                        as:'patient',
-                        attributes:['id','name','mobile']
+                        model: db.patients,
+                        as: 'patient',
+                        attributes: ['id', 'name', 'mobile']
                     },
                     {
-                        model:db.doctors,
-                        as:"doctor",
-                        attributes:['id','name','mobile','commission']
+                        model: db.doctors,
+                        as: "doctor",
+                        attributes: ['id', 'name', 'mobile', 'commission']
                     }
-                ]
+                ],
+                where: whereCondition,
+                order: [['id', 'desc']],
+                limit: Limit,
+                offset: skip
+            })
+            const result = await orders?.map((item) => {
+                return {
+                    "id": item?.id,
+                    "orderDate": item?.date,
+                    "patientId": item?.patientId,
+                    "doctorId": item?.doctorId,
+                    "totalAmt": item?.totalAmt,
+                    "patientName": item?.patient?.name,
+                    "doctorName": item?.doctor?.name,
+                    "commission": Math.round(Number(item?.totalAmt) * Number(item?.doctor?.commission) / 100),
+                    "balance": item?.balance || 0,
+                    "status": item?.balance > 0 ? 'Unpaid' : 'Paid'
+                }
             })
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:orders
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalPage: Math.ceil(count / Limit),
+                totalItem: count,
+                apiData: result
             }
         } catch (error) {
             console.log('retailer_sales_orders service error:', error.message)
