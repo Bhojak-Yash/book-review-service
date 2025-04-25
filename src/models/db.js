@@ -224,6 +224,8 @@ db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"retu
 db.stocks.belongsTo(db.distributors,{foreignKey: "organisationId",targetKey:'distributorId', as: "distributors" })
 db.retailerSalesHeader.belongsTo(db.patients,{foreignKey: "patientId", as: "patient" })
 db.retailerSalesHeader.belongsTo(db.doctors,{foreignKey: "doctorId", as: "doctor" })
+db.patients.hasMany(db.retailerSalesHeader,{foreignKey:"patientId",as:'retailerSalesHeaders'})
+db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSalesHeaders'})
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

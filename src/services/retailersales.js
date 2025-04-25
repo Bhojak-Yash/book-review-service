@@ -113,7 +113,8 @@ class RetailerSalesService {
                 "totalAmt": data?.order?.totalAmt,
                 "SGST": data?.order?.SGST,
                 "CGST": data?.order?.CGST,
-                "balance": data?.order?.balance
+                "balance": data?.order?.balance,
+                "retailerId":Number(user.id)
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
@@ -156,7 +157,7 @@ class RetailerSalesService {
                 skip = (Page - 1) * Limit
             }
             // console.log(data)
-            let whereCondition = {};
+            let whereCondition = {retailerId:Number(id)};
             if (search) {
                 whereCondition = {
                     [Op.or]: [

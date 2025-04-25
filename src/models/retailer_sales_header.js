@@ -41,6 +41,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "CGST":{
             type:Sequelize.DOUBLE
+        },
+        "retailerId":{
+            type:Sequelize.INTEGER
         }
     },
 
