@@ -173,7 +173,8 @@ class expiryService {
             });
 
             const result = await rows?.map((item)=>{
-                // console.log(item)
+                const returnDate = item?.returnHeader ? item.returnHeader.returnDate : null
+                console.log("......................",returnDate)
                 return {
                     "returnToId": item.dataValues.purchasedFrom,
                     "totalStock": item.dataValues.totalStocks,

@@ -143,6 +143,12 @@ class RetailerService {
     async get_distributors_list(data) {
         try {
             const { search } = data;
+            if(search.length <3){
+                return{
+                    status: message.code400,
+                    message: "Invalid Imput",
+                }
+            }
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
             const firstThree = search?.substring(0, 3);
@@ -161,11 +167,11 @@ class RetailerService {
                 userType: ['distributor', 'cnfs']
             };
 
-            // if (search) {
-            //     whereClause[Op.or] = [
-            //         { userName: likeConditions }
-            //     ];
-            // }
+            if (search) {
+                whereClause[Op.or] = [
+                    { '$disuser.companyName$': { [Op.like]: `%${search}%` } }
+                ];
+            }
 
             const userInclude = [{
                 model: db.distributors,
