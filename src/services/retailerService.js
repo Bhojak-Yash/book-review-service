@@ -726,6 +726,7 @@ class RetailerService {
         }
     }
 
+    //Retailer distributor k stocks dekh rha h
     async get_stocks_byDistributor(data) {
         try {
             const { distributorId, id, page, limit, expStatus, search, stockStatus, entityId } = data
@@ -843,8 +844,8 @@ class RetailerService {
                     "BatchNo": item?.BatchNo,
                     "ExpDate": item?.ExpDate,
                     "MRP": item?.MRP,
-                    "selling_Price": item?.PTR,
-                    "purchasing_Price": item?.PTS,
+                    "PTR": item?.PTR,
+                    // "PTS": item?.PTS,
                     "Scheme": item?.Scheme,
                     "BoxQty": item?.BoxQty,
                     "Loose": item?.Loose,
