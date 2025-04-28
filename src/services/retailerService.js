@@ -603,24 +603,24 @@ class RetailerService {
 
             const query = `
             SELECT 
-            mn.retailerId,
-              mn.firmName, 
-        mn.ownerName, 
-        mn.profilePic, 
-        mn.createdAt, 
-        mn.updatedAt, 
-        mn.address, 
-        mn.phone, 
-        mn.email, 
-        mn.GST as gst, 
+              us.*, 
+              ad.*,
+              mn.email,
+              mn.retailerId,
+              mn.firmName,
+        mn.ownerName,
+        mn.profilePic,
+        mn.createdAt,
+        mn.updatedAt,
+        mn.address,
+        mn.phone,
+        mn.GST as gst,
         mn.retailerId,
         mn.FSSAI,
         mn.drugLicense,
         mn.companyType,
-        mn.PAN as pan, 
-        mn.CIN as cin,
-              us.*, 
-              ad.*
+        mn.PAN as pan,
+        mn.CIN as cin
             FROM crm_db.retailers AS mn
             LEFT JOIN crm_db.users AS us 
               ON mn.retailerId = us.id
@@ -629,7 +629,7 @@ class RetailerService {
             WHERE mn.retailerId = ${id};
           `;
 
-            const [dataa] = await db.sequelize.query(query);
+            let [dataa] = await db.sequelize.query(query);
             const transformedData = {};
             const authorizedBy = await db.authorizations.findAll({
                 where: { authorizedId: Number(id) },
@@ -650,7 +650,7 @@ class RetailerService {
                     type: item?.distributor?.type
                 }
             })
-            // console.log(dataa)
+            console.log(dataa)
             dataa.forEach((row) => {
                 const distributorId = row.distributorId;
 
@@ -843,8 +843,8 @@ class RetailerService {
                     "BatchNo": item?.BatchNo,
                     "ExpDate": item?.ExpDate,
                     "MRP": item?.MRP,
-                    "PTR": item?.PTR,
-                    "PTS": item?.PTS,
+                    "selling_Price": item?.PTR,
+                    "purchasing_Price": item?.PTS,
                     "Scheme": item?.Scheme,
                     "BoxQty": item?.BoxQty,
                     "Loose": item?.Loose,

@@ -862,7 +862,7 @@ class expiryService {
                 status: message.code200,
                 message: message.message200,
                 Returns: {
-                    totalReturnRaised: Returns?.dataValues?.totalReturnRaised ?? 0,
+                    totalReturnRaised: String(Returns?.dataValues?.totalReturnRaised ?? 0),
                     confirmedCount: Returns?.dataValues?.confirmedCount ?? 0,
                     pendingCount: Returns?.dataValues?.pendingCount ?? 0
                 },
@@ -873,7 +873,7 @@ class expiryService {
                 cnvalues: {
                     totalReturnTotal: cnvalues?.dataValues?.totalReturnTotal ?? 0,
                     pendingReturnTotal: cnvalues?.dataValues?.pendingReturnTotal ?? 0,
-                    confirmedCNAmt: cnvalues?.dataValues?.confirmedCNAmt ?? 0
+                    confirmedCNAmt: String(cnvalues?.dataValues?.confirmedCNAmt ?? 0)
                 }
             };
 
