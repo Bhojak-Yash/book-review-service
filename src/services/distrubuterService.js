@@ -1381,6 +1381,7 @@ class DistributorService {
                         createdAt: null,
                         updatedAt: null,
                         purchasedFrom: null,
+                        purchasedFromCode:null,
                         product: {
                             PId: product.PId,
                             PCode: product.PCode,
