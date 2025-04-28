@@ -3,6 +3,8 @@ const message = require('../helpers/message');
 const db = require('../models/db');
 const StocksService = require('./stocksService');
 const notificationsService = require('../services/notificationsService');
+const _ = require('lodash');
+
 
 const Op = db.Op;
 const moment = require("moment");
@@ -38,6 +40,17 @@ class OrdersService {
         orderby = data.id
       }
       transaction = await db.sequelize.transaction();
+      console.log(orderData.orderItems);
+      
+      // double check cart item prices
+      var mismatched = this.calculate_price(orderData.orderItems, orderData.orderData);
+      
+      if (mismatched == true){
+        return {
+          status: 409,
+          message: 'Mismatch in between the price of the items.'
+        };
+      }
 
       const newOrder = await db.orders.create({
         ...orderData.orderData,
@@ -936,6 +949,9 @@ class OrdersService {
         address: user?.address || null,
       });
 
+      const discount = Number(order?.subTotal) - Number(order?.orderTotal);
+      const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
+
       const formattedOrder = {
           "id": order?.id,
           "orderDate": order?.orderDate,
@@ -963,6 +979,12 @@ class OrdersService {
           "dispatchDate": order?.dispatchDate,
           "createdAt": order?.createdAt,
           "updatedAt": order?.updatedAt,
+          "subTotal" : Number(order?.subTotal),
+          "discount" : Number(discount.toFixed(2)),
+          "discountPercentage" : Number(discountPercentage.toFixed(2)), 
+          "CGST": order?.CGST,
+          "SGST": order?.SGST,
+          "IGST": order?.IGST,
           "orderItems": order?.orderItems?.map((item)=>{
             return {
               "id": item?.id,
@@ -1121,6 +1143,118 @@ class OrdersService {
       throw new Error("Failed to update address details");
     }
   }
+  
+
+  async calculate_price(orderItems, orderData) {
+
+    // console.log(orderData);
+
+    var mismatched = false;
+    try {
+      ///const { orderId, orderItems } = data;
+
+      if (!Array.isArray(orderItems)) {
+        // return {
+        //   status: 400,
+        //   message: 'Order ID and orderItems are required.'
+        // };
+        return true;
+      }
+
+      const stockIds = [];
+
+      for (const payloadItem of orderItems) {
+        if (payloadItem.stockId) {
+          stockIds.push(payloadItem.stockId);
+        }
+      }
+
+      console.log('Stock IDs from payload:', stockIds);
+
+      const { orderTo } = orderData;
+      const user = await db.users.findOne({
+        where: { id: orderTo }
+      });
+
+      if (!user) {
+        // return {
+        //   status: 404,
+        //   message: `User with orderTo ${orderTo} not found.`
+        // };
+        return true;
+      }
+
+      console.log("User:", user);
+      const stocksTable = user.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+      const SellingPrice = user.userType === 'Manufacturer' ? 'PTS' : 'PTR';
+      console.log("Using Stock Table:", stocksTable);
+
+      const existingStocks = await stocksTable.findAll({
+        attributes: [
+          "SId",
+          "MRP",
+          SellingPrice
+        ],
+        where: {
+          SId: stockIds
+        }
+      });
+      console.log("Existing stocks",  existingStocks);
+
+      
+
+      for (const payloadItem of orderItems) {
+        // Find matching stock in existingStocks based on stockId
+        const matchingStock = existingStocks.find(stock => stock.SId === payloadItem.stockId);
+
+        if (!matchingStock) {
+          // return {
+          //   status: 404,
+          //   message: `StockId ${payloadItem.stockId} not found in existing stocks.`
+          // };
+          return true;
+        }
+
+        if (Number(matchingStock.MRP) !== Number(payloadItem.MRP)) {
+          console.log(`MRP mismatch for stockId ${payloadItem.stockId}:`);
+          console.log(`Payload MRP: ${payloadItem.MRP}, DB MRP: ${matchingStock.MRP}`);
+          mismatched = true;
+          // return {
+          //   status: 400,
+          //   message: `MRP mismatch for stockId ${payloadItem.stockId}. Payload MRP: ${payloadItem.MRP}, DB MRP: ${matchingStock.MRP}`
+          // };
+          return mismatched;
+        }
+        
+        let price = user.userType === 'Manufacturer' ? payloadItem.PTS : payloadItem.PTR;
+
+        if (Number(price) !== Number(payloadItem.price)) {
+          console.log(payloadItem.price);
+          console.log(`Price mismatch for stockId ${payloadItem.stockId}:`);
+          console.log(`Payload price: ${payloadItem.price}, DB Price: ${price}`);
+          mismatched = true;
+          // return {
+          //   status: 400,
+          //   message: `Price mismatch for stockId ${payloadItem.stockId}. Payload price: ${payloadItem.price}, DB Price: ${price}`
+          // };
+          return mismatched;
+        }
+      }
+      // return {
+      //   status: 200,
+      //   message: 'All MRP values matched successfully.'
+      // };
+      return mismatched;
+    } catch (error) {
+      console.error('Error in calculate_price:', error.message);
+      // return {
+      //   status: 500,
+      //   message: 'Internal server error.'
+      // };
+      return true;
+    }
+  }
+
 }
 
 module.exports = OrdersService;
