@@ -341,12 +341,14 @@ class DistributorService {
             //     }
             // }
             let tableName = db.manufacturerStocks
+            let attr = ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS']
             if (type) {
                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+                attr = type === 'Manufacturer' ? ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'] : ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS', 'PTR']
             }
             // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
-                attributes: ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'],
+                attributes: attr,
                 where: whereStock,
                 include: [
                     {
@@ -359,11 +361,11 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
-            // console.log(stocks)
+            console.log("................   `",type)
             let ids = []
             const updatedStock = await stocks?.map((item) => {
                 ids.push(item.SId)
-                if (manufacturer.status === 'Approved') {
+                if (manufacturer.status === 'Approved' || manufacturer.status === 'Not Send') {
                     return {
                         "SId": item.SId,
                         "PId": item.product.PId,
@@ -374,7 +376,8 @@ class DistributorService {
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
                         // "PTR": item.PTR,
-                        "PTS": item.PTS || 0,
+                        // "PTS": item.PTS || 0,
+                        "PTS": type === "CNF" ? item.PTR : item.PTS,
                         "MRP": item.MRP,
                         "BatchNo": item.BatchNo,
                         "ExpDate": item.ExpDate,
@@ -391,7 +394,8 @@ class DistributorService {
                         "PackagingDetails": item.product.PackagingDetails,
                         "SaltComposition": item.product.SaltComposition,
                         // "PTR": null,
-                        "PTS": null,
+                        // "PTS": null,
+                        "PTS":null,
                         "MRP": null,
                         "BatchNo": item.BatchNo,
                         "ExpDate": item.ExpDate,
@@ -399,7 +403,7 @@ class DistributorService {
                     }
                 }
             })
-            // console.log(ids)
+            // console.log(updatedStock)
             // const totalCount = await db.products.count({ where: whereCondition })
             let updatedStockWithQuantity = []
             if (id) {
@@ -1399,8 +1403,8 @@ class DistributorService {
                     BatchNo: stock.BatchNo,
                     ExpDate: stock.ExpDate,
                     MRP: stock.MRP,
-                    PTR: stock.PTR,
-                    PTS: stock.PTS,
+                    Selling_Price: stock.PTR,
+                    Purchasing_Price: stock.PTS,
                     Scheme: stock.Scheme,
                     BoxQty: stock.BoxQty,
                     Loose: stock.Loose,
