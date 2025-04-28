@@ -13,7 +13,7 @@ async function hashPassword(password) {
 }
 
 const formatSize = (size) => {
-    let bytes = Number(size); 
+    let bytes = Number(size);
     if (isNaN(bytes)) return null;
 
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -148,11 +148,13 @@ class DistributorService {
             } else if (type == 'manufacturer') {
                 checkUserType = ['Manufacturer']
             }
-            const whereCondition = { userType: { [db.Op.in]: checkUserType },
-            [db.Op.or]: [
-                { '$disuser.distributorId$': { [db.Op.ne]: null } },
-                { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
-            ] }
+            const whereCondition = {
+                userType: { [db.Op.in]: checkUserType },
+                [db.Op.or]: [
+                    { '$disuser.distributorId$': { [db.Op.ne]: null } },
+                    { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
+                ]
+            }
             if (id) {
                 whereCondition.id = { [db.Op.ne]: Number(id) }
             }
@@ -268,7 +270,7 @@ class DistributorService {
                 tablesearch === 'manufacturers' ? 'manufacturerId' : 'distributorId';
             const logoColumn =
                 tablesearch === 'manufacturers' ? 'logo' : 'profilePic';
-                console.log(id,';;;;;;;;;;;;;;;;')
+            console.log(id, ';;;;;;;;;;;;;;;;')
             if (id) {
                 const [eee] = await db.sequelize.query(
                     `SELECT 
@@ -423,7 +425,7 @@ class DistributorService {
                 totalPage: totalPage,
                 totalData: count,
                 limit: Limit,
-                authStatus:manufacturer?.status || 'Not Send',
+                authStatus: manufacturer?.status || 'Not Send',
                 apiData: { manufacturer, stocks: updatedStockWithQuantity.length > 0 ? updatedStockWithQuantity : updatedStock }
             }
         } catch (error) {
@@ -610,7 +612,7 @@ class DistributorService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['documentId', 'image', "status","imageSize", 'updatedAt'],
+                        attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id),
                             isDeleted: false
@@ -803,7 +805,7 @@ class DistributorService {
                 authorizedId: Number(distributorId),
                 status: "Not Send",
             }));
-            
+
             const existingRecords = await db.authorizations.findAll({
                 where: {
                     [db.Op.or]: authhh.map(a => ({
@@ -814,19 +816,19 @@ class DistributorService {
                 },
                 raw: true,
             });
-            
+
             const existingSet = new Set(
                 existingRecords.map(rec => `${rec.authorizedBy}_${rec.authorizedId}`)
             );
-            
+
             const toCreate = authhh.filter(
                 a => !existingSet.has(`${a.authorizedBy}_${a.authorizedId}`)
             );
-            
+
 
             const existingKeys = new Set(existingRecords.map((rec) => `${rec.authorizedBy}-${rec.authorizedId}`));
             const newRecords = authhh.filter((a) => !existingKeys.has(`${a.authorizedBy}-${a.authorizedId}`));
-// console.log(newRecords,';;;;;;newrecored')
+            // console.log(newRecords,';;;;;;newrecored')
 
             if (newRecords.length > 0) {
                 await db.authorizations.bulkCreate(newRecords);
@@ -864,7 +866,7 @@ class DistributorService {
                         CIN,
                         distributorId
                     },
-                    transaction, 
+                    transaction,
                 }
             );
 
@@ -895,14 +897,14 @@ class DistributorService {
                 categoryId: doc.id,
                 image: doc.image,
                 status: 'Verified',
-                imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
+                imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
                 userId: Number(distributorId),
-                isDeleted:false
+                isDeleted: false
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", 'status','imageSize','isDeleted'],
-                conflictFields: ["categoryId", "userId",'isDeleted']
+                updateOnDuplicate: ["image", 'status', 'imageSize', 'isDeleted'],
+                conflictFields: ["categoryId", "userId", 'isDeleted']
             });
 
             // Fetch manufacturer names for the provided manufacturer IDs
@@ -1264,16 +1266,16 @@ class DistributorService {
             const aboutToEmpty = Number(process.env.aboutToEmpty || 10);
             const lowStockDays = Number(process.env.lowStockDays || 90);
 
-            const authRecords = await db.authorizations.findAll({
-                where: {
-                    authorizedId: Number(id),
-                    // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
-                },
-                attributes: ['authorizedBy'],
-            });
+            // const authRecords = await db.authorizations.findAll({
+            //     where: {
+            //         authorizedId: Number(id),
+            //         // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+            //     },
+            //     attributes: ['authorizedBy'],
+            // });
 
-            const authorizedBy = authRecords.map(a => a.authorizedBy);
-            if (authorizedBy.length === 0) return { status: 200, apiData: [], message: 'No authorized manufacturers found' };
+            // const authorizedBy = authRecords.map(a => a.authorizedBy);
+            // if (authorizedBy.length === 0) return { status: 200, apiData: [], message: 'No authorized manufacturers found' };
 
             const stockFilters = {
                 organisationId: Number(id),
@@ -1305,9 +1307,9 @@ class DistributorService {
                 stockFilters.stock = { [db.Sequelize.Op.gte]: aboutToEmpty };
             }
 
-            const productFilters = {
-                manufacturerId: { [db.Sequelize.Op.in]: authorizedBy }
-            };
+            // const productFilters = {
+            //     manufacturerId: { [db.Sequelize.Op.in]: authorizedBy }
+            // };
 
             if (search) {
                 productFilters[db.Sequelize.Op.or] = [
@@ -1317,86 +1319,89 @@ class DistributorService {
             }
 
             // Step 1: Get all products to count
-            const allProducts = await db.products.count({
-                where: productFilters,
-            });
+            // const allProducts = await db.products.count({
+            //     where: productFilters,
+            // });
 
             // const totalCount = allProducts.length;
 
             // Step 2: Get paginated products only
-            const {rows:paginatedProducts,count} = await db.products.findAndCountAll({
-                where: productFilters,
+            // const {rows:paginatedProducts,count} = await db.products.findAndCountAll({
+            //     where: productFilters,
+            //     include: [
+            //         {
+            //             model: db.stocks,
+            //             as: "stocks",
+            //             required: false,
+            //             where: stockFilters,
+            //             include:[
+            //                 {
+            //                     model:db.manufacturers,
+            //                     as:"manufacturer",
+            //                     attributes:['companyName','manufacturerCode']
+            //                 },
+            //                 {
+            //                     model:db.distributors,
+            //                     as:"distributor",
+            //                     attributes:['companyName','distributorCode']
+            //                 }
+            //             ]
+            //         },
+            //         {
+            //             model:db.manufacturers,
+            //             as:"manufacturer",
+            //             attributes:['companyName']
+            //         }
+            //     ],
+            //     // order: [['PName', 'ASC']],
+            //     order: [
+            //         [
+            //           db.sequelize.literal(`(
+            //             SELECT CASE WHEN SUM(s.Stock) > 0 THEN 1 ELSE 0 END
+            //             FROM stocks AS s
+            //             WHERE s.PId = products.PId
+            //           )`),
+            //           'DESC'
+            //         ],
+            //         ['PName', 'ASC']
+            //       ],                 
+            //     offset: skip,
+            //     limit: Limit
+            // });
+            const { rows: paginatedProducts, count } = await db.stocks.findAndCountAll({
+                where: stockFilters,
                 include: [
                     {
-                        model: db.stocks,
-                        as: "stocks",
-                        required: false,
-                        where: stockFilters,
-                        include:[
+                        model: db.products,
+                        as: 'product',
+                        include: [
                             {
-                                model:db.manufacturers,
-                                as:"manufacturer",
-                                attributes:['companyName','manufacturerCode']
-                            },
-                            {
-                                model:db.distributors,
-                                as:"distributor",
-                                attributes:['companyName','distributorCode']
+                                model: db.manufacturers,
+                                as: "manufacturer",
+                                attributes: ['companyName']
                             }
                         ]
                     },
+                    {
+                        model: db.manufacturers,
+                        as: "manufacturer",
+                        attributes: ['companyName', 'manufacturerCode']
+                    },
+                    {
+                        model: db.distributors,
+                        as: "distributor",
+                        attributes: ['companyName', 'distributorCode']
+                    }
                 ],
-                // order: [['PName', 'ASC']],
-                order: [
-                    [
-                      db.sequelize.literal(`(
-                        SELECT CASE WHEN SUM(s.Stock) > 0 THEN 1 ELSE 0 END
-                        FROM stocks AS s
-                        WHERE s.PId = products.PId
-                      )`),
-                      'DESC'
-                    ],
-                    ['PName', 'ASC']
-                  ],                 
+                order:[['SId','desc']],
                 offset: skip,
                 limit: Limit
-            });
-            const formattedData = paginatedProducts.flatMap(product => {
-                if (!product.stocks || product.stocks.length === 0) {
-                    return [{
-                        SId: null,
-                        PId: product.PId,
-                        BatchNo: null,
-                        ExpDate: null,
-                        MRP: null,
-                        PTR: null,
-                        PTS: null,
-                        Scheme: null,
-                        BoxQty: null,
-                        Loose: null,
-                        Stock: null,
-                        organisationId: null,
-                        entityId: null,
-                        location: null,
-                        createdAt: null,
-                        updatedAt: null,
-                        purchasedFrom: null,
-                        purchasedFromCode:null,
-                        product: {
-                            PId: product.PId,
-                            PCode: product.PCode,
-                            PName: product.PName,
-                            PackagingDetails: product.PackagingDetails,
-                            SaltComposition: product.SaltComposition,
-                            LOCKED: product.LOCKED,
-                            manufacturerId: product.manufacturerId
-                        }
-                    }];
-                }
-
-                return product.stocks.map(stock => ({
+            })
+            // return {paginatedProducts}
+            const formatData = paginatedProducts?.map((stock)=>{
+                return {
                     SId: stock.SId,
-                    PId: product.PId,
+                    PId: stock.PId,
                     BatchNo: stock.BatchNo,
                     ExpDate: stock.ExpDate,
                     MRP: stock.MRP,
@@ -1412,18 +1417,87 @@ class DistributorService {
                     createdAt: stock.createdAt,
                     updatedAt: stock.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
-                    purchasedFromCode:stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+                    purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
                     product: {
-                        PId: product.PId,
-                        PCode: product.PCode,
-                        PName: product.PName,
-                        PackagingDetails: product.PackagingDetails,
-                        SaltComposition: product.SaltComposition,
-                        LOCKED: product.LOCKED,
-                        manufacturerId: product.manufacturerId
+                        PId: stock.product.PId,
+                        PCode: stock.product.PCode,
+                        PName: stock.product.PName,
+                        PackagingDetails: stock.product.PackagingDetails,
+                        SaltComposition: stock.product.SaltComposition,
+                        LOCKED: stock.product.LOCKED,
+                        manufacturerId: stock.product.manufacturerId,
+                        manufacturerName: stock.product?.manufacturer?.companyName || null,
+                        productForm: stock.product?.ProductForm
                     }
-                }));
-            });
+                }
+            })
+//             const formattedData = paginatedProducts.flatMap(product => {
+//                 if (!product.stocks || product.stocks.length === 0) {
+//                     return [{
+//                         SId: null,
+//                         PId: product.PId,
+//                         BatchNo: null,
+//                         ExpDate: null,
+//                         MRP: null,
+//                         PTR: null,
+//                         PTS: null,
+//                         Scheme: null,
+//                         BoxQty: null,
+//                         Loose: null,
+//                         Stock: null,
+//                         organisationId: null,
+//                         entityId: null,
+//                         location: null,
+//                         createdAt: null,
+//                         updatedAt: null,
+//                         purchasedFrom: null,
+//                         purchasedFromCode: null,
+//                         product: {
+//                             PId: product.PId,
+//                             PCode: product.PCode,
+//                             PName: product.PName,
+//                             PackagingDetails: product.PackagingDetails,
+//                             SaltComposition: product.SaltComposition,
+//                             LOCKED: product.LOCKED,
+//                             manufacturerId: product.manufacturerId,
+//                             manufacturerName: product?.manufacturer?.companyName || null,
+//                             productForm: product?.ProductForm
+//                         }
+//                     }];
+//                 }
+// // console.log(product)
+//                 return product?.map(stock => ({
+//                     SId: stock.SId,
+//                     PId: product.PId,
+//                     BatchNo: stock.BatchNo,
+//                     ExpDate: stock.ExpDate,
+//                     MRP: stock.MRP,
+//                     PTR: stock.PTR,
+//                     PTS: stock.PTS,
+//                     Scheme: stock.Scheme,
+//                     BoxQty: stock.BoxQty,
+//                     Loose: stock.Loose,
+//                     Stock: stock.Stock,
+//                     organisationId: stock.organisationId,
+//                     entityId: stock.entityId,
+//                     location: stock.location,
+//                     createdAt: stock.createdAt,
+//                     updatedAt: stock.updatedAt,
+//                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
+//                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+//                     product: {
+//                         PId: product.PId,
+//                         PCode: product.PCode,
+//                         PName: product.PName,
+//                         PackagingDetails: product.PackagingDetails,
+//                         SaltComposition: product.SaltComposition,
+//                         LOCKED: product.LOCKED,
+//                         manufacturerId: product.manufacturerId,
+//                         manufacturerName: product?.manufacturer?.companyName || null,
+//                         productForm: product?.ProductForm
+//                     }
+//                 }));
+//             });
 
             return {
                 status: message.code200,
@@ -1431,7 +1505,7 @@ class DistributorService {
                 totalData: count,
                 totalPage: Math.ceil(count / Limit),
                 currentPage: Page,
-                apiData: formattedData
+                apiData: formatData
             }
 
         } catch (err) {
