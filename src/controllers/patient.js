@@ -50,3 +50,19 @@ exports.patients_list = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.patient_orders = async (req,res) => {
+  try {
+      const data = {...req.query,...req.user}
+      const Data = await PatientService.patient_orders(data);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error patient_orders:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};

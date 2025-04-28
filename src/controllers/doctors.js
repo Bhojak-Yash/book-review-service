@@ -50,3 +50,19 @@ exports.doctors_list = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.doctor_details = async (req,res) => {
+  try {
+      const data = {...req.query,...req.user}
+      const Data = await DoctorsService.doctor_details(data);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error doctor_details:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};

@@ -39,6 +39,9 @@ module.exports =(sequelize,Sequelize)=>{
         "retailerId":{
             type:Sequelize.INTEGER,
             allowNull: false,
+        },
+        "balance":{
+            type:Sequelize.DOUBLE
         }
     },
 

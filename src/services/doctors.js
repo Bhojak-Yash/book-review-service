@@ -165,6 +165,40 @@ class DoctorsService {
             }
         }
     }
+
+    async doctor_details(data){
+        try {
+            const { id, doctorId } = data
+            if(!doctorId){
+                return {
+                    status:message.code400,
+                    message:'Input invalid'
+                }
+            }
+            // console.log(doctorId,id)
+           const doctorDetails = await db.doctors.findOne({
+            where:{id:Number(doctorId),retailerId:Number(id)},
+            include:[
+                {
+                    model:db.doctorPayments,
+                    as:"doctorPayments"
+                }
+            ]
+           })
+
+           return {
+            status:message.code200,
+            message:message.message200,
+            apiData:doctorDetails
+           }
+        } catch (error) {
+            console.log('doctor_details service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
 }
 
 module.exports = new DoctorsService(db);

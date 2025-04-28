@@ -44,6 +44,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "retailerId":{
             type:Sequelize.INTEGER
+        },
+        "paymentMode":{
+            type:Sequelize.ENUM("Cash",'Online','Credit')
         }
     },
 
