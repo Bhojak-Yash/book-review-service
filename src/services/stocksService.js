@@ -333,7 +333,7 @@ class StocksService {
           organisationId: stock.organisationId,
           entityId: stock.entityId,
           location: stock.location,
-          Selling_Price: stock.PTS,
+          PTS: stock.PTS,
           createdAt: stock.createdAt,
           updatedAt: stock.updatedAt,
           product: {
@@ -359,7 +359,7 @@ class StocksService {
           organisationId: null,
           entityId: null,
           location: null,
-          Selling_Price: null,
+          PTS: null,
           createdAt: null,
           updatedAt: null,
           product: {
