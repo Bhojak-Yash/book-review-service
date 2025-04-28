@@ -1336,12 +1336,12 @@ class DistributorService {
                             {
                                 model:db.manufacturers,
                                 as:"manufacturer",
-                                attributes:['companyName']
+                                attributes:['companyName','manufacturerCode']
                             },
                             {
                                 model:db.distributors,
                                 as:"distributor",
-                                attributes:['companyName']
+                                attributes:['companyName','distributorCode']
                             }
                         ]
                     },
@@ -1411,6 +1411,7 @@ class DistributorService {
                     createdAt: stock.createdAt,
                     updatedAt: stock.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
+                    purchasedFromCode:stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
                     product: {
                         PId: product.PId,
                         PCode: product.PCode,

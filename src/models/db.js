@@ -33,6 +33,7 @@ const retailerSalesHeader = require('./retailer_sales_header');
 const retailerSalesDetails = require('./retailer_sales_details');
 const patients = require('./patient');
 const doctors =require('./doctors');
+const doctorPayments = require('./doctorsPayments')
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -91,7 +92,8 @@ const db = {
   retailerSalesHeader:retailerSalesHeader(sequelize,Sequelize),
   retailerSalesDetails:retailerSalesDetails(sequelize,Sequelize),
   patients:patients(sequelize,Sequelize),
-  doctors:doctors(sequelize,Sequelize)
+  doctors:doctors(sequelize,Sequelize),
+  doctorPayments:doctorPayments(sequelize,Sequelize)
 };
 
 db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
@@ -225,7 +227,8 @@ db.stocks.belongsTo(db.distributors,{foreignKey: "organisationId",targetKey:'dis
 db.retailerSalesHeader.belongsTo(db.patients,{foreignKey: "patientId", as: "patient" })
 db.retailerSalesHeader.belongsTo(db.doctors,{foreignKey: "doctorId", as: "doctor" })
 db.patients.hasMany(db.retailerSalesHeader,{foreignKey:"patientId",as:'retailerSalesHeaders'})
-db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSalesHeaders'})
+db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSalesHeaders'});
+db.doctors.hasMany(db.doctorPayments,{foreignKey:"doctorId",as:'doctorPayments'})
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

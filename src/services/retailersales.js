@@ -102,6 +102,7 @@ class RetailerSalesService {
         let transaction;
         try {
             transaction = await db.sequelize.transaction();
+            const doctor = await db.doctors.findOne({where:{id:Number(data?.order?.doctorId)}})
             const orderDetails = {
                 "date": data?.order?.date,
                 "patientId": data?.order?.patientId,
@@ -114,7 +115,8 @@ class RetailerSalesService {
                 "SGST": data?.order?.SGST,
                 "CGST": data?.order?.CGST,
                 "balance": data?.order?.balance,
-                "retailerId":Number(user.id)
+                "retailerId":Number(user.id),
+                "paymentMode":'Cash'
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
@@ -132,6 +134,8 @@ class RetailerSalesService {
             })
             // console.log(orderItmes,order.items)
             const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
+            const doctorCommission = Number((Number(data?.order?.totalAmt)*Number(doctor?.commission)/100).toFixed(2))
+            const updateBalane = await db.doctors.update({balance:db.sequelize.literal(`COALESCE(balance, 0) + ${doctorCommission}`)},{where:{id:Number(data?.order?.doctorId)},transaction})
             await transaction.commit();
             return {
                 status: message.code200,
@@ -228,6 +232,36 @@ class RetailerSalesService {
             return {
                 status: message.code500,
                 message: error.message
+            }
+        }
+    }
+
+    async make_doctors_payment(data) {
+        let transaction;
+        try {
+            transaction = await db.sequelize.transaction();
+            const {id,doctorId,amount,mode,imageURL} = data
+            const payment = await db.doctorPayments.create({
+                doctorId:Number(doctorId),
+                retailerId:Number(id),
+                amount:Number(amount),
+                mode:mode,
+                imageURL:imageURL,
+                status:"Pending"
+            },transaction)
+            const updateBalane = await db.doctors.update({balance:db.sequelize.literal(`COALESCE(balance, 0) - ${amount}`)},{where:{id:Number(doctorId)},transaction})
+            await transaction.commit();
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:payment
+            }
+        } catch (error) {
+            console.log('make_doctors_payment service error:',error.message)
+            if (transaction) await transaction.rollback();
+            return {
+                status:message.code200,
+                message:error.message
             }
         }
     }
