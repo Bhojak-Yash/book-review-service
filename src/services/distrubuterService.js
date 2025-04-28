@@ -1312,11 +1312,11 @@ class DistributorService {
             // };
 
             if (search) {
-                productFilters[db.Sequelize.Op.or] = [
-                    { PName: { [db.Sequelize.Op.like]: `%${search}%` } },
-                    { SaltComposition: { [db.Sequelize.Op.like]: `%${search}%` } },
+                stockFilters[db.Op.or] = [
+                  { '$product.PName$':         { [db.Op.like]: `%${search}%` } },
+                  { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
                 ];
-            }
+              }
 
             // Step 1: Get all products to count
             // const allProducts = await db.products.count({
@@ -1516,9 +1516,6 @@ class DistributorService {
             };
         }
     }
-
-
-
     async update_distributorType(data, userIdFromToken) {
         let transaction;
         try {
