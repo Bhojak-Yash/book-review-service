@@ -1316,11 +1316,11 @@ class DistributorService {
             // };
 
             if (search) {
-                productFilters[db.Sequelize.Op.or] = [
-                    { PName: { [db.Sequelize.Op.like]: `%${search}%` } },
-                    { SaltComposition: { [db.Sequelize.Op.like]: `%${search}%` } },
+                stockFilters[db.Op.or] = [
+                  { '$product.PName$':         { [db.Op.like]: `%${search}%` } },
+                  { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
                 ];
-            }
+              }
 
             // Step 1: Get all products to count
             // const allProducts = await db.products.count({
@@ -1402,36 +1402,40 @@ class DistributorService {
                 limit: Limit
             })
             // return {paginatedProducts}
+           
             const formatData = paginatedProducts?.map((stock)=>{
                 return {
                     SId: stock.SId,
-                    PId: stock.PId,
-                    BatchNo: stock.BatchNo,
-                    ExpDate: stock.ExpDate,
-                    MRP: stock.MRP,
-                    PTR: stock.PTR,
-                    PTS: stock.PTS,
-                    Scheme: stock.Scheme,
-                    BoxQty: stock.BoxQty,
-                    Loose: stock.Loose,
-                    Stock: stock.Stock,
-                    organisationId: stock.organisationId,
-                    entityId: stock.entityId,
-                    location: stock.location,
-                    createdAt: stock.createdAt,
-                    updatedAt: stock.updatedAt,
+                    PId: stock?.PId,
+                    BatchNo: stock?.BatchNo,
+                    ExpDate: stock?.ExpDate,
+                    MRP: stock?.MRP,
+                    PTR: stock?.PTR,
+                    PTS: stock?.PTS,
+                    Scheme: stock?.Scheme,
+                    BoxQty: stock?.BoxQty,
+                    Loose: stock?.Loose,
+                    Stock: stock?.Stock,
+                    organisationId: stock?.organisationId,
+                    entityId: stock?.entityId,
+                    location: stock?.location,
+                    createdAt: stock?.createdAt,
+                    updatedAt: stock?.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+                    stockStatus:stock?.Stock == 0?"Out of stock":Number(stock?.Stock)<Number(aboutToEmpty)?'About to empty':'Up to date',
+                    expiryStatus:expiryStatus(stock.ExpDate,lowStockDays)  || null,
                     product: {
-                        PId: stock.product.PId,
-                        PCode: stock.product.PCode,
-                        PName: stock.product.PName,
-                        PackagingDetails: stock.product.PackagingDetails,
-                        SaltComposition: stock.product.SaltComposition,
-                        LOCKED: stock.product.LOCKED,
-                        manufacturerId: stock.product.manufacturerId,
-                        manufacturerName: stock.product?.manufacturer?.companyName || null,
-                        productForm: stock.product?.ProductForm
+                        PId: stock?.product?.PId,
+                        PCode: stock?.product?.PCode,
+                        PName: stock?.product?.PName,
+                        PackagingDetails: stock?.product?.PackagingDetails,
+                        SaltComposition: stock?.product?.SaltComposition,
+                        LOCKED: stock?.product?.LOCKED,
+                        manufacturerId: stock?.product?.manufacturerId,
+                        manufacturerName: stock?.product?.manufacturer?.companyName || null,
+                        productForm: stock?.product?.ProductForm,
+                        Package:stock?.product?.Package,
                     }
                 }
             })
@@ -1520,9 +1524,6 @@ class DistributorService {
             };
         }
     }
-
-
-
     async update_distributorType(data, userIdFromToken) {
         let transaction;
         try {
@@ -1642,5 +1643,24 @@ class DistributorService {
         }
     }
 }
+
+const expiryStatus =  (ExpDate,nearToExpDate) => {
+    const expDate = new Date(ExpDate);
+    const today = new Date();
+
+    // Calculate the difference in days
+    const diffDays = Math.floor((expDate - today) / (1000 * 60 * 60 * 24));
+
+    let expStatus;
+    if (diffDays < 0) {
+      expStatus = "expired";
+    } else if (diffDays <= nearToExpDate) {
+      expStatus = "Near expiry";
+    } else {
+      expStatus = "Up to date";
+    }
+
+    return expStatus
+  }
 
 module.exports = new DistributorService(db);

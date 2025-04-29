@@ -591,9 +591,12 @@ class expiryService {
             const userId = Number(id)
 
             const whereClause = {
-                returnTo: userId,
+                
             };
-
+            whereClause[db.Op.or]=[
+               { returnTo: userId},
+               {returnFrom: userId,}
+            ]
             if (search) {
                 whereClause[db.Op.or] = [
                     { returnId: { [db.Op.like]: `%${search}%` } },

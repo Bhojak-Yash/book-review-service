@@ -952,7 +952,7 @@ class OrdersService {
         address: user?.address || null,
       });
 
-      const discount = Number(order?.subTotal) - Number(order?.orderTotal);
+      const discount = Number(order?.subTotal) - Number(order?.taxable);
       const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
 
       const formattedOrder = {
@@ -988,6 +988,7 @@ class OrdersService {
           "CGST": order?.CGST,
           "SGST": order?.SGST,
           "IGST": order?.IGST,
+          "taxable":order?.taxable,
           "orderItems": order?.orderItems?.map((item)=>{
             return {
               "id": item?.id,

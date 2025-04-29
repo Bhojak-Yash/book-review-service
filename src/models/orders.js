@@ -87,16 +87,19 @@ module.exports = (sequelize, Sequelize) => {
           type:Sequelize.DATE
         },
         IGST:{
-          type: Sequelize.INTEGER
+          type: Sequelize.DOUBLE
         },
         CGST:{
-          type: Sequelize.INTEGER
+          type: Sequelize.DOUBLE
         },
         SGST:{
-          type: Sequelize.INTEGER
+          type: Sequelize.DOUBLE
         },
         subTotal:{
           type: Sequelize.STRING
+        },
+        taxable:{
+          type:Sequelize.DOUBLE
         }
       },
       {
