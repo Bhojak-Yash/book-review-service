@@ -949,7 +949,7 @@ class OrdersService {
         address: user?.address || null,
       });
 
-      const discount = Number(order?.subTotal) - Number(order?.orderTotal);
+      const discount = Number(order?.subTotal) - Number(order?.taxable);
       const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
 
       const formattedOrder = {
