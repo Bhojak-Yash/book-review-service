@@ -289,7 +289,7 @@ class UsersCartService {
                     "PName":item?.productDetails?.PName,
                     "SaltComposition":item?.productDetails?.SaltComposition,
                     "MRP":item?.stockDetails?.MRP || item?.stockDetailss?.MRP,
-                    "PTR": isManufacturer ? item?.stockDetailss?.PTS : item?.stockDetails?.PTR || '[[[[[[[',
+                    "PTR": isManufacturer ? item?.stockDetailss?.PTS : item?.stockDetails?.PTR || 0,
                     "isManufacturer": isManufacturer,
                     // "PTS":item?.stockDetails?.PTS || item?.stockDetailss?.PTS || 0,
                     "scheme":item?.stockDetails?.Scheme || item?.stockDetailss?.Scheme || null,
