@@ -97,6 +97,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         subTotal:{
           type: Sequelize.STRING
+        },
+        taxable:{
+          type:Sequelize.DOUBLE
         }
       },
       {

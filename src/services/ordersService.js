@@ -985,6 +985,7 @@ class OrdersService {
           "CGST": order?.CGST,
           "SGST": order?.SGST,
           "IGST": order?.IGST,
+          "taxable":order?.taxable,
           "orderItems": order?.orderItems?.map((item)=>{
             return {
               "id": item?.id,
