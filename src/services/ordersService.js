@@ -874,6 +874,9 @@ class OrdersService {
       const checkUser = await db.users.findOne({ where: { id: Number(aaa?.dataValues?.orderTo) } })
       const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const as = checkUser?.dataValues?.userType == 'Manufacturer' ? 'stocks' : 'stock';
+      const isManufacturer = checkUser?.dataValues?.userType === 'Manufacturer';
+      console.log("isManufacturer", isManufacturer);
+
       console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
       const order = await db.orders.findOne({
         // attributes:[''],
@@ -995,7 +998,8 @@ class OrdersService {
               "schQty": item?.schQty,
               "price": item?.price,
               "MRP": item?.MRP,
-              "PTR": item?.PTR,
+              "PTR": item?.price,
+              "isManufacturer": isManufacturer,
               "sch_Per": item?.sch_Per,
               "cD_Per": item?.cD_Per,
               "iGST_Per": item?.iGST_Per,
@@ -1018,7 +1022,7 @@ class OrdersService {
               "BoxQty": item?.BoxQty,
               "Scheme": item?.Scheme,
               "loose": item?.loose,
-              "PTS": item?.PTS,
+              // "PTS": item?.PTS,
               "product": item?.product,
               "stock": item?.stocks || item?.stock || {}
           }

@@ -138,7 +138,7 @@ class UsersCartService {
     async getUserCart(data) {
         try {
             const { id,userType,manufacturerId } = data
-            // console.log(data)
+            console.log(data)
             // const userData = awa
             let distributor;
             // Fetch all items in the cart for the logged-in user
@@ -267,7 +267,13 @@ class UsersCartService {
                     }
                 ],
             });
-            // console.log(cartItems)
+            let isManufacturer = false;
+            if (manufacturer?.userType === 'Manufacturer'){
+                isManufacturer = true;
+            }
+            console.log("isManufacturer", isManufacturer);
+            // console.log("PTR", PTR);
+            // console.log("PTS", PTS);
             // let totalAmount = 0
             const updateCart = await cartItems.map((item)=>{
                 // console.log(item)
@@ -283,8 +289,9 @@ class UsersCartService {
                     "PName":item?.productDetails?.PName,
                     "SaltComposition":item?.productDetails?.SaltComposition,
                     "MRP":item?.stockDetails?.MRP || item?.stockDetailss?.MRP,
-                    "PTR":item?.stockDetails?.PTR || item?.stockDetailss?.PTR || 0,
-                    "PTS":item?.stockDetails?.PTS || item?.stockDetailss?.PTS || 0,
+                    "PTR": isManufacturer ? item?.stockDetailss?.PTS : item?.stockDetails?.PTR || 0,
+                    "isManufacturer": isManufacturer,
+                    // "PTS":item?.stockDetails?.PTS || item?.stockDetailss?.PTS || 0,
                     "scheme":item?.stockDetails?.Scheme || item?.stockDetailss?.Scheme || null,
                     "BatchNo":item?.stockDetails?.BatchNo || item?.stockDetailss?.BatchNo,
                     "stock":item?.stockDetails?.Stock || item?.stockDetailss?.Stock,
