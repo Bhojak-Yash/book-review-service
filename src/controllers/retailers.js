@@ -154,3 +154,16 @@ exports.po_page_card_data_retailer = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
+
+exports.retailers_stock_card_data = async (req,res)=> {
+  try {
+    const data = {...req.user,...req.query}
+    const response = await RetailerService.retailers_stock_card_data(data);
+
+    return res.status(response?.status || 200).json(response);
+
+  } catch (error) {
+    console.log('retailers_stock_card_data service error:',error.message)
+    return res.status(500).json({ status: 500, message:error.message});
+  }
+}

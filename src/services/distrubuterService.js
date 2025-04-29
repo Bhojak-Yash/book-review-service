@@ -1402,6 +1402,7 @@ class DistributorService {
                 limit: Limit
             })
             // return {paginatedProducts}
+           
             const formatData = paginatedProducts?.map((stock)=>{
                 return {
                     SId: stock.SId,
@@ -1422,6 +1423,8 @@ class DistributorService {
                     updatedAt: stock?.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+                    stockStatus:stock?.Stock == 0?"Out of stock":Number(stock?.Stock)<Number(aboutToEmpty)?'About to empty':'Up to date',
+                    expiryStatus:expiryStatus(stock.ExpDate,lowStockDays)  || null,
                     product: {
                         PId: stock?.product?.PId,
                         PCode: stock?.product?.PCode,
@@ -1431,7 +1434,8 @@ class DistributorService {
                         LOCKED: stock?.product?.LOCKED,
                         manufacturerId: stock?.product?.manufacturerId,
                         manufacturerName: stock?.product?.manufacturer?.companyName || null,
-                        productForm: stock?.product?.ProductForm
+                        productForm: stock?.product?.ProductForm,
+                        Package:stock?.product?.Package,
                     }
                 }
             })
@@ -1639,5 +1643,24 @@ class DistributorService {
         }
     }
 }
+
+const expiryStatus =  (ExpDate,nearToExpDate) => {
+    const expDate = new Date(ExpDate);
+    const today = new Date();
+
+    // Calculate the difference in days
+    const diffDays = Math.floor((expDate - today) / (1000 * 60 * 60 * 24));
+
+    let expStatus;
+    if (diffDays < 0) {
+      expStatus = "expired";
+    } else if (diffDays <= nearToExpDate) {
+      expStatus = "Near expiry";
+    } else {
+      expStatus = "Up to date";
+    }
+
+    return expStatus
+  }
 
 module.exports = new DistributorService(db);

@@ -6,6 +6,7 @@ const { request } = require('express');
 const Users = db.users;
 const Retailers = db.retailers;
 const Op = db.Op
+const dayjs = require('dayjs');
 const moment = require("moment");
 const { where } = require('sequelize');
 const formatSize = (size) => {
@@ -69,7 +70,7 @@ class RetailerService {
                 {
                     retailerId: user.id, // Assuming `id` is the primary key of the `users` table
                     firmName: companyName,
-                    email:userName,
+                    email: userName,
                     retailerCode: retailerCode, // Adding retailerCode
                 },
                 { transaction }
@@ -143,8 +144,8 @@ class RetailerService {
     async get_distributors_list(data) {
         try {
             const { search } = data;
-            if(search.length <3){
-                return{
+            if (search.length < 3) {
+                return {
                     status: message.code400,
                     message: "Invalid Imput",
                 }
@@ -583,7 +584,7 @@ class RetailerService {
                     {
                         model: db.documents,
                         as: "documnets",
-                        attributes: ['documentId','image', "status", "imageSize", 'updatedAt'],
+                        attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id)
                         },
@@ -660,8 +661,8 @@ class RetailerService {
                             retailerId: row.retailerId,
                             companyName: row.firmName,
                             ownerName: row.ownerName,
-                            companyType:row.companyType,
-                            wholeSaleDrugLicence:row.drugLicense,
+                            companyType: row.companyType,
+                            wholeSaleDrugLicence: row.drugLicense,
                             logo: row.profilePic,
                             createdAt: row.createdAt,
                             updatedAt: row.updatedAt,
@@ -804,7 +805,7 @@ class RetailerService {
                 checkCart = await db.usercarts.findAll({ where: { orderFrom: Number(id), orderTo: Number(distributorId) } })
             }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
-            console.log(id,"checkCart")
+            console.log(id, "checkCart")
             const userData = await db.users.findOne({
                 where: { id: Number(distributorId) },
                 attributes: ['id', 'userName'],
@@ -1007,13 +1008,13 @@ class RetailerService {
         }
     }
 
-    async po_page_card_data_retailer(data){
+    async po_page_card_data_retailer(data) {
         try {
             const { id } = data;
             const userId = Number(id);
-            let whereauthApproved = {authorizedId:userId,status:"Approved"}
+            let whereauthApproved = { authorizedId: userId, status: "Approved" }
             let whereauthPending = { authorizedId: userId, status: "Pending" }
-            let whereorders={ orderFrom: userId }
+            let whereorders = { orderFrom: userId }
 
             if (data.start_date && data.end_date) {
                 const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
@@ -1044,10 +1045,10 @@ class RetailerService {
                 }),
 
                 // Fetch total retailers grouped by companyType
-                db.authorizations.count({where:whereauthApproved}),
+                db.authorizations.count({ where: whereauthApproved }),
 
                 // Count pending authorizations
-                db.authorizations.count({ where:whereauthPending  }),
+                db.authorizations.count({ where: whereauthPending }),
             ]);
 
 
@@ -1068,12 +1069,65 @@ class RetailerService {
                 },
             };
         } catch (error) {
-            console.log('po_page_card_data_retailer error:',error.message)
+            console.log('po_page_card_data_retailer error:', error.message)
             return {
-                status:message.code500,
-                message:message.message500
+                status: message.code500,
+                message: message.message500
             }
         }
     }
+
+    async retailers_stock_card_data(data) {
+        try {
+            const { id } = data
+            const nearExpiryDays = Number(process.env.lowStockDays || 90);
+            // const nearExpiryDays = Number(process.env.lowStockDays || 90);
+            const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+            const nearExpiryDate = dayjs().add(nearExpiryDays, 'day').format('YYYY-MM-DD HH:mm:ss');
+
+            const [result] = await db.sequelize.query(
+                `
+                SELECT
+                    SUM(CASE WHEN ExpDate < :now THEN 1 ELSE 0 END) AS expiredStock,
+                    SUM(CASE WHEN ExpDate >= :now AND ExpDate <= :nearExpiry THEN 1 ELSE 0 END) AS nearToExpiry,
+                    SUM(CASE WHEN ExpDate > :nearExpiry THEN 1 ELSE 0 END) AS uptoDate,
+                    MAX(updatedAt) AS lastUpdated
+                FROM stocks
+                WHERE organisationId = :id
+                `,
+                {
+                    replacements: {
+                        now,
+                        nearExpiry: nearExpiryDate,
+                        id: Number(id)
+                    },
+                    // type: db.sequelize.QueryTypes.SELECT, // Uncomment this if needed
+                }
+            );
+            
+
+            return {
+                status: message.code200,
+                message:message.message200,
+                apiData: {
+                    "expiredStock": String(result[0]?.expiredStock) || null,
+                    "nearToExpiry": String(result[0]?.nearToExpiry) || null,
+                    "uptoDate": String(result[0]?.uptoDate) || null,
+                    "lastUpdated": result[0]?.lastUpdated || null,
+                    "allProducts":"0",
+                    "unlocked":"0"
+                }, 
+                // result
+            };
+
+            // return { result }
+    } catch(error) {
+        console.log('retailers_stock_card_data service error:', error.message)
+        return {
+            status: message.code500,
+            message: error.message
+        }
+    }
+}
 }
 module.exports = new RetailerService(db);

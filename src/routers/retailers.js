@@ -12,5 +12,6 @@ router.get('/get-distributors-list',verifyToken,retailerc.get_distributors_list)
 router.get('/get-stocks-byDistributor',retailerc.get_stocks_byDistributor)
 router.get('/get-retailer-po-list',verifyToken,retailerc.get_retailer_po_list)
 router.get('/po-page-card-data-retailer',verifyToken,retailerc.po_page_card_data_retailer)
+router.get('/retailers-stock-cards-data',verifyToken,retailerc.retailers_stock_card_data)
 
 module.exports =router
