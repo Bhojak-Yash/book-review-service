@@ -1082,15 +1082,15 @@ class RetailerService {
             const { id } = data
             const nearExpiryDays = Number(process.env.lowStockDays || 90);
             // const nearExpiryDays = Number(process.env.lowStockDays || 90);
-            const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
-            const nearExpiryDate = dayjs().add(nearExpiryDays, 'day').format('YYYY-MM-DD HH:mm:ss');
-
+            const now = dayjs().format('YYYY-MM-DD');
+            const nearExpiryDate = dayjs().add(nearExpiryDays, 'day').format('YYYY-MM-DD');
+            
             const [result] = await db.sequelize.query(
                 `
                 SELECT
-                    SUM(CASE WHEN ExpDate < :now THEN 1 ELSE 0 END) AS expiredStock,
-                    SUM(CASE WHEN ExpDate >= :now AND ExpDate <= :nearExpiry THEN 1 ELSE 0 END) AS nearToExpiry,
-                    SUM(CASE WHEN ExpDate > :nearExpiry THEN 1 ELSE 0 END) AS uptoDate,
+                    SUM(CASE WHEN DATE(ExpDate) < :now THEN 1 ELSE 0 END) AS expiredStock,
+                    SUM(CASE WHEN DATE(ExpDate) >= :now AND DATE(ExpDate) <= :nearExpiry THEN 1 ELSE 0 END) AS nearToExpiry,
+                    SUM(CASE WHEN DATE(ExpDate) > :nearExpiry THEN 1 ELSE 0 END) AS uptoDate,
                     MAX(updatedAt) AS lastUpdated
                 FROM stocks
                 WHERE organisationId = :id
@@ -1101,9 +1101,10 @@ class RetailerService {
                         nearExpiry: nearExpiryDate,
                         id: Number(id)
                     },
-                    // type: db.sequelize.QueryTypes.SELECT, // Uncomment this if needed
+                    // type: db.sequelize.QueryTypes.SELECT,
                 }
             );
+            
             
 
             return {

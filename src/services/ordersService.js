@@ -137,15 +137,16 @@ class OrdersService {
           console.log('[[[[[[[[[[')
           oStatus = 'Partially paid'
         }
-        if(data?.dataValues?.orderStatus==='Confirmed' || data?.dataValues?.orderStatus==='Pending' || data?.dataValues?.orderStatus==='Dispatched'){
-          oStatus = data?.dataValues?.orderStatus
-        }
+        
         let amtUpdate = amount;
         if (Number(aaa) <= Number(amount)) {
           amtUpdate = Number(data.dataValues.balance)
         }
         if(aaa-Number(amtUpdate)==0){
           oStatus='Paid'
+        }
+        if(data?.dataValues?.orderStatus==='Confirmed' || data?.dataValues?.orderStatus==='Pending' || data?.dataValues?.orderStatus==='Dispatched'){
+          oStatus = data?.dataValues?.orderStatus
         }
         console.log(oStatus,'llllllllllllll',aaa,amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
