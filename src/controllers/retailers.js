@@ -167,3 +167,16 @@ exports.retailers_stock_card_data = async (req,res)=> {
     return res.status(500).json({ status: 500, message:error.message});
   }
 }
+
+exports.retailer_medicine_add = async (req,res)=> {
+  try {
+    const data = {...req.user,...req.body}
+    const response = await RetailerService.retailer_medicine_add(data);
+
+    return res.status(response?.status || 200).json(response);
+
+  } catch (error) {
+    console.log('retailer_medicine_add service error:',error.message)
+    return res.status(500).json({ status: 500, message:error.message});
+  }
+}
