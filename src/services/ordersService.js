@@ -584,6 +584,10 @@ class OrdersService {
           { id: { [Op.like]: `%${data.search}%` } }, // Search by orderId
         ];
       }
+      if (data.orderFromUser) {
+        whereClause.orderFrom = Number(data.orderFromUser);
+      }
+
 // console.log(whereClause,'oppppppp')
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
@@ -640,6 +644,7 @@ class OrdersService {
           balance: order.balance || 0,
           status: order.orderStatus,
           orderFrom: orderFrom,
+          orderFromId: order.orderFrom,
           userType: userType,
           orderTotal: order.orderTotal,
           invNo: order.invNo,
