@@ -98,7 +98,7 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    console.log(orderId, updates, loggedInUserId, ';;lllll')
+    // console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
       // console.log(order?.dataValues)
@@ -110,7 +110,7 @@ class OrdersService {
 
       const tableName = orderToDeatils?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const tableNameRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
-      const orderFromRow = orderToDeatils?.userType === 'Manufacturer' ? 'stocks' : "manufacturer_stocks";
+      const orderFromRow = orderToDeatils?.userType === 'Manufacturer' ? 'manufacturer_stocks' : "stocks";
       // console.log(order,orderItems,';pppppp')
       if (!orderItems) {
         throw new Error("Order items not found.");
@@ -294,7 +294,7 @@ class OrdersService {
               );
               console.log(orderFromRow)
               await db.sequelize.query(
-                `INSERT INTO ${orderFromRow} (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
                 {
@@ -307,7 +307,7 @@ class OrdersService {
                     updatedAt: new Date(),
                     organisationId: order.orderFrom,
                     MRP: item.MRP,
-                    PTR: item.PTR,
+                    PTR: item?.PTR,
                     Scheme: item.Scheme,
                     BoxQty: item.BoxQty,
                     loose: item.loose,
