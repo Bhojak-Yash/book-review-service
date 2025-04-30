@@ -98,7 +98,7 @@ class OrdersService {
   }
 
   async updateOrder(orderId, updates, loggedInUserId) {
-    // console.log(orderId, updates, loggedInUserId, ';;lllll')
+    console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
       // console.log(order?.dataValues)
@@ -348,9 +348,9 @@ class OrdersService {
       } else {
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
-      if(updates?.orderStatus === "Cancelled"){
-        await this.db.orders.update(updates, { where: { id: orderId } });
-      }
+      // if(updates?.orderStatus === "Cancelled"){
+      //   await this.db.orders.update(updates, { where: { id: orderId } });
+      // }
       // const aaa=await this.db.orders.findByPk(orderId);
       // console.log(aaa)
       return await this.db.orders.findByPk(orderId);

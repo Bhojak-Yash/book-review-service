@@ -101,9 +101,9 @@ module.exports = (sequelize, Sequelize) => {
         taxable:{
           type:Sequelize.DOUBLE
         },
-        vehicleNo:{
-          type:Sequelize.STRING
-        }
+        // vehicleNo:{
+        //   type:Sequelize.STRING
+        // }
       },
       {
         tableName: "orders",
