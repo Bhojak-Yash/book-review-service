@@ -8,7 +8,7 @@ const Retailers = db.retailers;
 const Op = db.Op
 const dayjs = require('dayjs');
 const moment = require("moment");
-const { where } = require('sequelize');
+const { where, NUMBER } = require('sequelize');
 const formatSize = (size) => {
     let bytes = Number(size);
     if (isNaN(bytes)) return null;
@@ -1127,6 +1127,109 @@ class RetailerService {
         return {
             status: message.code500,
             message: error.message
+        }
+    }
+}
+
+async retailer_medicine_add(data) {
+    try {
+        const {id} = data
+        console.log(data)
+        if(!data?.PName || !data?.BatchNo || !data?.ExpDate || !data?.MRP || !data?.PTR || !data?.manufacturerName || !data?.ProductForm || !data?.Package || !data?.Quantity || !data?.location || !data?.Stock || !data.SaltComposition){
+            return {
+                status:message.code400,message:'Invalid input'
+            }
+        }
+        if(data?.PId && data?.purchasedFromId){
+            const check = await db.stocks.findOne({
+                where:{PId:Number(data?.PId),BatchNo:Number(data?.BatchNo),purchasedFrom:Number(data?.purchasedFromId),organisationId:Number(id)}
+            })
+            let updateStock = Number(check?.Stock)+Number(data?.Stock)
+            if(check){
+                await db.stocks.update({Stock:updateStock},{where:{PId:Number(data?.PId),BatchNo:Number(data?.BatchNo),purchasedFrom:Number(data?.purchasedFromId),organisationId:Number(id)}})
+            }else{
+                await db.stocks.create({
+                    BatchNo:data?.BatchNo,
+                    ExpDate:data?.ExpDate,
+                    PId:Number(data?.PId),
+                    MRP:Number(data?.MRP),
+                    PTR:Number(data?.PTR),
+                    PTS:Number(data?.PTS),
+                    Scheme:data?.Scheme,
+                    BoxQty:data?.BoxQty,
+                    Loose:data?.Loose,
+                    Stock:data?.Stock,
+                    location:data?.location,
+                    organisationId:Number(id),
+                    purchasedFrom:Number(data?.purchasedFromId)
+                })
+            }
+            return {
+                status:message.code200,
+                message:'Stock updated successfully'
+            }
+        }else{
+            const header = await db.sequelize.query(
+                `
+                INSERT INTO tempProduct_header 
+                  (uploadedBy, fileName, total_Item, notMapped, createdAt, updatedAt, mapStatus)
+                VALUES 
+                  (?, ?, ?, ?, ?, ?, ?)
+                `,
+                {
+                  replacements: [
+                    Number(data.id),
+                    data?.fileName || 'http://null',
+                    1,
+                    1,
+                    new Date(),
+                    new Date(),
+                    'Pending'
+                  ],
+                //   type: db.Sequelize.QueryTypes.INSERT
+                }
+              );
+// console.log(header[0])
+              const details = await db.sequelize.query(
+                `
+                INSERT INTO tempProduct_details (
+                   manufacturername, headerId, PName, Package,
+                  ProductForm, Quantity, SaltComposition,MRP, PTR, PTS, LOCKED, createdAt, updatedAt,
+                  BatchNo, ExpDate, Scheme, Stock, location, HSN, purchasedFrom
+                )
+                VALUES (
+                  ?, ?, ?, ?, ?, ?, ?,
+                  ?, ?, ?, ?, ?, ?, ?, ?,
+                  ?, ?, ?, ?, ?
+                )
+                `,
+                {
+                  replacements: [
+                    data?.manufacturerName, header[0], data?.PName,
+                     data?.Package, data?.ProductForm, data?.Quantity, data?.SaltComposition,
+                     data.MRP,
+                    data.PTR, data.PTS, false, new Date(),
+                    new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme,
+                     data?.Stock, data?.location, data?.HSN, data?.purchasedFrom
+                  ],
+                //   type: db.Sequelize.QueryTypes.INSERT
+                }
+              ); 
+              return {
+                status:message.code200,
+                message:'Stock save for mapping'
+              }             
+              
+        }
+
+        return {
+            status:200
+        }
+    } catch (error) {
+        console.log('retailer_medicine_add service error:',error.message)
+        return {
+            status:message.code500,
+            message:error.message
         }
     }
 }

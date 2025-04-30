@@ -344,6 +344,14 @@ class expiryService {
                     { SaltComposition: { [db.Op.like]: `%${search}%` } }
                 ];
             }
+             if (data.startDate && data.endDate) {
+                    const startDate = moment(data.startDate, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                    const endDate = moment(data.endDate, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+            
+                    whereCondition.ExpDate = {
+                      [db.Op.between]: [startDate, endDate]
+                    };
+                  }
             const { count, rows: Data } = await db.stocks.findAndCountAll({
                 attributes: ['SId', 'Stock', 'PId','BatchNo','Loose', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme','organisationId'],
                 where: whereCondition,
@@ -866,16 +874,16 @@ class expiryService {
                 message: message.message200,
                 Returns: {
                     totalReturnRaised: String(Returns?.dataValues?.totalReturnRaised ?? 0),
-                    confirmedCount: Returns?.dataValues?.confirmedCount ?? 0,
-                    pendingCount: Returns?.dataValues?.pendingCount ?? 0
+                    confirmedCount: String(Returns?.dataValues?.confirmedCount ?? 0),
+                    pendingCount: String(Returns?.dataValues?.pendingCount ?? 0)
                 },
                 creditnote: {
-                    ExpiredCount: creditnote?.dataValues?.ExpiredCount ?? 0,
-                    ExpiringSoonCount: creditnote?.dataValues?.ExpiringSoonCount ?? 0
+                    ExpiredCount: String(creditnote?.dataValues?.ExpiredCount ?? 0),
+                    ExpiringSoonCount: String(creditnote?.dataValues?.ExpiringSoonCount ?? 0)
                 },
                 cnvalues: {
-                    totalReturnTotal: cnvalues?.dataValues?.totalReturnTotal ?? 0,
-                    pendingReturnTotal: cnvalues?.dataValues?.pendingReturnTotal ?? 0,
+                    totalReturnTotal: String(cnvalues?.dataValues?.totalReturnTotal ?? 0),
+                    pendingReturnTotal: String(cnvalues?.dataValues?.pendingReturnTotal ?? 0),
                     confirmedCNAmt: String(cnvalues?.dataValues?.confirmedCNAmt ?? 0)
                 }
             };
