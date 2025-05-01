@@ -506,7 +506,8 @@ class ManufacturerService {
       if (data?.search) {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
-          { orderFrom: { [Op.like]: `%${data.search}%` } }
+          { orderFrom: { [Op.like]: `%${data.search}%` } },
+          {'$distributer.companyName$':{ [Op.like]: `%${data.search}%` }}
         ];
       }
       if (data?.distributorId) {

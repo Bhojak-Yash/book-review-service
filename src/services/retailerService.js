@@ -239,7 +239,7 @@ class RetailerService {
             let productResults = [];
             if (search) {
                 const products = await db.products.findAll({
-                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition'],
+                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN'],
                     include: [
                         {
                             model: db.stocks,
@@ -254,6 +254,11 @@ class RetailerService {
                                     required: true
                                 }
                             ]
+                        },
+                        {
+                            model: db.manufacturers,
+                            as: 'manufacturer',
+                            attributes: ['manufacturerId', 'companyName']
                         }
                     ],
                     where: {
@@ -285,14 +290,16 @@ class RetailerService {
                         "MRP": bestStock.MRP || 0,
                         "PTR": bestStock.PTR || 0,
                         "organisationId": bestStock?.organisationId || null,
-                        "distributor": bestStock.distributors || {}
+                        "distributor": bestStock.distributors || {},
                     }
                     return {
                         PId: product.PId,
                         PName: product.PName,
                         PackagingDetails: product.PackagingDetails,
                         SaltComposition: product.SaltComposition,
-                        bestStock: sss
+                        bestStock: sss,
+                        HSN: product?.HSN || null,
+                        manufacturer: product?.manufacturer?.companyName || null
                     };
                 });
 
@@ -1084,7 +1091,7 @@ class RetailerService {
             // const nearExpiryDays = Number(process.env.lowStockDays || 90);
             const now = dayjs().format('YYYY-MM-DD');
             const nearExpiryDate = dayjs().add(nearExpiryDays, 'day').format('YYYY-MM-DD');
-            
+
             const [result] = await db.sequelize.query(
                 `
                 SELECT
@@ -1104,94 +1111,94 @@ class RetailerService {
                     // type: db.sequelize.QueryTypes.SELECT,
                 }
             );
-            
-            
+
+
 
             return {
                 status: message.code200,
-                message:message.message200,
+                message: message.message200,
                 apiData: {
                     "expiredStock": String(result[0]?.expiredStock) || null,
                     "nearToExpiry": String(result[0]?.nearToExpiry) || null,
                     "uptoDate": String(result[0]?.uptoDate) || null,
                     "lastUpdated": result[0]?.lastUpdated || null,
-                    "allProducts":"0",
-                    "unlocked":"0"
-                }, 
+                    "allProducts": "0",
+                    "unlocked": "0"
+                },
                 // result
             };
 
             // return { result }
-    } catch(error) {
-        console.log('retailers_stock_card_data service error:', error.message)
-        return {
-            status: message.code500,
-            message: error.message
+        } catch (error) {
+            console.log('retailers_stock_card_data service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
         }
     }
-}
 
-async retailer_medicine_add(data) {
-    try {
-        const {id} = data
-        console.log(data)
-        if(!data?.PName || !data?.BatchNo || !data?.ExpDate || !data?.MRP || !data?.PTR || !data?.manufacturerName || !data?.ProductForm || !data?.Package || !data?.Quantity || !data?.location || !data?.Stock || !data.SaltComposition){
-            return {
-                status:message.code400,message:'Invalid input'
+    async retailer_medicine_add(data) {
+        try {
+            const { id } = data
+            console.log(data)
+            if (!data?.PName || !data?.BatchNo || !data?.ExpDate || !data?.MRP || !data?.PTR || !data?.manufacturerName || !data?.ProductForm || !data?.Package || !data?.Quantity || !data?.location || !data?.Stock || !data.SaltComposition) {
+                return {
+                    status: message.code400, message: 'Invalid input'
+                }
             }
-        }
-        if(data?.PId && data?.purchasedFromId){
-            const check = await db.stocks.findOne({
-                where:{PId:Number(data?.PId),BatchNo:Number(data?.BatchNo),purchasedFrom:Number(data?.purchasedFromId),organisationId:Number(id)}
-            })
-            let updateStock = Number(check?.Stock)+Number(data?.Stock)
-            if(check){
-                await db.stocks.update({Stock:updateStock},{where:{PId:Number(data?.PId),BatchNo:Number(data?.BatchNo),purchasedFrom:Number(data?.purchasedFromId),organisationId:Number(id)}})
-            }else{
-                await db.stocks.create({
-                    BatchNo:data?.BatchNo,
-                    ExpDate:data?.ExpDate,
-                    PId:Number(data?.PId),
-                    MRP:Number(data?.MRP),
-                    PTR:Number(data?.PTR),
-                    PTS:Number(data?.PTS),
-                    Scheme:data?.Scheme,
-                    BoxQty:data?.BoxQty,
-                    Loose:data?.Loose,
-                    Stock:data?.Stock,
-                    location:data?.location,
-                    organisationId:Number(id),
-                    purchasedFrom:Number(data?.purchasedFromId)
+            if (data?.PId && data?.purchasedFromId) {
+                const check = await db.stocks.findOne({
+                    where: { PId: Number(data?.PId), BatchNo: Number(data?.BatchNo), purchasedFrom: Number(data?.purchasedFromId), organisationId: Number(id) }
                 })
-            }
-            return {
-                status:message.code200,
-                message:'Stock updated successfully'
-            }
-        }else{
-            const header = await db.sequelize.query(
-                `
+                let updateStock = Number(check?.Stock) + Number(data?.Stock)
+                if (check) {
+                    await db.stocks.update({ Stock: updateStock }, { where: { PId: Number(data?.PId), BatchNo: Number(data?.BatchNo), purchasedFrom: Number(data?.purchasedFromId), organisationId: Number(id) } })
+                } else {
+                    await db.stocks.create({
+                        BatchNo: data?.BatchNo,
+                        ExpDate: data?.ExpDate,
+                        PId: Number(data?.PId),
+                        MRP: Number(data?.MRP),
+                        PTR: Number(data?.PTR),
+                        PTS: Number(data?.PTS),
+                        Scheme: data?.Scheme,
+                        BoxQty: data?.BoxQty,
+                        Loose: data?.Loose,
+                        Stock: data?.Stock,
+                        location: data?.location,
+                        organisationId: Number(id),
+                        purchasedFrom: Number(data?.purchasedFromId)
+                    })
+                }
+                return {
+                    status: message.code200,
+                    message: 'Stock updated successfully'
+                }
+            } else {
+                const header = await db.sequelize.query(
+                    `
                 INSERT INTO tempProduct_header 
                   (uploadedBy, fileName, total_Item, notMapped, createdAt, updatedAt, mapStatus)
                 VALUES 
                   (?, ?, ?, ?, ?, ?, ?)
                 `,
-                {
-                  replacements: [
-                    Number(data.id),
-                    data?.fileName || 'http://null',
-                    1,
-                    1,
-                    new Date(),
-                    new Date(),
-                    'Pending'
-                  ],
-                //   type: db.Sequelize.QueryTypes.INSERT
-                }
-              );
-// console.log(header[0])
-              const details = await db.sequelize.query(
-                `
+                    {
+                        replacements: [
+                            Number(data.id),
+                            data?.fileName || 'http://null',
+                            1,
+                            1,
+                            new Date(),
+                            new Date(),
+                            'Pending'
+                        ],
+                        //   type: db.Sequelize.QueryTypes.INSERT
+                    }
+                );
+                // console.log(header[0])
+                const details = await db.sequelize.query(
+                    `
                 INSERT INTO tempProduct_details (
                    manufacturername, headerId, PName, Package,
                   ProductForm, Quantity, SaltComposition,MRP, PTR, PTS, LOCKED, createdAt, updatedAt,
@@ -1203,35 +1210,35 @@ async retailer_medicine_add(data) {
                   ?, ?, ?, ?, ?
                 )
                 `,
-                {
-                  replacements: [
-                    data?.manufacturerName, header[0], data?.PName,
-                     data?.Package, data?.ProductForm, data?.Quantity, data?.SaltComposition,
-                     data.MRP,
-                    data.PTR, data.PTS, false, new Date(),
-                    new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme,
-                     data?.Stock, data?.location, data?.HSN, data?.purchasedFrom
-                  ],
-                //   type: db.Sequelize.QueryTypes.INSERT
+                    {
+                        replacements: [
+                            data?.manufacturerName, header[0], data?.PName,
+                            data?.Package, data?.ProductForm, data?.Quantity, data?.SaltComposition,
+                            data.MRP,
+                            data.PTR, data.PTS, false, new Date(),
+                            new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme,
+                            data?.Stock, data?.location, data?.HSN, data?.purchasedFrom
+                        ],
+                        //   type: db.Sequelize.QueryTypes.INSERT
+                    }
+                );
+                return {
+                    status: message.code200,
+                    message: 'Stock save for mapping'
                 }
-              ); 
-              return {
-                status:message.code200,
-                message:'Stock save for mapping'
-              }             
-              
-        }
 
-        return {
-            status:200
-        }
-    } catch (error) {
-        console.log('retailer_medicine_add service error:',error.message)
-        return {
-            status:message.code500,
-            message:error.message
+            }
+
+            return {
+                status: 200
+            }
+        } catch (error) {
+            console.log('retailer_medicine_add service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
         }
     }
-}
 }
 module.exports = new RetailerService(db);
