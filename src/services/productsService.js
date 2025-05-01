@@ -13,7 +13,8 @@ class ProductsService {
 
     async addProduct(data) {
         try {
-            const { manufacturerId, ...productData } = data;
+            const { manufacturerId, PackagingDetails, ...productData } = data;
+            // console.log("Product Data",productData);
             // Check if the product already exists
             const existingProduct = await Products.findOne({
                 where: {
@@ -26,9 +27,15 @@ class ProductsService {
                 return { status: message.code200, message: `Product '${productData.PName}' already exists.` };
             }
 
+            let PackagingDetailss = `${productData.Quantity} ${productData.ProductForm}`;
+            if (productData.Package) {
+                PackagingDetailss = `${productData.Quantity} ${productData.ProductForm} ${productData.Package}`;
+            }
+            
             // Add the new product
             const newProduct = await Products.create({
                 ...productData,
+                PackagingDetails : PackagingDetailss,
                 manufacturerId,
                 CreatedAt: new Date(),
                 UpdatedAt: new Date(),

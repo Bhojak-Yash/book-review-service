@@ -506,11 +506,15 @@ class ManufacturerService {
       if (data?.search) {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
-          { orderFrom: { [Op.like]: `%${data.search}%` } }
+          { orderFrom: { [Op.like]: `%${data.search}%` } },
+          { '$distributer.companyName$': { [Op.like]: `%${data.search}%` } }
         ];
       }
       if (data?.distributorId) {
         whereCondition.orderFrom = Number(data.distributorId)
+      }
+      if (data?.orderFromUser) {
+        whereCondition.orderFrom = Number(data.orderFromUser);
       }
       if (data.start_date && data.end_date) {
         const startDateParts = data.start_date.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
@@ -523,6 +527,12 @@ class ManufacturerService {
           [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
         };
       }
+      //..................................
+      // let distributorWhere = {};
+      // if (data?.companyName) {
+      //   distributorWhere.companyName = { [Op.like]: `%${data.companyName}%` };
+      // }
+      //..................................
       console.log(whereCondition)
       // const totalData = await db.orders.count({ where: whereCondition })
       console.log(whereCondition)
