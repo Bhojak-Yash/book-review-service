@@ -335,7 +335,17 @@ class OrdersService {
         if(order?.dataValues?.balance ==0){
           let sss = updates
           sss.orderStatus = 'Paid'
-          // const check payment
+          const checkPayment = await db.payments.count({
+            where: {
+              orderId: Number(orderId),
+              status: {
+                [Op.ne]: 'Confirmed',
+              },
+            },
+          });
+          if(checkPayment<=0){
+            sss.orderStatus = 'Settled'
+          }
           await this.db.orders.update(sss, { where: { id: orderId } })
         }else if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
           // console.log('bda haiiiiiiiiii')
@@ -349,9 +359,9 @@ class OrdersService {
       } else {
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
-      // if(updates?.orderStatus === "Cancelled"){
-      //   await this.db.orders.update(updates, { where: { id: orderId } });
-      // }
+      if(updates?.orderStatus === "Cancelled"){
+        await this.db.orders.update(updates, { where: { id: orderId } });
+      }
       // const aaa=await this.db.orders.findByPk(orderId);
       // console.log(aaa)
       return await this.db.orders.findByPk(orderId);
