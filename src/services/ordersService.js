@@ -1089,7 +1089,7 @@ class OrdersService {
       const checkAllPayments = await db.payments.findAll({where:{ id: Number(paymentId) }})
       if(checkAllPayments.length>0){
       const checkOrders = await db.orders.findOne({attributes:['id','orderStatus'],where:{id:Number(checkAllPayments[0]?.orderId)}})
-      if(checkOrders?.dataValues?.orderStatus=='Paid'){
+      if(checkOrders?.dataValues?.orderStatus=='Paid' && checkOrders?.dataValues?.balance<=0){
         await db.orders.update({orderStatus:"Settled"},{where:{id:Number(checkAllPayments[0]?.orderId)}})
       }
       }
