@@ -169,25 +169,25 @@ class expiryService {
                 limit,
                 offset,
                 // order: [["SId", "ASC"]],
-                group: ["purchasedFrom","returnHeader.returnId"]
+                group: ["purchasedFrom", "returnHeader.returnId"]
             });
 
-            const result = await rows?.map((item)=>{
+            const result = await rows?.map((item) => {
                 const returnDate = item?.returnHeader ? item.returnHeader.returnDate : null
-                console.log("......................",returnDate)
+                console.log("......................", returnDate)
                 return {
                     "returnToId": item.dataValues.purchasedFrom,
                     "totalStock": item.dataValues.totalStocks,
                     "totalSKU": item.dataValues.totalSkus,
                     "totalAmt": item.dataValues.totalAmtPTS,
                     "totalAmtPTR": item.dataValues.totalAmtPTR,
-                    "returnTo":item.manufacturer?item.manufacturer.companyName:item?.distributor?.companyName ||null,
+                    "returnTo": item.manufacturer ? item.manufacturer.companyName : item?.distributor?.companyName || null,
                     "returnStatus": item?.returnHeader ? "Pending" : "Not Returned",
                     "returnId": item?.returnHeader ? item?.returnHeader?.returnId : null,
                     "returnDate": item?.returnHeader ? item.returnHeader.returnDate : null
                 }
             })
-            
+
             return {
                 status: message.code200,
                 message: message.message200,
@@ -314,8 +314,8 @@ class expiryService {
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
             }
-            const returnTodata = await db.users.findOne({where:{id:Number(manufacturerId)}})
-            
+            const returnTodata = await db.users.findOne({ where: { id: Number(manufacturerId) } })
+
             page = page ? parseInt(page) : 1;
             limit = limit ? parseInt(limit) : 10;
             const offset = (page - 1) * limit;
@@ -327,8 +327,8 @@ class expiryService {
             const whereCondition = {
                 organisationId: checkId,
                 Stock: {
-                    [db.Op.gt]: 0 
-                  },
+                    [db.Op.gt]: 0
+                },
                 [db.Op.and]: [
                     { ExpDate: { [db.Op.lt]: after90Days } },
                     { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
@@ -344,16 +344,16 @@ class expiryService {
                     { SaltComposition: { [db.Op.like]: `%${search}%` } }
                 ];
             }
-             if (data.startDate && data.endDate) {
-                    const startDate = moment(data.startDate, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-                    const endDate = moment(data.endDate, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
-            
-                    whereCondition.ExpDate = {
-                      [db.Op.between]: [startDate, endDate]
-                    };
-                  }
+            if (data.startDate && data.endDate) {
+                const startDate = moment(data.startDate, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                const endDate = moment(data.endDate, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+                whereCondition.ExpDate = {
+                    [db.Op.between]: [startDate, endDate]
+                };
+            }
             const { count, rows: Data } = await db.stocks.findAndCountAll({
-                attributes: ['SId', 'Stock', 'PId','BatchNo','Loose', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme','organisationId'],
+                attributes: ['SId', 'Stock', 'PId', 'BatchNo', 'Loose', 'ExpDate', 'PTS', 'PTR', 'MRP', 'BoxQty', 'location', 'Scheme', 'organisationId'],
                 where: whereCondition,
                 include: [
                     {
@@ -372,14 +372,14 @@ class expiryService {
                         // }
                     },
                     {
-                        model:db.distributors,
-                        as:'distributor',
-                        attributes:['distributorId','companyName']
+                        model: db.distributors,
+                        as: 'distributor',
+                        attributes: ['distributorId', 'companyName']
                     },
                     {
-                        model:db.manufacturers,
-                        as:"manufacturer",
-                        attributes:['manufacturerId','companyName']
+                        model: db.manufacturers,
+                        as: "manufacturer",
+                        attributes: ['manufacturerId', 'companyName']
                     }
                 ],
                 limit,
@@ -400,8 +400,8 @@ class expiryService {
                     "companyName": item?.manufacturer?.companyName || item?.distributor?.companyName || null,
                     "SId": item.SId,
                     "Scheme": item.Scheme,
-                    "BatchNo":item.BatchNo,
-                    "loose":item.Loose,
+                    "BatchNo": item.BatchNo,
+                    "loose": item.Loose,
                     "Stock": item.Stock,
                     "PId": item.PId,
                     "ExpDate": item.ExpDate,
@@ -593,31 +593,45 @@ class expiryService {
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
             }
-            page = page ? parseInt(page) : 1;
-            limit = limit ? parseInt(limit) : 10;
-            const offset = (page - 1) * limit;
+            const Page = Number(data.page) || 1;
+            const Limit = Number(data.limit) || 10;
+            let skip = (Page - 1) * Limit;
             const userId = Number(id)
+            const whereClause = {};
 
-            const whereClause = {
-                
+            // Required condition: returnTo or returnFrom must match userId
+            const baseUserCondition = {
+              [db.Op.or]: [
+                { returnTo: userId },
+                { returnFrom: userId }
+              ]
             };
-            whereClause[db.Op.or]=[
-               { returnTo: userId},
-               {returnFrom: userId,}
-            ]
+            
+            const andConditions = [baseUserCondition];
+            
+            // Optional search filter
             if (search) {
-                whereClause[db.Op.or] = [
-                    { returnId: { [db.Op.like]: `%${search}%` } },
-                    { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
-                ];
+              andConditions.push({
+                [db.Op.or]: [
+                  { returnId: { [db.Op.like]: `%${search}%` } },
+                  { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+                ]
+              });
             }
-
+            
+            // Optional date range filter
             if (startDate && endDate) {
-                whereClause.returnDate = {
-                    [db.Op.between]: [startDate, endDate]
-                };
+              andConditions.push({
+                returnDate: {
+                  [db.Op.between]: [startDate, endDate]
+                }
+              });
             }
+            
+            // Assign final AND clause to whereClause
+            // whereClause[db.Op.and] = andConditions;            
 
+            console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
                 attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate'],
                 where: whereClause,
@@ -629,17 +643,17 @@ class expiryService {
                         required: false,
                     },
                     {
-                        model:db.retailers,
-                        as:'returnByUser',
-                        attributes:['retailerId','firmName'],
-                        required:false
+                        model: db.retailers,
+                        as: 'returnByUser',
+                        attributes: ['retailerId', 'firmName'],
+                        required: false
                     }
                 ],
-                limit,
-                offset,
+                offset: skip,
+                limit: Limit,
             });
 
-            const result = await Data?.map((item)=>{
+            const result = await Data?.map((item) => {
                 return {
                     "returnId": item.returnId,
                     "returnFrom": item.returnFrom,
@@ -656,8 +670,8 @@ class expiryService {
                 status: message.code200,
                 message: message.message200,
                 totalData: count,
-                totalPages: Math.ceil(count / limit),
-                currentPage: page,
+                totalPages: Math.ceil(count / Limit),
+                currentPage: Page,
                 apiData: result
             }
         } catch (error) {
@@ -779,27 +793,27 @@ class expiryService {
                         attributes: ['companyName', 'distributorId']
                     },
                     {
-                        model:db.retailers,
-                        as:'returnByUser',
-                        attributes:['retailerId','firmName'],
-                        required:false
+                        model: db.retailers,
+                        as: 'returnByUser',
+                        attributes: ['retailerId', 'firmName'],
+                        required: false
                     },
                     {
                         model: db.creditNotes,
                         as: "creditnote",
-                        attributes: ['id', 'createdAt','url']
+                        attributes: ['id', 'createdAt', 'url']
                     }
                 ]
             })
             const result = {
                 "returnId": Data.returnId,
-                "returnDate":Data.returnDate,
+                "returnDate": Data.returnDate,
                 "returnFrom": Data.returnFrom,
                 "returnTo": Data.returnTo,
                 "returnStatus": Data.returnStatus,
-                "returnFromUser":Data?.returnFromUser?.companyName || Data?.returnByUser?.firmName || null,
-                "returnDetails":Data.returnDetails,
-                "creditnote":Data?.creditnote
+                "returnFromUser": Data?.returnFromUser?.companyName || Data?.returnByUser?.firmName || null,
+                "returnDetails": Data.returnDetails,
+                "creditnote": Data?.creditnote
             }
 
             return {
