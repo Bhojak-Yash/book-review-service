@@ -1178,7 +1178,6 @@ class OrdersService {
     }
   }
   
-
   async calculate_price(orderItems, orderData) {
 
     // console.log(orderData);

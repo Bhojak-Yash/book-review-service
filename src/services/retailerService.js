@@ -250,7 +250,7 @@ class RetailerService {
                                 {
                                     model: db.distributors,
                                     as: 'distributors',
-                                    attributes: ['companyName'],
+                                    attributes: ['companyName','type'],
                                     required: true
                                 }
                             ]
