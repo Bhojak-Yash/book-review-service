@@ -359,7 +359,9 @@ class OrdersService {
       } else {
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
-      if(updates?.orderStatus === "Cancelled"){
+      // console.log(updates?.orderStatus)
+      if(updates?.orderStatus == "Cancelled"){
+        // console.log('099999999999999999999999999999')
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
       // const aaa=await this.db.orders.findByPk(orderId);

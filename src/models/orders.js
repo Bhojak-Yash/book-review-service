@@ -101,9 +101,24 @@ module.exports = (sequelize, Sequelize) => {
         taxable:{
           type:Sequelize.DOUBLE
         },
-        // vehicleNo:{
-        //   type:Sequelize.STRING
-        // }
+        vehicleNo:{
+          type:Sequelize.STRING
+        },
+        EWayBillNo:{
+          type:Sequelize.STRING
+        },
+        extraDiscount:{
+          type:Sequelize.BIGINT
+        },
+        creditPeriod:{
+          type:Sequelize.INTEGER
+        },
+        advance:{
+          type:Sequelize.BIGINT
+        },
+        TCS:{
+          type:Sequelize.BIGINT
+        }
       },
       {
         tableName: "orders",

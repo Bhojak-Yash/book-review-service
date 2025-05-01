@@ -970,9 +970,9 @@ class RetailerService {
                     // }
                 ],
                 where: whereClause,
+                order: [["id", "DESC"]],
                 offset: skip,
-                limit: Limit,
-                order: [["orderDate", "DESC"]]
+                limit: Limit
             });
             // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
             // const updatesResult = orders?.map((order) => {
