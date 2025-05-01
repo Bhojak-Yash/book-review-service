@@ -335,6 +335,7 @@ class OrdersService {
         if(order?.dataValues?.balance ==0){
           let sss = updates
           sss.orderStatus = 'Paid'
+          // const check payment
           await this.db.orders.update(sss, { where: { id: orderId } })
         }else if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
           // console.log('bda haiiiiiiiiii')

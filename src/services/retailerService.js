@@ -239,7 +239,7 @@ class RetailerService {
             let productResults = [];
             if (search) {
                 const products = await db.products.findAll({
-                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN'],
+                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN','ProductForm','Package','Quantity'],
                     include: [
                         {
                             model: db.stocks,
@@ -299,6 +299,9 @@ class RetailerService {
                         SaltComposition: product.SaltComposition,
                         bestStock: sss,
                         HSN: product?.HSN || null,
+                        ProductForm: product?.ProductForm || null,
+                        Package: product?.Package || null,
+                        Quantity: product?.Quantity || null,
                         manufacturer: product?.manufacturer?.companyName || null
                     };
                 });
