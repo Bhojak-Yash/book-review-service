@@ -1086,6 +1086,13 @@ class OrdersService {
   async confirm_payment(data) {
     try {
       const { id, paymentId } = data
+      const checkAllPayments = await db.payments.findAll({where:{ id: Number(paymentId) }})
+      if(checkAllPayments.length>0){
+      const checkOrders = await db.orders.findOne({attributes:['id','orderStatus'],where:{id:Number(checkAllPayments[0]?.orderId)}})
+      if(checkOrders?.dataValues?.orderStatus=='Paid'){
+        await db.orders.update({orderStatus:"Settled"},{where:{id:Number(checkAllPayments[0]?.orderId)}})
+      }
+      }
       await db.payments.update(
         { status: 'Confirmed' },
         { where: { id: Number(paymentId) } }
