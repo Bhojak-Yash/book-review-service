@@ -432,7 +432,7 @@ class RetailerService {
         let transaction;
         // console.log(data);
         try {
-            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, distributors } = data;
+            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, licence, drugLicense, businessAdd, billingAdd, documents, distributors } = data;
 
             if (!retailerId) {
                 return {
@@ -502,6 +502,8 @@ class RetailerService {
                     PAN,
                     FSSAI,
                     CIN,
+                    licence,
+                    drugLicense
                 },
                 { where: { retailerId }, transaction }
             );
@@ -606,7 +608,7 @@ class RetailerService {
             SELECT 
               us.*, 
               ad.*,
-              mn.email,
+              mn.email as Email,
               mn.retailerId,
               mn.firmName,
         mn.ownerName,
@@ -619,6 +621,7 @@ class RetailerService {
         mn.retailerId,
         mn.FSSAI,
         mn.drugLicense,
+        mn.licence,
         mn.companyType,
         mn.PAN as pan,
         mn.CIN as cin
@@ -663,12 +666,13 @@ class RetailerService {
                             ownerName: row.ownerName,
                             companyType: row.companyType,
                             wholeSaleDrugLicence: row.drugLicense,
+                            licence : row.licence,
                             logo: row.profilePic,
                             createdAt: row.createdAt,
                             updatedAt: row.updatedAt,
                             address: row.address,
                             phone: row.phone,
-                            email: row.email,
+                            email: row.Email,
                             GST: row.gst,
                             FSSAI: row.FSSAI,
                             distributorId: row.retailerId,
