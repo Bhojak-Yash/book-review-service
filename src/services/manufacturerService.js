@@ -506,7 +506,8 @@ class ManufacturerService {
       if (data?.search) {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
-          { orderFrom: { [Op.like]: `%${data.search}%` } }
+          { orderFrom: { [Op.like]: `%${data.search}%` } },
+          { '$distributer.companyName$': { [Op.like]: `%${data.search}%` } }
         ];
       }
       if (data?.distributorId) {
@@ -527,10 +528,10 @@ class ManufacturerService {
         };
       }
       //..................................
-      let distributorWhere = {};
-      if (data?.companyName) {
-        distributorWhere.companyName = { [Op.like]: `%${data.companyName}%` };
-      }
+      // let distributorWhere = {};
+      // if (data?.companyName) {
+      //   distributorWhere.companyName = { [Op.like]: `%${data.companyName}%` };
+      // }
       //..................................
       console.log(whereCondition)
       // const totalData = await db.orders.count({ where: whereCondition })
@@ -543,7 +544,6 @@ class ManufacturerService {
             model: db.distributors,
             as: 'distributer',
             attributes: ['distributorId', 'companyName'],
-            where : distributorWhere,
             required:true,
             include:{
               model:db.authorizations,
