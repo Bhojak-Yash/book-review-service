@@ -622,7 +622,7 @@ class AuthService {
             const checkId = Number(id)
             const Data = await db.authorizations.findAll(
                 {
-                    attributes: ['id', 'authorizedBy'],
+                    attributes: [ 'authorizedBy'],
                     where: { authorizedId: checkId, status: { [db.Op.in]: ['Not Send', 'Approved'] } },
                     include: [
                         {
@@ -638,6 +638,7 @@ class AuthService {
                             // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                         }
                     ],
+                    group: ['authorizedBy'],
                     where: {
                         [db.Op.or]: [
                             { '$distributor.distributorId$': { [db.Op.ne]: null } },
@@ -646,6 +647,34 @@ class AuthService {
                     }
                 }
             )
+
+            // const Data = await db.authorizations.findAll({
+            //     attributes: ['authorizedBy'],
+            //     where: {
+            //       authorizedId: checkId,
+            //       status: { [db.Op.in]: ['Not Send', 'Approved'] }
+            //     },
+            //     include: [
+            //       {
+            //         model: db.distributors,
+            //         as: "distributor",
+            //         attributes: ['companyName', 'distributorId', 'type']
+            //       },
+            //       {
+            //         model: db.manufacturers,
+            //         as: "manufacturer",
+            //         attributes: ['companyName', 'manufacturerId']
+            //       }
+            //     ],
+            //     group: ['authorizedBy'],
+            //     having: {
+            //       [db.Op.or]: [
+            //         { '$distributor.distributorId$': { [db.Op.ne]: null } },
+            //         { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
+            //       ]
+            //     }
+            //   })
+              
 
             const finalResult = Data?.map((item) => {
                 return {

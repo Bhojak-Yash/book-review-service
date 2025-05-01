@@ -101,7 +101,12 @@ class OrdersService {
     // console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
-      // console.log(order?.dataValues)
+      if(order?.dataValues.orderStatus=='Settled'){
+        return {
+          status:message.code400,
+          message: 'Action not allowed. This order has already been settled.'
+        }
+      }
       const orderToDeatils = await db.users.findOne({ where: { id: order?.dataValues?.orderTo } })
       const orderItems = await db.orderitems.findAll({
         where: { orderId: orderId },

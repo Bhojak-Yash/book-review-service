@@ -359,7 +359,7 @@ class expiryService {
                     {
                         model: db.products,
                         as: 'product',
-                        attributes: ['PId', 'PName', 'PCode', 'manufacturerId', 'PackagingDetails', 'Package', 'ProductForm', 'Quantity', 'SaltComposition'],
+                        attributes: ['PId', 'PName', 'PC`ode', 'manufacturerId', 'PackagingDetails', 'Package', 'ProductForm', 'Quantity', 'SaltComposition'],
                         // where:Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
                         where: productWhereCondition,
                         required: true,
