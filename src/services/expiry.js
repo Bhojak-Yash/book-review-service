@@ -309,7 +309,7 @@ class expiryService {
 
     async expire_details(data) {
         try {
-            let { id, manufacturerId, page, limit, search } = data
+            let { id, manufacturerId, page, limit, search, expStatus } = data
             // console.log(data)
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
@@ -324,7 +324,7 @@ class expiryService {
             const today = moment().startOf("day").format("YYYY-MM-DD HH:mm:ss")
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-            const whereCondition = {
+            let whereCondition = {
                 organisationId: checkId,
                 Stock: {
                     [db.Op.gt]: 0
@@ -334,6 +334,29 @@ class expiryService {
                     { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
                 ]
             };
+            if (expStatus === "Expired"){
+                whereCondition = {
+                    organisationId: checkId,
+                    Stock: {
+                        [db.Op.gt]: 0
+                    },
+                    [db.Op.and]: [
+                        { ExpDate: { [db.Op.lt]: today } },
+                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }                        
+                    ]
+                };
+            } else if (expStatus === "NearToExpiry"){
+                whereCondition = {
+                    organisationId: checkId,
+                    Stock: {
+                        [db.Op.gt]: 0
+                    },
+                    [db.Op.and]: [
+                        { ExpDate: { [db.Op.lt]: after90Days } },
+                        { ExpDate: { [db.Op.gt]: today } }
+                    ]
+                };
+            }
 
             // Apply product filters only if searchKey is present
             const productWhereCondition = {};
