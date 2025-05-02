@@ -118,7 +118,7 @@ class StocksService {
     let Limit = limit || 10;
     const lowStockDays = Number(process.env.lowStockDays)
     // console.log(nearToExpDate)
-    let whereCondition = { organisationId: Number(manufacturerId) };
+    let whereCondition = { organisationId: Number(manufacturerId), locked: true};
     if (entityId) {
       whereCondition.entityId = Number(entityId);
     }
@@ -189,13 +189,14 @@ class StocksService {
         "PId",
         [Sequelize.fn("SUM", Sequelize.col("Stock")), "sumOfStocks"],
       ],
+      where: { locked: true },
       include: [
         {
           model: db.products,
           as: "product",
           // attributes: [],
-          where: search
-            ? {
+          where: {
+            ...search?{
               [Op.or]: [
                 { PCode: { [Op.like]: `%${search}%` } },
                 { PName: { [Op.like]: `%${search}%` } },
@@ -203,6 +204,7 @@ class StocksService {
               ],
             }
             : undefined,
+          },
         },
       ],
       group: ["PId"],

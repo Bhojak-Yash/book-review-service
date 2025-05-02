@@ -54,6 +54,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "purchasedFrom":{
             type:Sequelize.BIGINT
+        },
+        "locked":{
+            type: Sequelize.BOOLEAN
         }
     },
     {

@@ -351,7 +351,10 @@ class DistributorService {
             // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: attr,
-                where: whereStock,
+                where: {
+                    ...whereStock,
+                    locked:false, 
+                },
                 include: [
                     {
                         model: db.products,
@@ -774,7 +777,7 @@ class DistributorService {
         let transaction;
         // console.log(data)
         try {
-            const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, licence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
+            const { distributorId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, wholeSaleDrugLicence, FSSAI, PAN, CIN, businessAdd, billingAdd, documents, manufactureres } = data;
 
             if (!distributorId) {
                 return {
@@ -850,7 +853,6 @@ class DistributorService {
                       address = COALESCE(:address, address),
                       GST = COALESCE(:GST, GST),
                       wholeSaleDrugLicence = COALESCE(:wholeSaleDrugLicence, wholeSaleDrugLicence),
-                      licence = COALESCE(:licence, licence),
                       PAN = COALESCE(:PAN, PAN),
                       FSSAI = COALESCE(:FSSAI, FSSAI),
                       CIN = COALESCE(:CIN, CIN)
@@ -866,7 +868,7 @@ class DistributorService {
                         address,
                         GST,
                         wholeSaleDrugLicence,
-                        licence,
+                        // licence,
                         PAN,
                         FSSAI,
                         CIN,
