@@ -137,8 +137,16 @@ exports.createUsers = async (req, res) => {
 
 exports.login = async(req,res)=>{
     try {
-        const {userName,password} = req.body
-        let checkUser = await Users.findOne({where:{userName:userName}})
+        const {userName,password,type} = req.body
+        let checkUser;
+        if(type){
+            // console.log(';oooooooooo')
+         checkUser = await Users.findOne({where:{userName:userName,userType:type}})
+        }
+        else{
+            // console.log('--------------------')
+            checkUser = await Users.findOne({where:{userName:userName}})
+        }
         if(checkUser){
             const match = await bcrypt.compare(password, checkUser.dataValues.password);
             if(match){
