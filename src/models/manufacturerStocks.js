@@ -52,6 +52,9 @@ module.exports =(sequelize,Sequelize)=>{
             type: Sequelize.STRING,
             // allowNull: false
         },
+        "locked": {
+            type: Sequelize.BOOLEAN
+        }
     },
     {
         tableName: "manufacturer_stocks"

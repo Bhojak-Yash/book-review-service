@@ -31,9 +31,9 @@ module.exports =(sequelize,Sequelize)=>{
         "drugLicense":{
             type:Sequelize.STRING
         },
-        "licence":{
-            type:Sequelize.STRING
-        },
+        // "licence":{
+        //     type:Sequelize.STRING
+        // },
         "email":{
             type:Sequelize.STRING
         },

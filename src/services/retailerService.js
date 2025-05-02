@@ -442,7 +442,7 @@ class RetailerService {
         let transaction;
         // console.log(data);
         try {
-            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, licence, drugLicense, businessAdd, billingAdd, documents, distributors } = data;
+            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, drugLicense, businessAdd, billingAdd, documents, distributors } = data;
 
             if (!retailerId) {
                 return {
@@ -512,7 +512,7 @@ class RetailerService {
                     PAN,
                     FSSAI,
                     CIN,
-                    licence,
+                    // licence,
                     drugLicense
                 },
                 { where: { retailerId }, transaction }
@@ -631,7 +631,6 @@ class RetailerService {
         mn.retailerId,
         mn.FSSAI,
         mn.drugLicense,
-        mn.licence,
         mn.companyType,
         mn.PAN as pan,
         mn.CIN as cin
@@ -676,7 +675,7 @@ class RetailerService {
                             ownerName: row.ownerName,
                             companyType: row.companyType,
                             wholeSaleDrugLicence: row.drugLicense,
-                            licence : row.licence,
+                            // licence : row.licence,
                             logo: row.profilePic,
                             createdAt: row.createdAt,
                             updatedAt: row.updatedAt,
@@ -837,7 +836,10 @@ class RetailerService {
             })
             const { rows: stocks, count } = await db.stocks.findAndCountAll({
                 // attributes:[]
-                where: whereCondition,
+                where: {
+                    ...whereCondition,
+                    locked: false,
+                },
                 include: [
                     {
                         model: db.products,
