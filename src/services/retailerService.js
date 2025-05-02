@@ -1211,12 +1211,12 @@ class RetailerService {
                 INSERT INTO tempProduct_details (
                    manufacturername, headerId, PName, Package,
                   ProductForm, Quantity, SaltComposition,MRP, PTR, PTS, LOCKED, createdAt, updatedAt,
-                  BatchNo, ExpDate, Scheme, Stock, location, HSN, purchasedFrom
+                  BatchNo, ExpDate, Scheme, Stock, location, HSN, purchasedFrom,BoxQty,Loose
                 )
                 VALUES (
                   ?, ?, ?, ?, ?, ?, ?,
                   ?, ?, ?, ?, ?, ?, ?, ?,
-                  ?, ?, ?, ?, ?
+                  ?, ?, ?, ?, ?,?,?
                 )
                 `,
                     {
@@ -1225,8 +1225,8 @@ class RetailerService {
                             data?.Package, data?.ProductForm, data?.Quantity, data?.SaltComposition,
                             data.MRP,
                             data.PTR, data.PTS, false, new Date(),
-                            new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme,
-                            data?.Stock, data?.location, data?.HSN, data?.purchasedFrom
+                            new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme || null,
+                            data?.Stock, data?.location, data?.HSN, data?.purchasedFrom,data?.BoxQty || null,data?.Loose || null
                         ],
                         //   type: db.Sequelize.QueryTypes.INSERT
                     }
