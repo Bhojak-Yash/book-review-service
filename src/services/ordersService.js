@@ -1012,6 +1012,9 @@ class OrdersService {
           "subTotal" : Number(order?.subTotal),
           "discount" : Number(discount.toFixed(2)),
           "discountPercentage" : Number(discountPercentage.toFixed(2)), 
+          "advance":Number(order?.advance) || 0,
+          "extraDiscount":Number(order?.extraDiscount) || 0,
+          "extraDiscountValue":Number(Number(order?.taxable)*order?.extraDiscount/100),
           "CGST": order?.CGST,
           "SGST": order?.SGST,
           "IGST": order?.IGST,
@@ -1097,6 +1100,7 @@ class OrdersService {
       if(checkAllPayments.length>0){
       const checkOrders = await db.orders.findOne({attributes:['id','orderStatus','balance'],where:{id:Number(checkAllPayments[0]?.orderId)}})
       if(checkOrders?.dataValues?.balance==0){
+        if(checkOrders?.dataValues?.orderStatus==='Paid' || checkOrders?.dataValues?.orderStatus==='Inward'){}
         await db.orders.update({orderStatus:"Settled"},{where:{id:Number(checkAllPayments[0]?.orderId)}})
       }
       }
