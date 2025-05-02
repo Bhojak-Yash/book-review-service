@@ -14,14 +14,20 @@ class DoctorsService {
             const { id, start_date, end_date } = data
             const startDate = moment(start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const endDate = moment(end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
-            const users = await db.distributors.findAll()
-            const userIds = users.map((item) => { return item?.distributorId })
+            const users = await db.distributors.findAll({
+                attributes:['distributorId','email']
+            })
+            // const userIds = users.map((item) => { return item?.distributorId })
             const aaa = await Promise.all(
-                userIds?.map(async (item) => {
-                    const sss = await salesOpening(item, startDate, endDate);
-                    const zzz = await purchaseOpening(item, startDate, endDate);
+                users?.map(async (item) => {
+                    const sales = await salesOpening(item?.distributorId, startDate, endDate);
+                    const purchase = await purchaseOpening(item?.distributorId, startDate, endDate);
+                    const totalSales = await totalSlaes(item?.distributorId, startDate, endDate);
+                    const totalpurchase = await totalPurchase(item?.distributorId, startDate, endDate);
+                    const collections = await totalCollections(item?.distributorId, startDate, endDate);
+                    const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate)
                     // console.log(item, sss);
-                    return {sss,zzz};
+                    return { sales, purchase, totalSales, totalpurchase,collections,totalPayout };
                 })
             );
 
@@ -98,7 +104,98 @@ const purchaseOpening = async (id, startDate, endDate) => {
             purchaseOpening, purchaseClosing
         }
     } catch (error) {
-        console.log('salesOpening error:', error.message)
+        console.log('purchaseOpening error:', error.message)
+        return null
+    }
+}
+const totalSlaes = async (id, startDate, endDate) => {
+    try {
+        const total = await db.orders.sum('invAmt', {
+            where: {
+                orderTo: id,
+                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            }
+        });
+
+        return total || 0;
+    } catch (error) {
+        console.log('totalSlaes error:', error.message)
+        return null
+    }
+}
+const totalPurchase = async (id, startDate, endDate) => {
+    try {
+        const total = await db.orders.sum('invAmt', {
+            where: {
+                orderFrom: id,
+                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            }
+        });
+        return total || 0;
+    } catch (error) {
+        console.log('totalPurchase error:', error.message)
+        return null
+    }
+}
+const totalCollections = async (id, startDate, endDate) => {
+        try {
+            const total = await db.payments.sum('amount', {
+                include: [{
+                    model: db.orders,
+                    as: 'order',
+                    attributes: [], // prevent including order.id and others
+                    where: {
+                        orderTo: id,
+                        createdAt: {
+                            [Op.between]: [startDate, endDate]
+                        }
+                    }
+                }],
+                where: {
+                    status: 'Confirmed'
+                },
+                raw: true // ensures plain SQL result
+            });
+            
+
+            return total || 0; // return 0 if no payments found
+
+        } catch (error) {
+            console.log('totalCollections error:', error.message)
+            return null
+        }
+}
+const totalPayouts = async (id, startDate, endDate) => {
+    try {
+        const total = await db.payments.sum('amount', {
+            include: [{
+                model: db.orders,
+                as: 'order',
+                attributes: [], // prevent including order.id and others
+                where: {
+                    orderFrom: id,
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                }
+            }],
+            where: {
+                status: 'Confirmed'
+            },
+            raw: true // ensures plain SQL result
+        });
+        
+
+        return total || 0; // return 0 if no payments found
+
+    } catch (error) {
+        console.log('totalCollections error:', error.message)
         return null
     }
 }
