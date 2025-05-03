@@ -326,6 +326,7 @@ class expiryService {
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             let whereCondition = {
                 organisationId: checkId,
+                purchasedFrom:Number(manufacturerId),
                 Stock: {
                     [db.Op.gt]: 0
                 },
@@ -337,6 +338,7 @@ class expiryService {
             if (expStatus === "Expired"){
                 whereCondition = {
                     organisationId: checkId,
+                    purchasedFrom:Number(manufacturerId),
                     Stock: {
                         [db.Op.gt]: 0
                     },
@@ -348,6 +350,7 @@ class expiryService {
             } else if (expStatus === "NearToExpiry"){
                 whereCondition = {
                     organisationId: checkId,
+                    purchasedFrom:Number(manufacturerId),
                     Stock: {
                         [db.Op.gt]: 0
                     },

@@ -25,9 +25,11 @@ class DoctorsService {
                     const totalSales = await totalSlaes(item?.distributorId, startDate, endDate);
                     const totalpurchase = await totalPurchase(item?.distributorId, startDate, endDate);
                     const collections = await totalCollections(item?.distributorId, startDate, endDate);
-                    const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate)
+                    const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate);
+                    const stocksReports = await stocksReport(item?.distributorId, startDate, endDate);
                     // console.log(item, sss);
-                    return { sales, purchase, totalSales, totalpurchase,collections,totalPayout };
+                    const id=item?.distributorId
+                    return {id ,sales, purchase, totalSales, totalpurchase,collections,totalPayout,stocksReports };
                 })
             );
 
@@ -196,6 +198,42 @@ const totalPayouts = async (id, startDate, endDate) => {
 
     } catch (error) {
         console.log('totalCollections error:', error.message)
+        return null
+    }
+}
+const stocksReport = async (id,startDate,endDate) => {
+    try {
+        const data = await db.stocks.sum('Stock',{
+            where:{
+                organisationId:Number(id)
+            }
+        })
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const existingReport = await db.stocksReport.findOne({
+            where: {
+                userId: Number(id),
+                createdAt: {
+                    [Op.between]: [todayStart, todayEnd]
+                }
+            }
+        });
+
+        if (existingReport) {
+            await existingReport.update({ closingStock: Number(data) });
+        } else {
+            await db.stocksReport.create({
+                userId: Number(id),
+                openingStock: Number(data)
+            });
+        }
+        return data
+    } catch (error) {
+        console.log('stocksReport error:',error.message)
         return null
     }
 }
