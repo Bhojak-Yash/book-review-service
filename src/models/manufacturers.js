@@ -5,8 +5,13 @@ module.exports =(sequelize,Sequelize)=>{
             primaryKey: true,
             allowNull: false
         },
+        "manufacturerCode": {
+            type: Sequelize.STRING,
+            allowNull: false
+        },
         "companyName":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "companyType": {
             type: Sequelize.ENUM(
@@ -27,9 +32,6 @@ module.exports =(sequelize,Sequelize)=>{
         "ownerName":{
             type:Sequelize.STRING
         },
-        // "ownerName":{
-        //     type:Sequelize.STRING
-        // },
         "logo":{
             type:Sequelize.STRING
         },
@@ -68,6 +70,12 @@ module.exports =(sequelize,Sequelize)=>{
                 "Active",
                 "Inactive"
             )
+        },
+        "empMin": {
+            type: Sequelize.INTEGER
+        },
+        "empMax": {
+            type: Sequelize.INTEGER
         }
     },
 

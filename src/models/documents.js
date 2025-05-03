@@ -1,23 +1,33 @@
 module.exports = (sequelize, Sequelize) => {
     const documents = sequelize.define("documents", {
-        "documnetId": {
+        "documentId": {
             type: Sequelize.INTEGER,
             primaryKey: true,
             allowNull: false,
             autoIncrement: true,
         },
         "userId": {
-            type: Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "categoryId": {
-            type: Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "image":{
-            type: Sequelize.TEXT
+            type: Sequelize.TEXT,
+            allowNull: false
         },
         "status": {
             type: Sequelize.STRING
         },
+        "isDeleted":{
+            type: Sequelize.BOOLEAN,
+            defaultValue: false,
+        },
+        "imageSize":{
+            type:Sequelize.STRING
+        }
     },
 
         {

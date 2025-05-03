@@ -1,6 +1,7 @@
 const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
+const { where } = require('sequelize');
 const Users = db.users;
 const sequelize = db.sequelize
 const Manufacturers = db.manufacturers;
@@ -13,6 +14,19 @@ async function hashPassword(password) {
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   return hashedPassword;
 }
+
+const formatSize = (size) => {
+  let bytes = Number(size); 
+  if (isNaN(bytes)) return null;
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (bytes >= 1024 && i < units.length - 1) {
+      bytes /= 1024;
+      i++;
+  }
+  return `${bytes.toFixed(1)} ${units[i]}`;
+};
 
 class ManufacturerService {
   constructor(db) {
@@ -72,6 +86,13 @@ class ManufacturerService {
       }
       transaction = await db.sequelize.transaction();
 
+      if (userName) {
+        const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
+        if (existingUser) {
+          throw new Error('A manufacturer with this email already exists.');
+        }
+      }
+
       const hashedPassword = await hashPassword(password);
 
       const user = await Users.create(
@@ -84,10 +105,13 @@ class ManufacturerService {
         { transaction }
       );
 
+      const manufacturerCode = `MAN-${user.id}`;
+
       await sequelize.query(
-        'INSERT INTO manufacturers (manufacturerId, companyName, createdAt, updatedAt) VALUES (:manufacturerId, :companyName, :createdAt, :updatedAt)',
+        'INSERT INTO manufacturers (manufacturerCode, manufacturerId, companyName, createdAt, updatedAt) VALUES (:manufacturerCode, :manufacturerId, :companyName, :createdAt, :updatedAt)',
         {
           replacements: {
+            manufacturerCode: manufacturerCode,
             manufacturerId: user.id,
             companyName: companyName,
             createdAt: new Date(), // Set the current timestamp
@@ -107,8 +131,9 @@ class ManufacturerService {
       if (transaction) await transaction.rollback();
       console.log('createManufacturer error:', error.message)
       return {
+        error: true,
         status: message.code500,
-        message: message.message500
+        message: error.message
       }
     }
   }
@@ -271,12 +296,14 @@ class ManufacturerService {
         categoryId: doc.id,
         image: doc.image,
         status: 'Verified',
-        userId: Number(manufacturerId)
+        imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
+        userId: Number(manufacturerId),
+        isDeleted:false
       }));
 
       await db.documents.bulkCreate(documentsData, {
-        updateOnDuplicate: ["image", 'status'],
-        conflictFields: ["categoryId", "userId"]
+        updateOnDuplicate: ["image", 'status','imageSize','isDeleted'],
+        conflictFields: ["categoryId", "userId",'isDeleted']
       });
 
       await transaction.commit();
@@ -293,6 +320,7 @@ class ManufacturerService {
       };
     }
   }
+
   async getManufacturer(data) {
     try {
       const { manufacturerId } = data;
@@ -305,7 +333,7 @@ class ManufacturerService {
 
       // Fetch allowed document columns
       const [aa] = await sequelize.query(
-        `SELECT documentName FROM documentCategory WHERE category = 'Manufacturer'`
+        `SELECT documentName FROM documentcategory WHERE category = 'Manufacturer'`
       );
       const document = await db.documentCategory.findAll({
         attributes: ['id', 'documentName'],
@@ -313,7 +341,7 @@ class ManufacturerService {
           {
             model: db.documents,
             as: "documnets",
-            attributes: ['image', "status", 'updatedAt'],
+            attributes: ['image', "status","imageSize", 'updatedAt'],
             where: {
               userId: Number(manufacturerId)
             },
@@ -463,6 +491,7 @@ class ManufacturerService {
       if (Page > 1) {
         Skip = (Page - 1) * Limit
       }
+      console.log(data.id)
       let whereCondition = { orderTo: Number(data.id) }
       if (data?.status) {
         if (data?.status === 'Unpaid') {
@@ -471,14 +500,21 @@ class ManufacturerService {
           whereCondition.orderStatus = data.status
         }
       }
+      if (data?.entityId) {
+        whereCondition.entityId = data.entityId;
+      }
       if (data?.search) {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
-          { orderFrom: { [Op.like]: `%${data.search}%` } }
+          { orderFrom: { [Op.like]: `%${data.search}%` } },
+          {'$distributer.companyName$':{ [Op.like]: `%${data.search}%` }}
         ];
       }
       if (data?.distributorId) {
         whereCondition.orderFrom = Number(data.distributorId)
+      }
+      if (data?.orderFromUser) {
+        whereCondition.orderFrom = Number(data.orderFromUser);
       }
       if (data.start_date && data.end_date) {
         const startDateParts = data.start_date.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
@@ -491,21 +527,79 @@ class ManufacturerService {
           [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
         };
       }
-      // console.log(whereCondition)
-      const totalData = await db.orders.count({ where: whereCondition })
-      const result = await db.orders.findAll({
-        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile','deliveryType'],
+      //..................................
+      // let distributorWhere = {};
+      // if (data?.companyName) {
+      //   distributorWhere.companyName = { [Op.like]: `%${data.companyName}%` };
+      // }
+      //..................................
+      console.log(whereCondition)
+      // const totalData = await db.orders.count({ where: whereCondition })
+      console.log(whereCondition)
+      const { count,rows:result} = await db.orders.findAndCountAll({
+        attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'balance', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType', 'entityId'],
         where: whereCondition,
         include: [
           {
             model: db.distributors,
             as: 'distributer',
-            attributes: ['distributorId', 'companyName']
+            attributes: ['distributorId', 'companyName'],
+            required:true,
+            include:{
+              model:db.authorizations,
+              as:'auth',
+              where:{authorizedBy:Number(data.id)},
+              attributes:['creditCycle']
+            }
           }
         ],
+        order: [['id', 'DESC']],
         limit: Limit,
-        offset: Skip
+        offset: Skip,
+        distinct: true
       })
+
+      // console.log(count,result)
+      const formattedResult = result.map(order => {
+        const distributer = order.distributer;
+        const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
+        const creditCycle = distributer && distributer.auth.length > 0 ? distributer.auth[0].creditCycle : 0;
+      
+        // Calculate due date by adding `creditCycle` days to `deliveredAt`
+        let dueDate = null;
+        let overdue = false;
+      
+        if (deliveredAt) {
+          dueDate = new Date(deliveredAt);
+          dueDate.setDate(dueDate.getDate() + creditCycle); // Add credit cycle days
+      
+          // Check if the due date is before today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Normalize today's date
+      
+          overdue = dueDate < today;
+        }
+      
+        return {
+          ...order.toJSON(),
+          entityId: order.entityId,
+          distributer: distributer
+            ? {
+              companyName: distributer.companyName,
+              distributorId: distributer.distributorId,
+            }
+            : null,
+          orderTotal: order.orderTotal ? Number(order.orderTotal.toFixed(2)) : 0.0,
+          invAmt: order.invAmt ? Number(order.invAmt.toFixed(2)) : 0.0,
+          balance: order.balance ? Number(order.balance.toFixed(2)) : 0.0,
+          dueDate: dueDate ? dueDate.toISOString().slice(0, 10) : null, // Format YYYY-MM-DD
+          overdue,
+        };
+
+      });
+      
+      // console.log(result);
+      
 
       // const updateResult = result.map((item) => {
       //   const plainItem = item.toJSON(); // Convert to plain object
@@ -517,15 +611,15 @@ class ManufacturerService {
 
       //   return { ...plainItem, deliveryType };
       // })
-      const totalPage = Math.ceil(Number(totalData) / Limit)
+      const totalPage = Math.ceil(Number(count) / Limit)
 
       return {
         status: message.code200,
         message: message.message200,
         currentPage: Page,
         totalPage: totalPage,
-        totalData: totalData,
-        apiData: result || null
+        totalData: count,
+        apiData: formattedResult || null
       }
     } catch (error) {
       console.log('prchaseOrders service error:', error.message)
@@ -541,7 +635,7 @@ class ManufacturerService {
       const id = Number(data.distributorId)
 
       const result = await db.distributors.findOne({
-        attributes: ['distributorId', 'status', "phone", "email", "GST","CIN"],
+        attributes: ['distributorId', 'status', "phone", "email", "GST", "CIN"],
         include: [
           {
             model: db.address,
@@ -564,14 +658,14 @@ class ManufacturerService {
       const completeOrder = await db.orders.count({
         where: {
           orderFrom: id,
-          orderStatus: { [Op.in]: ["Received", "Paid", "Partial Paid"] }
+          orderStatus: { [Op.in]: ["Inward", "Paid", "Partial Paid"] }
         },
         raw: true
       });
       const sumOfOrders = await db.orders.findOne({
         attributes: [[db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("InvAmt")), 0), "totalInvAmt"],
-                     [db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("balance")), 0), "pendingPayment"]
-      ],where:{orderFrom:Number(id)}
+        [db.sequelize.fn("COALESCE", db.sequelize.fn("SUM", db.sequelize.col("balance")), 0), "pendingPayment"]
+        ], where: { orderFrom: Number(id) }
       })
       // console.log(orders)
       return {
@@ -602,37 +696,37 @@ class ManufacturerService {
           ],
         };
       }
-      
+
 
       // Current period result
-      let currentResult =await getcurrentResult(whereClause)
+      let currentResult = await getcurrentResult(whereClause)
       let previousWhereClause = { authorizedBy: Number(id) };
-    
+
       if (start_date && end_date) {
-          let previousStartDate = new Date(start_date);
-          let previousEndDate = new Date(end_date);
+        let previousStartDate = new Date(start_date);
+        let previousEndDate = new Date(end_date);
 
-          // Calculate previous period range
-          const diff = previousEndDate.getTime() - previousStartDate.getTime();
-          previousStartDate.setTime(previousStartDate.getTime() - diff);
-          previousEndDate.setTime(previousEndDate.getTime() - diff);
+        // Calculate previous period range
+        const diff = previousEndDate.getTime() - previousStartDate.getTime();
+        previousStartDate.setTime(previousStartDate.getTime() - diff);
+        previousEndDate.setTime(previousEndDate.getTime() - diff);
 
-          previousWhereClause.createdAt = {
-              [Op.between]: [previousStartDate, previousEndDate],
-          };
+        previousWhereClause.createdAt = {
+          [Op.between]: [previousStartDate, previousEndDate],
+        };
       }
 
-      let previousResult =await getcurrentResult(previousWhereClause)
+      let previousResult = await getcurrentResult(previousWhereClause)
 
       let changes = {
-        disChange : (Number(Number(currentResult.dis || 0)-Number(previousResult.dis || 0))/Number(previousResult.dis && previousResult.dis>0?previousResult.dis:1))*100,
-        cnfChange : (Number(Number(currentResult.cnf || 0)-Number(previousResult.cnf || 0))/Number(previousResult.cnf && previousResult.cnf>0?previousResult.cnf:1))*100,
-        PendingCountChange: (Number(Number(currentResult.pendingCount || 0)-Number(previousResult.pendingCount || 0))/Number(previousResult.pendingCount && previousResult.pendingCount>0?previousResult.pendingCount:1))*100
+        disChange: (Number(Number(currentResult.dis || 0) - Number(previousResult.dis || 0)) / Number(previousResult.dis && previousResult.dis > 0 ? previousResult.dis : 1)) * 100,
+        cnfChange: (Number(Number(currentResult.cnf || 0) - Number(previousResult.cnf || 0)) / Number(previousResult.cnf && previousResult.cnf > 0 ? previousResult.cnf : 1)) * 100,
+        PendingCountChange: (Number(Number(currentResult.pendingCount || 0) - Number(previousResult.pendingCount || 0)) / Number(previousResult.pendingCount && previousResult.pendingCount > 0 ? previousResult.pendingCount : 1)) * 100
       }
 
-      const orders = await db.orders.count({where:{orderTo:Number(id)}})
+      const orders = await db.orders.count({ where: { orderTo: Number(id) } })
 
-      let finalResult = {...currentResult,...changes,totalOrders:orders}
+      let finalResult = { ...currentResult, ...changes, totalOrders: orders }
 
       return {
         status: message.code200,
@@ -647,9 +741,77 @@ class ManufacturerService {
       }
     }
   }
+
+  async po_page_card_data(data) {
+    try {
+      const { id, userType } = data;
+      const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
+console.log(checkId)
+      // Parallelizing queries for better performance
+      const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
+        db.orders.count({ where: { orderTo: Number(checkId) } }),
+        db.orders.count({
+          where: {
+            orderTo: Number(checkId),
+            orderStatus: { [Op.notIn]: ["Paid", "Inward", "Partially paid"] },
+          },
+        }),
+        db.authorizations.findAll({
+          attributes: [
+            "user.userType",
+            [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
+          ],
+          where: { authorizedBy: Number(id), status: "Approved" },
+          include: [
+            {
+              model: db.users,
+              as: "user",
+              attributes: ["userType"],
+            },
+          ],
+          group: ["user.userType"],
+          raw: true,
+        }),
+        db.authorizations.count({ where: { authorizedBy: Number(checkId), status: "Pending" } }),
+        db.orders.findOne({
+          attributes: [
+            [db.sequelize.fn("SUM", db.sequelize.col("balance")), "totalBalance"],
+            [db.sequelize.fn("COUNT", db.sequelize.col("balance")), "totalCount"],
+          ],
+          where: { balance: { [db.Op.gt]: 0,[db.Op.ne]: null },orderTo:Number(checkId)  },
+          raw: true,
+        }),
+      ]);
+
+      const cnfCount = counts.find((item) => item["user.userType"] === "CNF")?.count || 0;
+      const distributorCount = counts.find((item) => item["user.userType"] === "Distributor")?.count || 0;
+      // console.log(counts)
+      return {
+        status: 200,
+        message: "Data fetched successfully",
+        data: {
+          ordersCount,
+          pendingCount,
+          cnfCount,
+          distributorCount,
+          pendingRequest,
+          totalBalance: balanceData?.totalBalance || 0,
+          totalCount: balanceData?.totalCount || 0,
+        },
+      };
+    } catch (error) {
+      console.error("po_page_card_data service error:", error.message);
+      return {
+        status: 500,
+        message: "Internal server error",
+      };
+    }
+  }
+
+
 }
 
-async function getcurrentResult (whereClause){
+async function getcurrentResult(whereClause) {
   let currentResult = await db.authorizations.findOne({
     attributes: [
       // [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalCount"],
@@ -661,7 +823,7 @@ async function getcurrentResult (whereClause){
     raw: true,
   }) || {};
 
- let whereCondition={...whereClause,status:'Approved'}
+  let whereCondition = { ...whereClause, status: 'Approved' }
   const counts = await db.authorizations.findAll({
     attributes: [
       "distributers.type",
@@ -694,6 +856,8 @@ async function getcurrentResult (whereClause){
   currentResult.dis = distributorCount
   return currentResult
 }
+
+
 
 // module.exports = ManufacturerService;
 module.exports = new ManufacturerService(db);

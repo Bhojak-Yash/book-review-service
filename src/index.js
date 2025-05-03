@@ -4,9 +4,13 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 const db = require('./models/db')
 const Sequelize = db.sequelize
-const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
-  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter} = require('./routers/index')
+const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,
+  manufacturerRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,
+  rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, statesRouter,
+   notificationsRouter, expiryRouter, employeeManagement_Router, warehouseManagement_Router,
+    accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter} = require('./routers/index')
 const cors = require('cors')
+const {cronTest,sendSalesReport,openingStockEntry} =require('./cron-jobs')
 app.use(cors());
 const dbConnection = async () => {
   await db.sequelize.sync()
@@ -30,7 +34,17 @@ function formatToMySQLDateTime(inputDate) {
 }
 
 app.use(usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
-  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter)
+  retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard,
+   distributorPanelRouter, statesRouter, notificationsRouter, expiryRouter, employeeManagement_Router,
+    warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter)
+
+
+    cronTest()
+    sendSalesReport()
+    openingStockEntry()
+
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

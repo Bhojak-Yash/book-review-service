@@ -13,7 +13,8 @@ class ProductsService {
 
     async addProduct(data) {
         try {
-            const { manufacturerId, ...productData } = data;
+            const { manufacturerId, PackagingDetails, ...productData } = data;
+            // console.log("Product Data",productData);
             // Check if the product already exists
             const existingProduct = await Products.findOne({
                 where: {
@@ -26,9 +27,15 @@ class ProductsService {
                 return { status: message.code200, message: `Product '${productData.PName}' already exists.` };
             }
 
+            let PackagingDetailss = `${productData.Quantity} ${productData.ProductForm}`;
+            if (productData.Package) {
+                PackagingDetailss = `${productData.Quantity} ${productData.ProductForm} ${productData.Package}`;
+            }
+            
             // Add the new product
             const newProduct = await Products.create({
                 ...productData,
+                PackagingDetails : PackagingDetailss,
                 manufacturerId,
                 CreatedAt: new Date(),
                 UpdatedAt: new Date(),
@@ -192,6 +199,75 @@ class ProductsService {
         } catch (error) {
             console.error("Error fetching product details:", error.message);
             return { status: message.code500, message: "Failed to retrieve product details.", error: error.message };
+        }
+    }
+
+    async bulk_product_update(data) {
+        try {
+            const {ids,locked} = data
+            const result = await db.products.update(
+                { LOCKED: locked }, // Fields to update
+                { where: { PId: { [Op.in]: ids } } } // Condition
+            );       
+            return {
+                status:message.code200,
+                message:message.message200
+            }     
+        } catch (error) {
+            console.log('bulk_product_update service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
+    async product_page_data(data) {
+        try {
+            const{id,userType} = data
+            let checkId= id
+            // console.log(data)
+            if(userType && userType === 'Employee'){
+                checkId=data.data.employeeOf
+            }
+            const productCount = await db.products.count({where:{manufacturerId:checkId}})
+            const lockedCount = await db.products.count({where:{manufacturerId:checkId,LOCKED:true}}) 
+            const lastDate = await db.products.findOne({where:{manufacturerId:checkId},order:[["PId","desc"]]})
+            return {
+                status:message.code200,
+                message:message.message200,
+                apiData:{
+                    productCount,lockedCount,
+                    unlockCount:productCount-lockedCount,
+                    lastUpdatedDate:lastDate?.createdAt || null
+                }
+            }
+        } catch (error) {
+            console.log('product_page_data service error:',error.message)
+            return {
+                status:message.code500,
+                message:message.message500
+            }
+        }
+    }
+
+    async get_upload_error(data){
+        try {
+            const {id} = data
+            const [Data] = await db.sequelize.query(`
+                
+                select * from uploaderrors where archiveId = ${id} order by id desc`)
+
+                return {
+                    status:message.code200,
+                    message:message.message200,
+                    apiData:Data
+                }
+        } catch (error) {
+            console.log('get_upload_error error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
         }
     }
 

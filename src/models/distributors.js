@@ -1,5 +1,5 @@
 module.exports =(sequelize,Sequelize)=>{
-    const distributors = sequelize.define("distributors",{
+    const distributors = sequelize.define("distributors_new",{
         "distributorId":{
             type:Sequelize.INTEGER,
             primaryKey: true, // Mark this as the primary key
@@ -7,10 +7,12 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "distributorCode":{
-            type:Sequelize.STRING
+            type:Sequelize.STRING,
+            allowNull: false
         },
         "companyName":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "ownerName":{
             type:Sequelize.STRING
@@ -21,34 +23,72 @@ module.exports =(sequelize,Sequelize)=>{
         "phone":{
             type:Sequelize.BIGINT
         },
-        "licence":{
-            type:Sequelize.STRING
+        "profilePic": {
+            type: Sequelize.STRING
         },
         "email":{
             type:Sequelize.STRING
         },
-        "profilePic":{
-            type:Sequelize.STRING
+        "licence": {
+            type: Sequelize.STRING
+        },   
+        "status": {
+            type: Sequelize.ENUM(
+                "Active",
+                "Inactive"
+            )
+        }, 
+        "empMin": {
+            type: Sequelize.INTEGER
         },
-        "GST":{
-            type:Sequelize.STRING
+        "empMax": {
+            type: Sequelize.INTEGER
         },
-        "type":{
-            type:Sequelize.ENUM('CNF','Distributor')
-        },
+        "companyType": {
+            type: Sequelize.ENUM(
+                "Sole Proprietorship",
+                "Partnership Firm",
+                "Limited Liability Partnership (LLP)",
+                "Private Limited Company",
+                "Public Limited Company",
+                "One Person Company (OPC)",
+                "Section 8 Company",
+                "Producer Company",
+                "Nidhi Company",
+                "Unlimited Company",
+                "Other"
+            ),
+            allowNull: true
+        },     
         "PAN":{
             type:Sequelize.STRING
+        },
+        "GST": {
+            type: Sequelize.STRING
+        },
+        "CIN": {
+            type: Sequelize.STRING
         },
         "FSSAI":{
             type:Sequelize.STRING
         },
         "wholeSaleDrugLicence":{
             type:Sequelize.STRING
+        },
+        // "roleId":{
+        //     type:Sequelize.INTEGER
+        // },
+        "type": {
+            type: Sequelize.ENUM('CNF', 'Distributor')
+        },
+        "mailstats":{
+            type:Sequelize.BOOLEAN,
+            // defaultValue:false
         }
     },
 
     {
-        tableName: "distributors"
+        tableName: "distributors_new"
       })
     return distributors
 }

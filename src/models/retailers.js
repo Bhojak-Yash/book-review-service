@@ -7,12 +7,16 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "retailerCode":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "firmName":{
             type:Sequelize.STRING
         },
         "ownerName":{
+            type:Sequelize.STRING
+        },
+        "profilePic":{
             type:Sequelize.STRING
         },
         "address":{
@@ -21,9 +25,15 @@ module.exports =(sequelize,Sequelize)=>{
         "phone":{
             type:Sequelize.BIGINT
         },
-        "licence":{
+        "FSSAI":{
             type:Sequelize.STRING
         },
+        "drugLicense":{
+            type:Sequelize.STRING
+        },
+        // "licence":{
+        //     type:Sequelize.STRING
+        // },
         "email":{
             type:Sequelize.STRING
         },
@@ -33,14 +43,30 @@ module.exports =(sequelize,Sequelize)=>{
                 "Inactive"
             )
         },
+        "empMin": {
+            type: Sequelize.INTEGER
+        },
+        "empMax": {
+            type: Sequelize.INTEGER
+        },
+        "retailerscol": {
+            type: Sequelize.INTEGER
+        },
+
+        "companyType":{
+            type: Sequelize.ENUM('Sole Proprietorship', 'Partnership Firm', 'Limited Liability Partnership (LLP)', 'Private Limited Company', 'Public Limited Company', 'One Person Company (OPC)', 'Section 8 Company', 'Producer Company', 'Nidhi Company', 'Unlimited Company', 'Other'),
+            // allowNull: false
+        },
         "PAN":{
             type:Sequelize.STRING
         },
         "GST":{
             type:Sequelize.STRING
+        },
+        "CIN":{
+            type:Sequelize.STRING
         }
     },
-
     {
         tableName: "retailers"
       })

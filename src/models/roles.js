@@ -15,17 +15,23 @@ module.exports =(sequelize,Sequelize)=>{
         "description":{
             type:Sequelize.STRING
         },
+        "status":{
+            type:Sequelize.STRING
+        },
         "priority":{
             type:Sequelize.INTEGER,
-            allowNull: false, 
+            // allowNull: false, 
         },
         "ownerId":{
-            type:Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         }
     },
 
     {
-        tableName: "roles"
+        tableName: "roles",
+        timestamps: true,
+        paranoid: true
       })
     return roles
 }

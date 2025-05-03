@@ -1,0 +1,322 @@
+const message = require('../helpers/message');
+const db = require('../models/db');
+const Op = db.Op
+const moment = require("moment");
+
+
+class DoctorsService {
+    constructor(db) {
+        this.db = db;
+    }
+
+    async sales_report(data) {
+        try {
+            const { start_date, end_date } = data
+            const startDate = moment(start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const endDate = moment(end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+            const users = await db.distributors.findAll({
+                attributes:['distributorId','email','companyName'],
+                where:{mailstats:true}
+            })
+            // console.log(startDate,endDate,data,';;;;;;;;;;;;;;;;;;;;;;;')
+            // const userIds = users.map((item) => { return item?.distributorId })
+            const aaa = await Promise.all(
+                users?.map(async (item) => {
+                    const sales = await salesOpening(item?.distributorId, startDate, endDate);
+                    const purchase = await purchaseOpening(item?.distributorId, startDate, endDate);
+                    const totalSales = await totalSlaes(item?.distributorId, startDate, endDate);
+                    const totalpurchase = await totalPurchase(item?.distributorId, startDate, endDate);
+                    const collections = await totalCollections(item?.distributorId, startDate, endDate);
+                    const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate);
+                    const stocksReports = await stocksReport(item?.distributorId, startDate, endDate);
+                    const id=item?.distributorId
+                    // console.log(purchase,';;;;',id);
+                    // return {id ,sales, purchase, totalSales, totalpurchase,collections,totalPayout,stocksReports };
+                    return {
+                        userId:id,
+                        companyName:item?.companyName,
+                        email:item?.email,
+                        salesOpeningTime:sales?.salesOpening?.confirmationDate || null,
+                        salesOpeningInv:sales?.salesOpening?.invNo || null,
+                        salesClosingTime:sales?.salesClosing?.confirmationDate || null, 
+                        salesClosingInv:sales?.salesClosing?.invNo || null,
+                        purchaseOpeningTime:purchase?.purchaseOpening?.orderDate || null,
+                        purchaseOpeningInv:purchase?.purchaseOpening?.invNo || null,
+                        purchaseClosingTime:purchase?.purchaseClosing?.orderDate || null,
+                        purchaseClosingInv:purchase?.purchaseClosing?.invNo || null,
+                        totalSales:totalSales,
+                        totalpurchase:totalpurchase,
+                        collections:collections,
+                        totalPayout:totalPayout,
+                        openingStocks:stocksReports?.openingStocks || 0,
+                        closingStocks:stocksReports?.closingStocks || 0
+                    }
+                })
+            );
+
+            return aaa;
+        } catch (error) {
+            console.log('sales_report service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
+    async stocksReport(startDate,endDate){
+        try {
+            const users = await db.distributors.findAll({
+                attributes:['distributorId','email','companyName'],
+                where:{mailstats:true}
+            })
+           await users?.map(async(item)=>{
+            const data = await db.stocks.sum('Stock',{
+                where:{
+                    organisationId:Number(item.distributorId)
+                }
+            })
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+    
+            const todayEnd = new Date();
+            todayEnd.setHours(23, 59, 59, 999);
+    
+            const existingReport = await db.stocksReport.findOne({
+                where: {
+                    userId: Number(item.distributorId),
+                    createdAt: {
+                        [Op.between]: [todayStart, todayEnd]
+                    }
+                }
+            });
+    
+            if (existingReport) {
+                await existingReport.update({ closingStock: Number(data) });
+            } else {
+                await db.stocksReport.create({
+                    userId: Number(item.distributorId),
+                    openingStock: Number(data)
+                });
+            }
+           })
+            return true
+        } catch (error) {
+            console.log('stocksReport error:',error.message)
+            return null
+        }
+    }
+}
+
+const salesOpening = async (id, startDate, endDate) => {
+    try {
+        const salesOpening = await db.orders.findOne({
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`confirmationDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'confirmationDate']
+            ],
+            where: {
+                orderTo: Number(id), confirmationDate: { [db.Op.not]: null },
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            order: [['id', 'asc']]
+        })
+        const salesClosing = await db.orders.findOne({
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`confirmationDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'confirmationDate']
+            ],
+            where: {
+                orderTo: Number(id), confirmationDate: { [db.Op.not]: null },
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            order: [['id', 'desc']]
+        })
+
+        return {
+            salesOpening, salesClosing
+        }
+    } catch (error) {
+        console.log('salesOpening error:', error.message)
+        return null
+    }
+}
+const purchaseOpening = async (id, startDate, endDate) => {
+    try {
+        const purchaseOpening = await db.orders.findOne({
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`orderDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'orderDate']
+            ],
+            where: {
+                orderFrom: Number(id),
+                //  confirmationDate: { [db.Op.not]: null },
+                orderDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            order: [['id', 'asc']]
+        })
+        const purchaseClosing = await db.orders.findOne({
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`orderDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'orderDate']
+            ],
+            where: {
+                orderFrom: Number(id),
+                //  confirmationDate: { [db.Op.not]: null },
+                orderDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            order: [['id', 'desc']]
+        })
+
+        return {
+            purchaseOpening, purchaseClosing
+        }
+    } catch (error) {
+        console.log('purchaseOpening error:', error.message)
+        return null
+    }
+}
+const totalSlaes = async (id, startDate, endDate) => {
+    try {
+        const total = await db.orders.sum('invAmt', {
+            where: {
+                orderTo: id,
+                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            }
+        });
+
+        return total || 0;
+    } catch (error) {
+        console.log('totalSlaes error:', error.message)
+        return null
+    }
+}
+const totalPurchase = async (id, startDate, endDate) => {
+    try {
+        const total = await db.orders.sum('invAmt', {
+            where: {
+                orderFrom: id,
+                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                confirmationDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            }
+        });
+        return total || 0;
+    } catch (error) {
+        console.log('totalPurchase error:', error.message)
+        return null
+    }
+}
+const totalCollections = async (id, startDate, endDate) => {
+        try {
+            const total = await db.payments.sum('amount', {
+                include: [{
+                    model: db.orders,
+                    as: 'order',
+                    attributes: [], // prevent including order.id and others
+                    where: {
+                        orderTo: id,
+                        createdAt: {
+                            [Op.between]: [startDate, endDate]
+                        }
+                    }
+                }],
+                where: {
+                    status: 'Confirmed'
+                },
+                raw: true // ensures plain SQL result
+            });
+            
+
+            return total || 0; // return 0 if no payments found
+
+        } catch (error) {
+            console.log('totalCollections error:', error.message)
+            return null
+        }
+}
+const totalPayouts = async (id, startDate, endDate) => {
+    try {
+        const total = await db.payments.sum('amount', {
+            include: [{
+                model: db.orders,
+                as: 'order',
+                attributes: [], // prevent including order.id and others
+                where: {
+                    orderFrom: id,
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                }
+            }],
+            where: {
+                status: 'Confirmed'
+            },
+            raw: true // ensures plain SQL result
+        });
+        
+
+        return total || 0; // return 0 if no payments found
+
+    } catch (error) {
+        console.log('totalCollections error:', error.message)
+        return null
+    }
+}
+const stocksReport = async (id,startDate,endDate) => {
+    try {
+        const data = await db.stocks.sum('Stock',{
+            where:{
+                organisationId:Number(id)
+            }
+        })
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const existingReport = await db.stocksReport.findOne({
+            where: {
+                userId: Number(id),
+                createdAt: {
+                    [Op.between]: [todayStart, todayEnd]
+                }
+            }
+        });
+
+        if (existingReport) {
+            await existingReport.update({ closingStock: Number(data) });
+        } else {
+            await db.stocksReport.create({
+                userId: Number(id),
+                openingStock: Number(data)
+            });
+        }
+        return {
+            openingStocks:existingReport?.openingStock || 0,
+            closingStocks:data || 0
+        }
+    } catch (error) {
+        console.log('stocksReport error:',error.message)
+        return null
+    }
+}
+
+module.exports = new DoctorsService(db);

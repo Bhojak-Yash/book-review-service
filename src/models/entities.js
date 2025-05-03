@@ -7,7 +7,8 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "entityCode":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            // allowNull: false
         },
         "name":{
             type:Sequelize.STRING
@@ -16,10 +17,12 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.STRING
         },
         "phone":{
-            type:Sequelize.BIGINT
+            type: Sequelize.BIGINT,
+            allowNull: false
         },
        "email":{
-            type:Sequelize.STRING
+           type: Sequelize.STRING,
+           allowNull: false
         },
         "organisationId":{
             type:Sequelize.INTEGER
@@ -27,14 +30,18 @@ module.exports =(sequelize,Sequelize)=>{
        "status":{
             type:Sequelize.STRING
         },
-       "entityType":{
+       "ownerName":{
             type:Sequelize.STRING
         },
-
+       "entityType":{
+            type:Sequelize.ENUM("Division", "Warehouse")
+        },
     },
 
     {
-        tableName: "entities"
+        tableName: "entities",
+        timestamps: true,
+        // paranoid: true
       })
     return entities
 }

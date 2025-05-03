@@ -11,5 +11,10 @@ router.get('/po-page-data',verifyToken,distributorsc.po_page_data)
 router.get('/so-page-data',verifyToken,distributorsc.so_page_data)
 router.get('/distributor-profile',verifyToken,distributorsc.distributor_profile)
 router.post('/update-distributor',verifyToken,distributorsc.update_distributor)
+router.get('/check-profile',verifyToken,distributorsc.check_profile)
+router.get('/get-distributor-stocks',verifyToken,distributorsc.get_distributor_stocks)
+router.post('/update-distributorType',verifyToken,distributorsc.update_distributorType)
+router.get('/delete-document',verifyToken,distributorsc.delete_document)
+
 
 module.exports =router

@@ -7,10 +7,12 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "PCode":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "PName":{
-            type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
         },
         "PackagingDetails":{
             type:Sequelize.STRING
@@ -28,7 +30,12 @@ module.exports =(sequelize,Sequelize)=>{
              type:Sequelize.STRING
         },
         "ProductForm":{
-             type:Sequelize.STRING
+            type: Sequelize.STRING,
+            allowNull: false
+        },
+        "Quantity": {
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "SaltComposition":{
              type:Sequelize.STRING
@@ -73,14 +80,17 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.INTEGER
         },
         "manufacturerId":{
-            type:Sequelize.BIGINT
+            type: Sequelize.BIGINT,
+            allowNull: false
+        },
+        "uploadedBy": {
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "HSN":{
             type:Sequelize.INTEGER
         },
-        "Quantity":{
-            type:Sequelize.INTEGER
-        }
+        
     },
     {
         tableName: "products"

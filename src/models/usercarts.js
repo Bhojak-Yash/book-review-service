@@ -16,14 +16,13 @@ module.exports = (sequelize, Sequelize) => {
           type: Sequelize.INTEGER,
           allowNull: false,
         },
-        PId:{
-          type: Sequelize.INTEGER
-        },
         orderFrom: {
-          type: Sequelize.BIGINT,   // loggedin user id
+          type: Sequelize.BIGINT,
+          allowNull: false 
         },
         orderTo: {
           type: Sequelize.BIGINT,
+          allowNull: false
         },
         createdAt: {
           type: Sequelize.DATE,
@@ -36,6 +35,10 @@ module.exports = (sequelize, Sequelize) => {
         deletedAt: {
           type: Sequelize.DATE,
           allowNull: true,
+        },
+        PId: {
+          type: Sequelize.INTEGER,
+          allowNull: false
         }
       },
       {

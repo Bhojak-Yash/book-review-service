@@ -14,4 +14,8 @@ router.get('/distributer-sales-order',verifyToken,ordersc.distributer_sales_orde
 router.get('/purchase-order-summary',verifyToken,ordersc.purchase_order_summary)
 router.get('/confirm-payment',verifyToken,ordersc.confirm_payment)
 
+router.get('/get-address-details', verifyToken, ordersc.getAddressDetails);
+router.put('/update-address-details', verifyToken, ordersc.updateAddressDetails);
+// router.post('/calculate-price', verifyToken, ordersc.calculate_price);
+
 module.exports =router

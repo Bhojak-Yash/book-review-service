@@ -8,5 +8,8 @@ router.get('/get-manufacturer-products/:manufacturerId',verifyToken,productsc.ge
 router.get('/get-productDetails/:PId',verifyToken,productsc.getProductDetails)
 router.post('/add-product',verifyToken,productsc.addProduct)
 router.post('/update-product',verifyToken,productsc.updateProduct)
+router.post('/bulk-product-update',verifyToken,productsc.bulk_product_update)
+router.get('/product-card-data',verifyToken,productsc.product_page_data)
+router.get('/get-upload-error',productsc.get_upload_error)
 
 module.exports =router

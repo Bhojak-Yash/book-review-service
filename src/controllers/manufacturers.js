@@ -17,7 +17,7 @@ exports.createManufacturer=async (req,res) => {
     const manufacturer = await ManufacturerService.createManufacturer(data);
 
     // if (!distributor) {
-      return res.json({ status:manufacturer.status,message:manufacturer.message, });
+      return res.status(manufacturer?.status || 200).json({ status:manufacturer.status,message:manufacturer.message, });
     // }
 
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
@@ -32,7 +32,7 @@ exports.updateManufacturer = async (req, res) => {
     const data = req.body
     const manufacturer = await ManufacturerService.updateManufacturer(data);
 
-      return res.json({ status:manufacturer.status,message:manufacturer.message, });
+      return res.status(manufacturer?.status || 200).json({ status:manufacturer.status,message:manufacturer.message, });
    
   } catch (error) {
     console.error("Error updateManufacturer:", error);
@@ -45,7 +45,7 @@ exports.getManufacturer = async (req, res) => {
     const data = req.body
     const manufacturer = await ManufacturerService.getManufacturer(data);
 
-      return res.json({ status:manufacturer.status,message:manufacturer.message,apiData:manufacturer?.apiData || null });
+      return res.status(manufacturer.status || 200).json({ status:manufacturer.status,message:manufacturer.message,apiData:manufacturer?.apiData || null });
    
   } catch (error) {
     console.error("Error getManufacturer:", error);
@@ -58,7 +58,8 @@ exports.prchaseOrders = async (req, res) => {
     const data = {...req.query,...req.user};
     const manufacturer = await ManufacturerService.prchaseOrders(data);
 
-      return res.json(manufacturer);
+      // return res.json(manufacturer);
+      return res.status(manufacturer?.status || 200).json(manufacturer);
    
   } catch (error) {
     console.error("Error prchaseOrders:", error);
@@ -71,7 +72,7 @@ exports.cnf_details = async (req, res) => {
     const data = {...req.query,...req.user};
     const cnf = await ManufacturerService.cnf_details(data);
 
-      return res.json(cnf);
+    return res.status(cnf?.status || 200).json(cnf);
    
   } catch (error) {
     console.error("Error cnf_details:", error);
@@ -84,10 +85,23 @@ exports.distributers_cnf_summary = async (req, res) => {
     const data = {...req.query,...req.user};
     const cnf = await ManufacturerService.distributers_cnf_summary(data);
 
-      return res.json(cnf);
+    return res.status(cnf?.status || 200).json(cnf);
    
   } catch (error) {
     console.error("Error cnf_details:", error);
+    return res.status(500).json({ status:message.code500,message:error.message });
+  }
+};
+
+exports.po_page_card_data = async (req, res) => {
+  try {
+    const data = {...req.query,...req.user};
+    const cnf = await ManufacturerService.po_page_card_data(data);
+
+    return res.status(cnf?.status || 200).json(cnf);
+   
+  } catch (error) {
+    console.error("Error po_page_card_data:", error);
     return res.status(500).json({ status:message.code500,message:error.message });
   }
 };

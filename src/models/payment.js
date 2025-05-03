@@ -7,10 +7,12 @@ module.exports =(sequelize,Sequelize)=>{
             allowNull: false
         },
         "orderId":{
-            type:Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            allowNull: false
         },
         "amount":{
-            type:Sequelize.BIGINT
+            type: Sequelize.BIGINT,
+            allowNull: false
         },
         "mode":{
             type:Sequelize.STRING
@@ -19,7 +21,8 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.STRING
         },
         "status":{
-            type:Sequelize.ENUM('Pending','Confirmed')
+            type: Sequelize.ENUM('Pending', 'Confirmed'),
+            allowNull: false
         }
     },
 

@@ -51,7 +51,9 @@ module.exports = (sequelize, Sequelize) => {
           type: Sequelize.STRING,
         },
         orderStatus: {
-          type: Sequelize.STRING,
+          type: Sequelize.ENUM(
+            'Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 
+            'Inward', 'Paid', 'Partially paid', 'Cancelled','Settled'),
         },
         orderFrom: {
           type: Sequelize.BIGINT,
@@ -59,14 +61,18 @@ module.exports = (sequelize, Sequelize) => {
         orderTo: {
           type: Sequelize.BIGINT,
         },
+        orderTotal: {
+          type: Sequelize.BIGINT
+        },
         deliveredAt: {
           type: Sequelize.DATE, // Corrected data type
         },
         // divisionId: {
         //   type: Sequelize.BIGINT, // Corrected data type
         // },
-        orderTotal:{
-          type:Sequelize.BIGINT
+        
+        entityId: {
+          type: Sequelize.INTEGER,
         },
         reason: {
           type: Sequelize.STRING, // Corrected data type
@@ -79,6 +85,39 @@ module.exports = (sequelize, Sequelize) => {
         },
         dispatchDate:{
           type:Sequelize.DATE
+        },
+        IGST:{
+          type: Sequelize.DOUBLE
+        },
+        CGST:{
+          type: Sequelize.DOUBLE
+        },
+        SGST:{
+          type: Sequelize.DOUBLE
+        },
+        subTotal:{
+          type: Sequelize.STRING
+        },
+        taxable:{
+          type:Sequelize.DOUBLE
+        },
+        vehicleNo:{
+          type:Sequelize.STRING
+        },
+        EWayBillNo:{
+          type:Sequelize.STRING
+        },
+        extraDiscount:{
+          type:Sequelize.BIGINT
+        },
+        creditPeriod:{
+          type:Sequelize.INTEGER
+        },
+        advance:{
+          type:Sequelize.BIGINT
+        },
+        TCS:{
+          type:Sequelize.BIGINT
         }
       },
       {
