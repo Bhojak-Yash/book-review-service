@@ -10,6 +10,7 @@ const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter
    notificationsRouter, expiryRouter, employeeManagement_Router, warehouseManagement_Router,
     accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter} = require('./routers/index')
 const cors = require('cors')
+const {cronTest,sendSalesReport,openingStockEntry} =require('./cron-jobs')
 app.use(cors());
 const dbConnection = async () => {
   await db.sequelize.sync()
@@ -36,6 +37,14 @@ app.use(usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter
   retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard,
    distributorPanelRouter, statesRouter, notificationsRouter, expiryRouter, employeeManagement_Router,
     warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter)
+
+
+    cronTest()
+    sendSalesReport()
+    openingStockEntry()
+
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

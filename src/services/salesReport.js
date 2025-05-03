@@ -11,12 +11,14 @@ class DoctorsService {
 
     async sales_report(data) {
         try {
-            const { id, start_date, end_date } = data
+            const { start_date, end_date } = data
             const startDate = moment(start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const endDate = moment(end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
             const users = await db.distributors.findAll({
-                attributes:['distributorId','email']
+                attributes:['distributorId','email','companyName'],
+                where:{mailstats:true}
             })
+            // console.log(startDate,endDate,data,';;;;;;;;;;;;;;;;;;;;;;;')
             // const userIds = users.map((item) => { return item?.distributorId })
             const aaa = await Promise.all(
                 users?.map(async (item) => {
@@ -27,9 +29,28 @@ class DoctorsService {
                     const collections = await totalCollections(item?.distributorId, startDate, endDate);
                     const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate);
                     const stocksReports = await stocksReport(item?.distributorId, startDate, endDate);
-                    // console.log(item, sss);
                     const id=item?.distributorId
-                    return {id ,sales, purchase, totalSales, totalpurchase,collections,totalPayout,stocksReports };
+                    // console.log(purchase,';;;;',id);
+                    // return {id ,sales, purchase, totalSales, totalpurchase,collections,totalPayout,stocksReports };
+                    return {
+                        userId:id,
+                        companyName:item?.companyName,
+                        email:item?.email,
+                        salesOpeningTime:sales?.salesOpening?.confirmationDate || null,
+                        salesOpeningInv:sales?.salesOpening?.invNo || null,
+                        salesClosingTime:sales?.salesClosing?.confirmationDate || null, 
+                        salesClosingInv:sales?.salesClosing?.invNo || null,
+                        purchaseOpeningTime:purchase?.purchaseOpening?.orderDate || null,
+                        purchaseOpeningInv:purchase?.purchaseOpening?.invNo || null,
+                        purchaseClosingTime:purchase?.purchaseClosing?.orderDate || null,
+                        purchaseClosingInv:purchase?.purchaseClosing?.invNo || null,
+                        totalSales:totalSales,
+                        totalpurchase:totalpurchase,
+                        collections:collections,
+                        totalPayout:totalPayout,
+                        openingStocks:stocksReports?.openingStocks || 0,
+                        closingStocks:stocksReports?.closingStocks || 0
+                    }
                 })
             );
 
@@ -43,13 +64,58 @@ class DoctorsService {
         }
     }
 
-
+    async stocksReport(startDate,endDate){
+        try {
+            const users = await db.distributors.findAll({
+                attributes:['distributorId','email','companyName'],
+                where:{mailstats:true}
+            })
+           await users?.map(async(item)=>{
+            const data = await db.stocks.sum('Stock',{
+                where:{
+                    organisationId:Number(item.distributorId)
+                }
+            })
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+    
+            const todayEnd = new Date();
+            todayEnd.setHours(23, 59, 59, 999);
+    
+            const existingReport = await db.stocksReport.findOne({
+                where: {
+                    userId: Number(item.distributorId),
+                    createdAt: {
+                        [Op.between]: [todayStart, todayEnd]
+                    }
+                }
+            });
+    
+            if (existingReport) {
+                await existingReport.update({ closingStock: Number(data) });
+            } else {
+                await db.stocksReport.create({
+                    userId: Number(item.distributorId),
+                    openingStock: Number(data)
+                });
+            }
+           })
+            return true
+        } catch (error) {
+            console.log('stocksReport error:',error.message)
+            return null
+        }
+    }
 }
 
 const salesOpening = async (id, startDate, endDate) => {
     try {
         const salesOpening = await db.orders.findOne({
-            attributes: ['id', 'confirmationDate', 'invNo'],
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`confirmationDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'confirmationDate']
+            ],
             where: {
                 orderTo: Number(id), confirmationDate: { [db.Op.not]: null },
                 confirmationDate: {
@@ -59,7 +125,11 @@ const salesOpening = async (id, startDate, endDate) => {
             order: [['id', 'asc']]
         })
         const salesClosing = await db.orders.findOne({
-            attributes: ['id', 'confirmationDate', 'invNo'],
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`confirmationDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'confirmationDate']
+            ],
             where: {
                 orderTo: Number(id), confirmationDate: { [db.Op.not]: null },
                 confirmationDate: {
@@ -80,22 +150,30 @@ const salesOpening = async (id, startDate, endDate) => {
 const purchaseOpening = async (id, startDate, endDate) => {
     try {
         const purchaseOpening = await db.orders.findOne({
-            attributes: ['id', 'orderDate', 'invNo'],
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`orderDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'orderDate']
+            ],
             where: {
                 orderFrom: Number(id),
                 //  confirmationDate: { [db.Op.not]: null },
-                confirmationDate: {
+                orderDate: {
                     [Op.between]: [startDate, endDate]
                 }
             },
             order: [['id', 'asc']]
         })
         const purchaseClosing = await db.orders.findOne({
-            attributes: ['id', 'orderDate', 'invNo'],
+            attributes: [
+                'id',
+                'invNo',
+                [db.sequelize.literal(`orderDate + INTERVAL 5 HOUR + INTERVAL 30 MINUTE`), 'orderDate']
+            ],
             where: {
                 orderFrom: Number(id),
                 //  confirmationDate: { [db.Op.not]: null },
-                confirmationDate: {
+                orderDate: {
                     [Op.between]: [startDate, endDate]
                 }
             },
@@ -231,7 +309,10 @@ const stocksReport = async (id,startDate,endDate) => {
                 openingStock: Number(data)
             });
         }
-        return data
+        return {
+            openingStocks:existingReport?.openingStock || 0,
+            closingStocks:data || 0
+        }
     } catch (error) {
         console.log('stocksReport error:',error.message)
         return null

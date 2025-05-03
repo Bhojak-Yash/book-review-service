@@ -81,6 +81,10 @@ module.exports =(sequelize,Sequelize)=>{
         "type": {
             type: Sequelize.ENUM('CNF', 'Distributor')
         },
+        "mailstats":{
+            type:Sequelize.BOOLEAN,
+            // defaultValue:false
+        }
     },
 
     {
