@@ -634,10 +634,10 @@ class RetailerService {
         mn.companyType,
         mn.PAN as pan,
         mn.CIN as cin
-            FROM crm_db.retailers AS mn
-            LEFT JOIN crm_db.users AS us 
+            FROM retailers AS mn
+            LEFT JOIN users AS us 
               ON mn.retailerId = us.id
-            LEFT JOIN crm_db.address AS ad
+            LEFT JOIN address AS ad
               ON mn.retailerId = ad.userId
             WHERE mn.retailerId = ${id};
           `;
