@@ -8,6 +8,7 @@ const Manufacturers = db.manufacturers;
 const Address = db.address;
 const Documents = db.documents;
 const Op = db.Op
+require('dotenv').config()
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -383,10 +384,10 @@ class ManufacturerService {
     mn.wholesaleLicense as wholesalelicense, 
           us.*, 
           ad.*
-        FROM crm_db.manufacturers AS mn
-        LEFT JOIN crm_db.users AS us 
+        FROM manufacturers AS mn
+        LEFT JOIN users AS us 
           ON mn.manufacturerId = us.id
-        LEFT JOIN crm_db.address AS ad
+        LEFT JOIN address AS ad
           ON mn.manufacturerId = ad.userId
         WHERE mn.manufacturerId = ${manufacturerId};
       `;

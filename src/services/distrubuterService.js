@@ -658,10 +658,10 @@ class DistributorService {
         mn.type,
               us.*, 
               ad.*
-            FROM crm_db.distributors_new AS mn
-            LEFT JOIN crm_db.users AS us 
+            FROM distributors_new AS mn
+            LEFT JOIN users AS us 
               ON mn.distributorId = us.id
-            LEFT JOIN crm_db.address AS ad
+            LEFT JOIN address AS ad
               ON mn.distributorId = ad.userId
             WHERE mn.distributorId = ${id};
           `;
