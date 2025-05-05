@@ -138,16 +138,25 @@ exports.createUsers = async (req, res) => {
 exports.login = async(req,res)=>{
     try {
         const {userName,password,type} = req.body
-        let checkUser;
-        if(type){
+        // console.log(req.body)
+        if(!userName || !password || !type){
+           return res.json({
+                status:message.code400,
+                message:'Invalid input'
+            })
+        }
+        // let checkUser;
+        // if(type){
             // console.log(';oooooooooo')
-         checkUser = await Users.findOne({where:{userName:userName,userType:type}})
-        }
-        else{
-            // console.log('--------------------')
-            checkUser = await Users.findOne({where:{userName:userName}})
-        }
+        let checkUser = await Users.findOne({where:{userName:userName,userType:type}})
+        // console.log(checkUser)
+        // }
+        // else{
+        //     // console.log('--------------------')
+        //     checkUser = await Users.findOne({where:{userName:userName}})
+        // }
         if(checkUser){
+            console.log(checkUser)
             const match = await bcrypt.compare(password, checkUser.dataValues.password);
             if(match){
                 const data = await getData(checkUser.dataValues.userType,checkUser.dataValues.id)
