@@ -610,7 +610,7 @@ class OrdersService {
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
-          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason"
+          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason","deliveryType"
         ],
         include: [
           {
@@ -667,6 +667,7 @@ class OrdersService {
           orderTotal: order.orderTotal,
           invNo: order.invNo,
           reason: order.reason || null,
+          deliveryType:order?.deliveryType || null
         };
       });
 

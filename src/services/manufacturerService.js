@@ -754,7 +754,7 @@ console.log(checkId)
         db.orders.count({
           where: {
             orderTo: Number(checkId),
-            orderStatus: { [Op.notIn]: ["Paid", "Inward", "Partially paid" ,'Settled'] },
+            orderStatus: { [Op.notIn]: ['Settled'] },
           },
         }),
         db.authorizations.findAll({
