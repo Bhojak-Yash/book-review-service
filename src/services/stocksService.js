@@ -118,7 +118,7 @@ class StocksService {
     let Limit = limit || 10;
     const lowStockDays = Number(process.env.lowStockDays)
     // console.log(nearToExpDate)
-    let whereCondition = { organisationId: Number(manufacturerId), locked: true};
+    let whereCondition = { organisationId: Number(manufacturerId), locked: false};
     if (entityId) {
       whereCondition.entityId = Number(entityId);
     }
@@ -403,11 +403,11 @@ class StocksService {
 
       // Calculate the difference in days
       const diffDays = Math.floor((expDate - today) / (1000 * 60 * 60 * 24));
-
+// console.log(diffDays,lowStockDays,'pppppppppp')
       let expStatus;
       if (diffDays < 0) {
         expStatus = "expired";
-      } else if (diffDays <= nearToExpDate) {
+      } else if (diffDays <= lowStockDays) {
         expStatus = "nearToExp";
       } else {
         expStatus = "upToDate";
@@ -418,10 +418,10 @@ class StocksService {
 
     // console.log(updatedStocks);
     // console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,", updatedStocks);
-    console.log("Stock Sum Map:", stockSumMap);
-    console.log("Filtered PIds:", filteredPIds);
-    console.log("Transformed Stocks Before Filtering:", transformedStocks);
-    console.log("Filtered Stocks (expStatus):", transformedStocks.filter(s => s.Stock > 0));
+    // console.log("Stock Sum Map:", stockSumMap);
+    // console.log("Filtered PIds:", filteredPIds);
+    // console.log("Transformed Stocks Before Filtering:", transformedStocks);
+    // console.log("Filtered Stocks (expStatus):", transformedStocks.filter(s => s.Stock > 0));
 
 
     return {

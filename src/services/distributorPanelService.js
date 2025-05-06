@@ -161,8 +161,8 @@ class distributorDashboard {
 
             // Fetch product count, retailer count, and order stats using Sequelize ORM
             const [productStats, retailerStats, orderStats] = await Promise.all([
-                db.stocks.count({
-                    where: { organisationId: Number(ownerId) },
+                db.products.count({
+                    where: { manufacturerId: Number(ownerId) },
                 }),
 
                 db.authorizations.count({
