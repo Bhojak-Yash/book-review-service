@@ -687,6 +687,113 @@ class OrdersService {
     }
   }
 
+  async distributer_so_card_data(data) {
+    try {
+      const distributorId = Number(data.id);
+      const whereClause = { orderTo: distributorId };
+
+      // Parse and apply date filter
+      if (data.startDate && data.endDate) {
+        const [startDay, startMonth, startYear] = data.startDate.split("-");
+        const [endDay, endMonth, endYear] = data.endDate.split("-");
+
+        const start = new Date(`${startYear}-${startMonth}-${startDay}T00:00:00Z`);
+        const end = new Date(`${endYear}-${endMonth}-${endDay}T23:59:59Z`);
+
+        whereClause.createdAt = {
+          [Op.between]: [start, end],
+        };
+      }
+
+      // Total Orders
+      const totalOrders = await db.orders.count({ where: whereClause });
+
+      // Pending Orders (excluding 'Settled')
+      const pendingOrders = await db.orders.count({
+        where: {
+          ...whereClause,
+          orderStatus: { [Op.ne]: 'Settled' },
+        },
+      });
+
+      // Completed Orders = Total - Pending
+      const completedOrders = totalOrders - pendingOrders;
+
+      // Orders with balance > 0
+      const dueOrders = await db.orders.findAll({
+        where: {
+          ...whereClause,
+          balance: { [Op.gt]: 0 },
+        },
+        attributes: [
+          [db.Sequelize.fn("COUNT", db.Sequelize.col("id")), "dueCount"],
+          [db.Sequelize.fn("SUM", db.Sequelize.col("balance")), "totalBalancePending"],
+        ],
+        raw: true,
+      });
+
+      // Get orderFrom IDs
+      const ordersList = await db.orders.findAll({
+        where: whereClause,
+        attributes: ['orderFrom'],
+        raw: true,
+      });
+      const orderFromIds = [...new Set(ordersList.map(order => order.orderFrom))];
+
+      // Total Distributors (from distributors table)
+      const totalDistributors = await db.distributors.count({
+        where: {
+          distributorId: { [Op.in]: orderFromIds },
+          type: 'Distributor',
+        },
+      });
+
+      // Total CNFs
+      const totalCNF = await db.distributors.count({
+        where: {
+          distributorId: { [Op.in]: orderFromIds },
+          type: 'CNF',
+        },
+      });
+
+      // Pending Authorizations by distributorId
+      const authWhere = {
+        authorizedBy: distributorId,
+        status: 'Pending',
+      };
+
+      if (whereClause.createdAt) {
+        authWhere.createdAt = whereClause.createdAt;
+      }
+
+      const pendingAuthorizations = await db.authorizations.count({
+        where: authWhere,
+      });
+
+      return {
+        status: message.code200,
+        message: message.message200,
+        data: {
+          totalOrders,
+          pendingOrders,
+          completedOrders,
+          dueOrdersCount: Number(dueOrders[0]?.dueCount || 0),
+          totalPendingAmount: Number(dueOrders[0]?.totalBalancePending || 0),
+          totalDistributors,
+          totalCNF,
+          pendingAuthorizations,
+        },
+      };
+    } catch (error) {
+      console.log("distributer_so_card_data error:", error.message);
+      return {
+        status: message.code500,
+        message: error.message,
+      };
+    }
+  }
+
+
   // async purchase_order_summary(data) {
   //   try {
   //     const { id, orderId } = data

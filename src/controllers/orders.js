@@ -121,6 +121,21 @@ class OrdersController {
     }
   }
 
+  static async distributer_so_card_data(req,res) {
+    try {
+      const data ={...req.user,...req.query }
+      const ordersList = await ordersService.distributer_so_card_data(data);
+      return res.status(ordersList?.status || 200).json(ordersList);
+    } catch (error) {
+      console.log('distributer_sales_orders error:',error.message)
+      res.json({
+        status:message.code500,
+        message:error.message
+      })
+    }
+  }
+
+
   static async purchase_order_summary(req,res) {
     try {
       const data ={...req.user,...req.query }

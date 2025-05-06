@@ -141,9 +141,18 @@ class UsersCartService {
             console.log(data)
             // const userData = awa
             let distributor;
+            let manufacturer;
+
+            const user =  await db.users.findOne({
+                where: { id: manufacturerId},
+                attributes : ['userType'],
+            });
+           let orderTo_UserType = user?.userType;
+
             // Fetch all items in the cart for the logged-in user
-            const [manufacturer] = await db.sequelize.query(
-                `SELECT 
+            if(orderTo_UserType === 'Manufacturer'){
+                [manufacturer] = await db.sequelize.query(
+                    `SELECT 
                     mn.manufacturerId, 
                     mn.companyName,
                     mn.logo,
@@ -165,14 +174,51 @@ class UsersCartService {
                    on mn.manufacturerId=us.id
                  WHERE mn.manufacturerId = :manufacturerId
                  GROUP BY mn.manufacturerId, mn.companyName`,
-                {
-                    replacements: {
-                        manufacturerId: Number(manufacturerId),
-                        id: Number(id),
-                    },
-                    type: db.Sequelize.QueryTypes.SELECT,
-                }
-            );
+                    {
+                        replacements: {
+                            manufacturerId: Number(manufacturerId),
+                            id: Number(id),
+                        },
+                        type: db.Sequelize.QueryTypes.SELECT,
+                    }
+                );
+            }else{
+                [manufacturer] = await db.sequelize.query(
+                    `SELECT 
+                    mn.distributorId, 
+                    mn.companyName,
+                    mn.profilePic,
+                    mn.GST,
+                        mn.PAN,
+                    JSON_ARRAYAGG(
+                      JSON_OBJECT(
+                       'addressType', ad.addressType, 
+                            'name', ad.name, 
+                            'mobile', ad.mobile, 
+                            'email', ad.email,
+                            'addLine1',ad.addLine1,
+                            'addLine2',ad.addLine2,
+                            'State',ad.State,
+                            'city',ad.city,
+                            'country',ad.country,
+                            'pinCode',ad.pinCode
+                      )
+                    ) AS addresses
+                 FROM distributors_new AS mn
+                 LEFT JOIN \`address\` AS ad
+                   ON ad.userId = mn.distributorId
+                 WHERE mn.distributorId = :manufacturerId
+                 GROUP BY mn.distributorId, mn.companyName`,
+                    {
+                        replacements: {
+                            manufacturerId: Number(manufacturerId),
+                            id: Number(id),
+                        },
+                        type: db.Sequelize.QueryTypes.SELECT,
+                    }
+                );
+            }
+            
             if(userType==='retailer' || userType === 'Retailer'){
                 [distributor] = await db.sequelize.query(
                     `SELECT 
@@ -209,7 +255,8 @@ class UsersCartService {
                     }
                 );
             }else{
-             [distributor] = await db.sequelize.query(
+                console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[',manufacturerId,id)
+           const [distributorr] = await db.sequelize.query(
                 `SELECT 
                     mn.distributorId, 
                     mn.companyName,
@@ -243,7 +290,10 @@ class UsersCartService {
                     type: db.Sequelize.QueryTypes.SELECT,
                 }
             );
+            distributor=distributorr
+                console.log(distributorr,'\\\\\\\\\\\\\\\\\\')
         }
+        // console.log(distributor,';;;;;;;;;;;;;')
             let orderFromData =await getData(data?.userType,id)
             const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
             const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
@@ -267,6 +317,24 @@ class UsersCartService {
                     }
                 ],
             });
+            //......................................................................................................
+            const getStateFromAddress = (user) => {
+                const billingAddress = user?.addresses?.find(addr => addr.addressType === 'Billing');
+                return billingAddress?.State?.trim() || null;
+            };
+
+            const fromState = getStateFromAddress(distributor);
+            const toState = getStateFromAddress(manufacturer);
+
+            let taxType = null;
+            if (fromState && toState) {
+                taxType = (fromState === toState) ? 'SGST_CGST' : 'IGST';
+            }
+
+            console.log("From State:", fromState);
+            console.log("To State:", toState);
+            console.log("Tax Type:", taxType);
+            //.......................................................................................................
             let isManufacturer = false;
             if (manufacturer?.userType === 'Manufacturer'){
                 isManufacturer = true;
@@ -308,7 +376,7 @@ class UsersCartService {
                         status: message.code200,
                         message: "Your cart is empty.",
                         manufacturer:manufacturer,
-                        retailer: manufacturer, // Send data in `retailers` key
+                        retailer: distributor, // Send data in `retailers` key
                         cart: [],
                     };
                 } else {
@@ -316,7 +384,7 @@ class UsersCartService {
                         status: message.code200,
                         message: "Your cart is empty.",
                         manufacturer:manufacturer,
-                        distributor: manufacturer, // Send data in `distributor` key
+                        distributor: distributor, // Send data in `distributor` key
                         cart: [],
                     };
                 }
@@ -341,7 +409,8 @@ class UsersCartService {
                 distributor,
                 cart: updateCart,
                 userType:data?.userType,
-                orderFrom:orderFromData
+                orderFrom:orderFromData,
+                taxType
             };
         } catch (error) {
             console.error("getUserCart servcie error:", error);
