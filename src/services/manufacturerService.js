@@ -8,7 +8,8 @@ const Manufacturers = db.manufacturers;
 const Address = db.address;
 const Documents = db.documents;
 const Op = db.Op
-require('dotenv').config()
+require('dotenv').config();
+const moment = require("moment");
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -745,24 +746,38 @@ class ManufacturerService {
 
   async po_page_card_data(data) {
     try {
-      const { id, userType } = data;
+      const { id, userType,start_date,end_date } = data;
       const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
-console.log(checkId)
+      let whereOrderCount ={orderTo: Number(checkId) };
+      let wherePending={
+        orderTo: Number(checkId),
+        orderStatus: { [Op.notIn]: ['Settled'] },
+      }
+      let wherecounts={ authorizedBy: Number(id), status: "Approved" }
+      let wherePendingRequest = { authorizedBy: Number(checkId), status: "Pending" }
+      let whereBalance = { balance: { [db.Op.gt]: 0,[db.Op.ne]: null },orderTo:Number(checkId)  }
+      if (data.start_date && data.end_date) {
+              const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+              const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+              whereOrderCount.orderDate = { [Op.between]: [startDate, endDate] };
+              wherePending.orderDate = { [Op.between]: [startDate, endDate] };
+              wherecounts.createdAt = { [Op.between]: [startDate, endDate] };
+              wherePendingRequest.createdAt = { [Op.between]: [startDate, endDate] };
+              whereBalance.orderDate = { [Op.between]: [startDate, endDate] };
+            }
+// console.log(checkId)
       // Parallelizing queries for better performance
       const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
-        db.orders.count({ where: { orderTo: Number(checkId) } }),
+        db.orders.count({ where: whereOrderCount}),
         db.orders.count({
-          where: {
-            orderTo: Number(checkId),
-            orderStatus: { [Op.notIn]: ['Settled'] },
-          },
+          where:wherePending
         }),
         db.authorizations.findAll({
           attributes: [
             "user.userType",
             [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
           ],
-          where: { authorizedBy: Number(id), status: "Approved" },
+          where: wherecounts,
           include: [
             {
               model: db.users,
@@ -773,13 +788,13 @@ console.log(checkId)
           group: ["user.userType"],
           raw: true,
         }),
-        db.authorizations.count({ where: { authorizedBy: Number(checkId), status: "Pending" } }),
+        db.authorizations.count({ where:wherePendingRequest }),
         db.orders.findOne({
           attributes: [
             [db.sequelize.fn("SUM", db.sequelize.col("balance")), "totalBalance"],
             [db.sequelize.fn("COUNT", db.sequelize.col("balance")), "totalCount"],
           ],
-          where: { balance: { [db.Op.gt]: 0,[db.Op.ne]: null },orderTo:Number(checkId)  },
+          where: whereBalance,
           raw: true,
         }),
       ]);
@@ -796,7 +811,7 @@ console.log(checkId)
           cnfCount,
           distributorCount,
           pendingRequest,
-          totalBalance: balanceData?.totalBalance || 0,
+          totalBalance: Number(balanceData?.totalBalance?.toFixed(2)) || 0,
           totalCount: balanceData?.totalCount || 0,
         },
       };
