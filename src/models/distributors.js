@@ -84,6 +84,15 @@ module.exports =(sequelize,Sequelize)=>{
         "mailstats":{
             type:Sequelize.BOOLEAN,
             // defaultValue:false
+        },
+        "accountNumber":{
+            type:Sequelize.BIGINT
+        },
+        "AccHolderName":{
+            type:Sequelize.STRING
+        },
+        "IFSC":{
+            type:Sequelize.STRING
         }
     },
 

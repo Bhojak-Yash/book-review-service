@@ -13,7 +13,7 @@ class ProductsService {
 
     async addProduct(data) {
         try {
-            const { manufacturerId, PackagingDetails, ...productData } = data;
+            const { manufacturerId, PackagingDetails,HSN, ...productData } = data;
             // console.log("Product Data",productData);
             // Check if the product already exists
             const existingProduct = await Products.findOne({
@@ -35,6 +35,7 @@ class ProductsService {
             // Add the new product
             const newProduct = await Products.create({
                 ...productData,
+                HSN:HSN || null,
                 PackagingDetails : PackagingDetailss,
                 manufacturerId,
                 CreatedAt: new Date(),

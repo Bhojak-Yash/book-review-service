@@ -12,8 +12,8 @@ exports.distProductInfo = async (req, res) => {
 
 exports.distributorRequest = async (req, res) => {
     try {
-        const { statusFilter = 'All' } = req.query;
-        const stats = await distributorDashboard.distributorRequest(req.user, statusFilter);
+        const { statusFilter = '',page=1,limit=10 } = req.query;
+        const stats = await distributorDashboard.distributorRequest(req.user, statusFilter,page,limit);
         return res.status(stats.status).json(stats);
     } catch (error) {
         console.error('Error in getStatistics_two controller:', error);

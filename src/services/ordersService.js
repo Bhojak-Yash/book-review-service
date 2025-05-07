@@ -610,7 +610,7 @@ class OrdersService {
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
-          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason"
+          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason","deliveryType"
         ],
         include: [
           {
@@ -667,6 +667,7 @@ class OrdersService {
           orderTotal: order.orderTotal,
           invNo: order.invNo,
           reason: order.reason || null,
+          deliveryType:order?.deliveryType || null
         };
       });
 
@@ -916,12 +917,19 @@ class OrdersService {
               {
                 model: db.products,
                 as: "product",
-                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails']
+                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails','Package','ProductForm','HSN'],
+                include:[
+                  {
+                    model:db.manufacturers,
+                    as:'manufacturer',
+                    attributes:['manufacturerCode','manufacturerId']
+                  }
+                ]
               },
               {
                 model: tableName,
                 as: as,
-                attributes: ['SId', 'BatchNo', 'stock', 'PTS']
+                attributes: ['SId', 'BatchNo', 'stock', 'PTS','ExpDate','location','Scheme']
               }
             ]
           },
@@ -943,25 +951,32 @@ class OrdersService {
           {
             model: db.distributors,
             as: "disuser",
-            attributes: ["distributorId", "companyName", "PAN", "GST"],
+            attributes: ["distributorId", "companyName", "PAN", "GST",'distributorCode','FSSAI','wholeSaleDrugLicence','IFSC','AccHolderName','accountNumber'],
             required: false,
           },
           {
             model: db.retailers,
             as: "reuser",
-            attributes: ["retailerId", "firmName", "PAN", "GST"],
+            attributes: ["retailerId", "firmName", "PAN", "GST",'retailerCode','FSSAI','drugLicense','IFSC','AccHolderName','accountNumber'],
             required: false,
           },
           {
             model: db.manufacturers,
             as: "manufacturer",
-            attributes: ["manufacturerId", "companyName", "PAN", "GST"],
+            attributes: ["manufacturerId", "companyName", "PAN", "GST",'manufacturerCode','fssaiLicense','drugLicense','IFSC','AccHolderName','accountNumber'],
             required: false,
           },
           {
             model: db.address,
             as: "address",
             required: false,
+            include:[
+              {
+                model:db.states,
+                as:"states",
+                attributes:['stateCode']
+              }
+            ]
           },
         ],
       });
@@ -976,7 +991,14 @@ class OrdersService {
         companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || user?.manufacturer?.[0]?.companyName || null,
         PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || user?.manufacturer?.[0]?.PAN || null,
         GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || user?.manufacturer?.[0]?.GST || null,
+        fssai:user?.reuser?.[0]?.FSSAI || user?.disuser?.[0]?.FSSAI || user?.manufacturer?.[0]?.fssaiLicense || null,
+        userCode:user?.reuser?.[0]?.retailerCode || user?.disuser?.[0]?.distributorCode || user?.manufacturer?.[0]?.manufacturerCode || null,
+        drugLicense:user?.reuser?.[0]?.drugLicense || user?.disuser?.[0]?.wholeSaleDrugLicence || user?.manufacturer?.[0]?.drugLicense || null,
+        accountNumber:user?.reuser?.[0]?.accountNumber || user?.disuser?.[0]?.accountNumber || user?.manufacturer?.[0]?.accountNumber || null,
+        AccHolderName:user?.reuser?.[0]?.AccHolderName || user?.disuser?.[0]?.AccHolderName || user?.manufacturer?.[0]?.AccHolderName || null,
+        IFSC:user?.reuser?.[0]?.IFSC || user?.disuser?.[0]?.IFSC || user?.manufacturer?.[0]?.IFSC || null,
         address: user?.address || null,
+        // stateCode:user?.address?.states?.stateCode || null,
       });
 
       const discount = Number(order?.subTotal) - Number(order?.taxable);
@@ -1019,6 +1041,9 @@ class OrdersService {
           "SGST": order?.SGST,
           "IGST": order?.IGST,
           "taxable":order?.taxable,
+          "vehicleNo":order?.vehicleNo,
+          "EWayBillNo":order?.EWayBillNo,
+          "creditPeriod":order?.creditPeriod,
           "orderItems": order?.orderItems?.map((item)=>{
             return {
               "id": item?.id,
