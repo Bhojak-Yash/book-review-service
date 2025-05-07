@@ -76,6 +76,15 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "empMax": {
             type: Sequelize.INTEGER
+        },
+        "accountNumber":{
+            type:Sequelize.BIGINT
+        },
+        "AccHolderName":{
+            type:Sequelize.STRING
+        },
+        "IFSC":{
+            type:Sequelize.STRING
         }
     },
 

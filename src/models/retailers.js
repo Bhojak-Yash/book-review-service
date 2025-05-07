@@ -65,6 +65,15 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "CIN":{
             type:Sequelize.STRING
+        },
+        "accountNumber":{
+            type:Sequelize.BIGINT
+        },
+        "AccHolderName":{
+            type:Sequelize.STRING
+        },
+        "IFSC":{
+            type:Sequelize.STRING
         }
     },
     {

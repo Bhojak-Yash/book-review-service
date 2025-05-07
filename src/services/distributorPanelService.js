@@ -227,11 +227,15 @@ class distributorDashboard {
             // }
             if(statusFilter && statusFilter != 'All'){
                 whereClause.status=statusFilter
+            }else{
+                whereClause.status = {
+                    [db.Op.in]: ['Pending', 'Approved', 'Rejected']
+                  };
             }
 
-            console.log('OwnerId:', ownerId,whereClause);
+            // console.log('OwnerId:', ownerId,whereClause);
             // console.log('Status Filter Applied:', statusFilter !== 'All' ? statusFilter : 'No Filter');
-
+// console.log(whereClause,';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;')
             // Fetch authorized distributors & retailers in a single query
             const {rows:authorizedEntities,count} = await db.authorizations.findAndCountAll({
                 where: whereClause,
@@ -243,7 +247,8 @@ class distributorDashboard {
                         attributes: [
                             'distributorId', 'companyName', 
                             'address','phone','profilePic' ,'createdAt'
-                        ]
+                        ],
+                        required:false
                     },
                     {
                         model: db.retailers,
@@ -251,36 +256,39 @@ class distributorDashboard {
                         attributes: [
                             'retailerId', 'firmName', 
                             'address', 'phone','profilePic' ,'createdAt'
-                        ]
+                        ],
+                        required:false
                     },
-                    // {
-                    //     model:db.address,
-                    //     as:'address',
-                    //     attributes:['addLine1','city'],
-                    //     where:{addressType:"Business"}
-                    // }
+                    {
+                        model:db.address,
+                        as:'address',
+                        attributes:['addLine1','city','userId'],
+                        where:{addressType:"Business"},
+                        required:false
+                    }
                 ],
-                raw: true,
+                // raw: true,
                 offset:skip,
                 limit:Limit
             });
+            const pendingcount = await db.authorizations.count({where:{authorizedBy: Number(ownerId),status:'Pending'}})
 // console.log(count,'ppppppppppp')
             const retailersApproved = authorizedEntities.map(entity => {
-                const createdAt = entity['distributors.createdAt'] || entity['retailers.createdAt'];
+                const createdAt = entity?.distributors?.createdAt || entity?.retailers?.createdAt;
                 const daysSinceCreated = createdAt
                   ? Math.floor((new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
                   : null;
               
                 return {
-                  authorizedId: entity['distributors.distributorId'] || entity['retailers.retailerId'],
-                  companyName: entity['distributors.companyName'] || entity['retailers.firmName'],
-                  address: entity['address.addLine1'] || entity['address.addLine1'],
-                  city: entity['address.city'] || entity['address.city'],
-                  phone: entity['distributors.phone'] || entity['retailers.phone'],
-                  status: entity.status,
-                  profilePic: entity['distributors.profilePic'] || entity['retailers.profilePic'],
-                  createdAt,
-                  daysSinceCreated,
+                  authorizedId: entity?.distributors?.distributorId || entity?.retailers?.retailerId || null,
+                  companyName: entity?.distributors?.companyName || entity?.retailers?.firmName || null,
+                  address: entity?.address[0]?.addLine1 || entity?.address[0]?.addLine1 || null,
+                  city: entity?.address[0]?.city || entity?.address[0]?.city || null,
+                  phone: entity?.distributors?.phone || entity?.retailers?.phone || null,
+                  status: entity?.status || null,
+                  profilePic: entity?.distributors?.profilePic || entity?.retailers?.profilePic || null,
+                  createdAt:createdAt || null,
+                  daysSinceCreated:daysSinceCreated || null,
                 };
             });
 
@@ -293,6 +301,7 @@ class distributorDashboard {
                 totalItem:count,
                 totalPage:Math.ceil(count/Number(limit)),
                 currentPage:Number(page),
+                pendingcount:pendingcount || 0,
                 apiData: { retailersApproved },
             };
         } catch (error) {

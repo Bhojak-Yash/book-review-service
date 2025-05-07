@@ -180,6 +180,20 @@ class OrdersController {
     }
   }
 
+  static async calculate_order(req, res) {
+    try {
+      
+
+      return res.status(result?.status || 200).json(result);
+    } catch (error) {
+      console.log("Error in updateAddressDetails Controller", error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   // static async calculate_price(req, res) {
   //   try {
   //     const data = {
