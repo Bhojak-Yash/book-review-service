@@ -4,7 +4,7 @@ const db = require('../models/db');
 const StocksService = require('./stocksService');
 const notificationsService = require('../services/notificationsService');
 const _ = require('lodash');
-
+const axios = require('axios')
 
 const Op = db.Op;
 const moment = require("moment");
@@ -41,11 +41,11 @@ class OrdersService {
       }
       transaction = await db.sequelize.transaction();
       console.log(orderData.orderItems);
-      
+
       // double check cart item prices
       var mismatched = this.calculate_price(orderData.orderItems, orderData.orderData);
-      
-      if (mismatched == true){
+
+      if (mismatched == true) {
         return {
           status: 409,
           message: 'Mismatch in between the price of the items.'
@@ -79,9 +79,13 @@ class OrdersService {
         description: `You have received a new purchase order.`
       }, transaction);
 
-
-
       await transaction.commit();
+      await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
+        userId: Number(orderData?.orderData?.orderTo),
+        title: "New Purchase Order Received",
+        description: `You have received a new purchase order.`
+      })
+
       return {
         status: message.code200,
         message: message.message200,
@@ -101,9 +105,9 @@ class OrdersService {
     // console.log(orderId, updates, loggedInUserId, ';;lllll')
     try {
       const order = await this.db.orders.findByPk(orderId);
-      if(order?.dataValues.orderStatus=='Settled'){
+      if (order?.dataValues.orderStatus == 'Settled') {
         return {
-          status:message.code400,
+          status: message.code400,
           message: 'Action not allowed. This order has already been settled.'
         }
       }
@@ -131,7 +135,7 @@ class OrdersService {
         })
 
         const data = await db.orders.findOne({ where: { id: Number(orderId) } })
-        const aaa=  Number(Number(data.dataValues.balance).toFixed(2))
+        const aaa = Number(Number(data.dataValues.balance).toFixed(2))
 
         if (Number(aaa) <= 0) {
           throw new Error("Payment already completed for this order.");
@@ -142,18 +146,18 @@ class OrdersService {
           console.log('[[[[[[[[[[')
           oStatus = 'Partially paid'
         }
-        
+
         let amtUpdate = amount;
         if (Number(aaa) <= Number(amount)) {
           amtUpdate = Number(data.dataValues.balance)
         }
-        if(aaa-Number(amtUpdate)==0){
-          oStatus='Paid'
+        if (aaa - Number(amtUpdate) == 0) {
+          oStatus = 'Paid'
         }
-        if(data?.dataValues?.orderStatus==='Confirmed' || data?.dataValues?.orderStatus==='Pending' || data?.dataValues?.orderStatus==='Dispatched'){
+        if (data?.dataValues?.orderStatus === 'Confirmed' || data?.dataValues?.orderStatus === 'Pending' || data?.dataValues?.orderStatus === 'Dispatched') {
           oStatus = data?.dataValues?.orderStatus
         }
-        console.log(oStatus,'llllllllllllll',aaa,amtUpdate)
+        console.log(oStatus, 'llllllllllllll', aaa, amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
         return {
           status: message.code200,
@@ -229,6 +233,11 @@ class OrdersService {
           title: "Purchase Order: Confirmed",
           description: `Your purchase order has been confirmed for orderId ${orderId}.`
         });
+        await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+          userId: Number(order?.orderFrom),
+          title: "Purchase Order: Confirmed",
+          description: `Your purchase order has been confirmed for orderId ${orderId}.`
+        })
       }
       // if(updates.orderStatus === "Rejected"){
 
@@ -312,7 +321,7 @@ class OrdersService {
                     updatedAt: new Date(),
                     organisationId: order.orderFrom,
                     MRP: item.MRP,
-                    PTS:item?.PTR,
+                    PTS: item?.PTR,
                     PTR: item?.PTR,
                     Scheme: item.Scheme,
                     BoxQty: item.BoxQty,
@@ -338,7 +347,7 @@ class OrdersService {
 
       if (updates?.orderStatus === "Inward") {
         // console.log('inwarddddddddd')
-        if(order?.dataValues?.balance ==0){
+        if (order?.dataValues?.balance == 0) {
           let sss = updates
           sss.orderStatus = 'Paid'
           const checkPayment = await db.payments.count({
@@ -349,26 +358,33 @@ class OrdersService {
               },
             },
           });
-          if(checkPayment<=0){
+          if (checkPayment <= 0) {
             sss.orderStatus = 'Settled'
           }
           await this.db.orders.update(sss, { where: { id: orderId } })
-        }else if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
+        } else if (order?.dataValues?.balance < order?.dataValues?.invAmt) {
           // console.log('bda haiiiiiiiiii')
           let sss = updates
           sss.orderStatus = 'Partially paid'
           console.log(sss)
           await this.db.orders.update(sss, { where: { id: orderId } });
-        }else{
-         await this.db.orders.update(updates, { where: { id: orderId } });
+        } else {
+          await this.db.orders.update(updates, { where: { id: orderId } });
         }
       } else {
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
       // console.log(updates?.orderStatus)
-      if(updates?.orderStatus == "Cancelled"){
+      if (updates?.orderStatus == "Cancelled") {
         // console.log('099999999999999999999999999999')
         await this.db.orders.update(updates, { where: { id: orderId } });
+      }
+      if(updates?.orderStatus == "Rejected"){
+        await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+          userId: Number(order?.orderFrom),
+          title: "Purchase Order: Rejected",
+          description: `Your purchase order has been Rejected for orderId ${orderId}.`
+        })
       }
       // const aaa=await this.db.orders.findByPk(orderId);
       // console.log(aaa)
@@ -551,7 +567,7 @@ class OrdersService {
           "deliveryType": order.deliveryType,
           // "auth": order.auth,
           "overdue": overdue,
-          "reason":order?.reason || ''
+          "reason": order?.reason || ''
         };
       });
 
@@ -607,11 +623,11 @@ class OrdersService {
         whereClause.orderFrom = Number(data.orderFromUser);
       }
 
-// console.log(whereClause,'oppppppp')
+      // console.log(whereClause,'oppppppp')
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id", "orderDate", "dueDate", "deliveredAt", "invAmt",
-          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason","deliveryType"
+          "orderStatus", "orderTo", "orderFrom", "orderTotal", "invNo", "balance", "reason", "deliveryType"
         ],
         include: [
           {
@@ -668,7 +684,7 @@ class OrdersService {
           orderTotal: order.orderTotal,
           invNo: order.invNo,
           reason: order.reason || null,
-          deliveryType:order?.deliveryType || null
+          deliveryType: order?.deliveryType || null
         };
       });
 
@@ -918,19 +934,19 @@ class OrdersService {
               {
                 model: db.products,
                 as: "product",
-                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails','Package','ProductForm','HSN'],
-                include:[
+                attributes: ['PId', 'PName', 'SaltComposition', 'PackagingDetails', 'Package', 'ProductForm', 'HSN'],
+                include: [
                   {
-                    model:db.manufacturers,
-                    as:'manufacturer',
-                    attributes:['manufacturerCode','manufacturerId']
+                    model: db.manufacturers,
+                    as: 'manufacturer',
+                    attributes: ['manufacturerCode', 'manufacturerId']
                   }
                 ]
               },
               {
                 model: tableName,
                 as: as,
-                attributes: ['SId', 'BatchNo', 'stock', 'PTS','ExpDate','location','Scheme']
+                attributes: ['SId', 'BatchNo', 'stock', 'PTS', 'ExpDate', 'location', 'Scheme']
               }
             ]
           },
@@ -952,30 +968,30 @@ class OrdersService {
           {
             model: db.distributors,
             as: "disuser",
-            attributes: ["distributorId", "companyName", "PAN", "GST",'distributorCode','FSSAI','wholeSaleDrugLicence','IFSC','AccHolderName','accountNumber'],
+            attributes: ["distributorId", "companyName", "PAN", "GST", 'distributorCode', 'FSSAI', 'wholeSaleDrugLicence', 'IFSC', 'AccHolderName', 'accountNumber'],
             required: false,
           },
           {
             model: db.retailers,
             as: "reuser",
-            attributes: ["retailerId", "firmName", "PAN", "GST",'retailerCode','FSSAI','drugLicense','IFSC','AccHolderName','accountNumber'],
+            attributes: ["retailerId", "firmName", "PAN", "GST", 'retailerCode', 'FSSAI', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber'],
             required: false,
           },
           {
             model: db.manufacturers,
             as: "manufacturer",
-            attributes: ["manufacturerId", "companyName", "PAN", "GST",'manufacturerCode','fssaiLicense','drugLicense','IFSC','AccHolderName','accountNumber'],
+            attributes: ["manufacturerId", "companyName", "PAN", "GST", 'manufacturerCode', 'fssaiLicense', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber'],
             required: false,
           },
           {
             model: db.address,
             as: "address",
             required: false,
-            include:[
+            include: [
               {
-                model:db.states,
-                as:"states",
-                attributes:['stateCode']
+                model: db.states,
+                as: "states",
+                attributes: ['stateCode']
               }
             ]
           },
@@ -985,19 +1001,19 @@ class OrdersService {
       // Extract users based on their IDs
       const userTo = users.find(user => user.id === Number(order.orderTo)) || null;
       const userFrom = users.find(user => user.id === Number(order.orderFrom)) || null;
-// console.log(userTo.dataValues.manufacturer,'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[')
+      // console.log(userTo.dataValues.manufacturer,'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[')
       // Format the response for both users
       const formatUser = (user) => ({
         id: user?.id || null,
         companyName: user?.reuser?.[0]?.firmName || user?.disuser?.[0]?.companyName || user?.manufacturer?.[0]?.companyName || null,
         PAN: user?.reuser?.[0]?.PAN || user?.disuser?.[0]?.PAN || user?.manufacturer?.[0]?.PAN || null,
         GST: user?.reuser?.[0]?.GST || user?.disuser?.[0]?.GST || user?.manufacturer?.[0]?.GST || null,
-        fssai:user?.reuser?.[0]?.FSSAI || user?.disuser?.[0]?.FSSAI || user?.manufacturer?.[0]?.fssaiLicense || null,
-        userCode:user?.reuser?.[0]?.retailerCode || user?.disuser?.[0]?.distributorCode || user?.manufacturer?.[0]?.manufacturerCode || null,
-        drugLicense:user?.reuser?.[0]?.drugLicense || user?.disuser?.[0]?.wholeSaleDrugLicence || user?.manufacturer?.[0]?.drugLicense || null,
-        accountNumber:user?.reuser?.[0]?.accountNumber || user?.disuser?.[0]?.accountNumber || user?.manufacturer?.[0]?.accountNumber || null,
-        AccHolderName:user?.reuser?.[0]?.AccHolderName || user?.disuser?.[0]?.AccHolderName || user?.manufacturer?.[0]?.AccHolderName || null,
-        IFSC:user?.reuser?.[0]?.IFSC || user?.disuser?.[0]?.IFSC || user?.manufacturer?.[0]?.IFSC || null,
+        fssai: user?.reuser?.[0]?.FSSAI || user?.disuser?.[0]?.FSSAI || user?.manufacturer?.[0]?.fssaiLicense || null,
+        userCode: user?.reuser?.[0]?.retailerCode || user?.disuser?.[0]?.distributorCode || user?.manufacturer?.[0]?.manufacturerCode || null,
+        drugLicense: user?.reuser?.[0]?.drugLicense || user?.disuser?.[0]?.wholeSaleDrugLicence || user?.manufacturer?.[0]?.drugLicense || null,
+        accountNumber: user?.reuser?.[0]?.accountNumber || user?.disuser?.[0]?.accountNumber || user?.manufacturer?.[0]?.accountNumber || null,
+        AccHolderName: user?.reuser?.[0]?.AccHolderName || user?.disuser?.[0]?.AccHolderName || user?.manufacturer?.[0]?.AccHolderName || null,
+        IFSC: user?.reuser?.[0]?.IFSC || user?.disuser?.[0]?.IFSC || user?.manufacturer?.[0]?.IFSC || null,
         address: user?.address || null,
         // stateCode:user?.address?.states?.stateCode || null,
       });
@@ -1006,81 +1022,81 @@ class OrdersService {
       const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
 
       const formattedOrder = {
-          "id": order?.id,
-          "orderDate": order?.orderDate,
-          "invNo": order?.invNo,
-          "confirmationDate": order?.confirmationDate,
-          "dueDate": order?.dueDate,
-          "barcode": order?.barcode,
-          "invAmt": order?.invAmt,
-          "cNAmt": order?.cNAmt,
-          "recdAmt": order?.recdAmt,
-          "balance": order?.balance,
-          "sMan": order?.sMan,
-          "sMobile": order?.sMobile,
-          "dMan": order?.dMan,
-          "dMobile": order?.dMo,
-          "orderStatus": order?.orderStatus,
-          "orderFrom": order?.orderFrom,
-          "orderTo": order?.orderTo,
-          "orderTotal": order?.orderTotal,
-          "deliveredAt": order?.deliveredAt,
-          "entityId": order?.entityId,
-          "reason": order?.reason,
-          "invUrl": order?.invUrl,
-          "deliveryType": order?.deliveryType,
-          "dispatchDate": order?.dispatchDate,
-          "createdAt": order?.createdAt,
-          "updatedAt": order?.updatedAt,
-          "subTotal" : Number(order?.subTotal),
-          "discount" : Number(discount.toFixed(2)),
-          "discountPercentage" : Number(discountPercentage.toFixed(2)), 
-          "advance":Number(order?.advance) || 0,
-          "extraDiscount":Number(order?.extraDiscount) || 0,
-          "extraDiscountValue":Number(Number(order?.taxable)*order?.extraDiscount/100),
-          "CGST": order?.CGST,
-          "SGST": order?.SGST,
-          "IGST": order?.IGST,
-          "taxable":order?.taxable,
-          "vehicleNo":order?.vehicleNo,
-          "EWayBillNo":order?.EWayBillNo,
-          "creditPeriod":order?.creditPeriod,
-          "orderItems": order?.orderItems?.map((item)=>{
-            return {
-              "id": item?.id,
-              "invNo": item?.invNo,
-              "PId": item?.PId,
-              "quantity": item?.quantity,
-              "schQty": item?.schQty,
-              "price": item?.price,
-              "MRP": item?.MRP,
-              "PTR": item?.price,
-              "isManufacturer": isManufacturer,
-              "sch_Per": item?.sch_Per,
-              "cD_Per": item?.cD_Per,
-              "iGST_Per": item?.iGST_Per,
-              "cGST_Per": item?.cGST_Per,
-              "sGST_Per": item?.sGST_Per,
-              "gCESS_Per": item?.gCESS_Per,
-              "grsAmt": item?.grsAmt,
-              "netAmt": item?.netAmt,
-              "wPAmt": item?.wPAmt,
-              "schAmt": item?.schAmt,
-              "cDAmt": item?.cDAmt,
-              "gSTAmt": item?.gSTAmt,
-              "gCESSAmt": item?.gCESSAmt,
-              "taxable": item?.taxable,
-              "createdAt": item?.createdAt,
-              "updatedAt": item?.updatedAt,
-              "deletedAt": item?.deletedAt,
-              "orderId": item?.orderId,
-              "stockId": item?.stockId,
-              "BoxQty": item?.BoxQty,
-              "Scheme": item?.Scheme,
-              "loose": item?.loose,
-              // "PTS": item?.PTS,
-              "product": item?.product,
-              "stock": item?.stocks || item?.stock || {}
+        "id": order?.id,
+        "orderDate": order?.orderDate,
+        "invNo": order?.invNo,
+        "confirmationDate": order?.confirmationDate,
+        "dueDate": order?.dueDate,
+        "barcode": order?.barcode,
+        "invAmt": order?.invAmt,
+        "cNAmt": order?.cNAmt,
+        "recdAmt": order?.recdAmt,
+        "balance": order?.balance,
+        "sMan": order?.sMan,
+        "sMobile": order?.sMobile,
+        "dMan": order?.dMan,
+        "dMobile": order?.dMo,
+        "orderStatus": order?.orderStatus,
+        "orderFrom": order?.orderFrom,
+        "orderTo": order?.orderTo,
+        "orderTotal": order?.orderTotal,
+        "deliveredAt": order?.deliveredAt,
+        "entityId": order?.entityId,
+        "reason": order?.reason,
+        "invUrl": order?.invUrl,
+        "deliveryType": order?.deliveryType,
+        "dispatchDate": order?.dispatchDate,
+        "createdAt": order?.createdAt,
+        "updatedAt": order?.updatedAt,
+        "subTotal": Number(order?.subTotal),
+        "discount": Number(discount.toFixed(2)),
+        "discountPercentage": Number(discountPercentage.toFixed(2)),
+        "advance": Number(order?.advance) || 0,
+        "extraDiscount": Number(order?.extraDiscount) || 0,
+        "extraDiscountValue": Number(Number(order?.taxable) * order?.extraDiscount / 100),
+        "CGST": order?.CGST,
+        "SGST": order?.SGST,
+        "IGST": order?.IGST,
+        "taxable": order?.taxable,
+        "vehicleNo": order?.vehicleNo,
+        "EWayBillNo": order?.EWayBillNo,
+        "creditPeriod": order?.creditPeriod,
+        "orderItems": order?.orderItems?.map((item) => {
+          return {
+            "id": item?.id,
+            "invNo": item?.invNo,
+            "PId": item?.PId,
+            "quantity": item?.quantity,
+            "schQty": item?.schQty,
+            "price": item?.price,
+            "MRP": item?.MRP,
+            "PTR": item?.price,
+            "isManufacturer": isManufacturer,
+            "sch_Per": item?.sch_Per,
+            "cD_Per": item?.cD_Per,
+            "iGST_Per": item?.iGST_Per,
+            "cGST_Per": item?.cGST_Per,
+            "sGST_Per": item?.sGST_Per,
+            "gCESS_Per": item?.gCESS_Per,
+            "grsAmt": item?.grsAmt,
+            "netAmt": item?.netAmt,
+            "wPAmt": item?.wPAmt,
+            "schAmt": item?.schAmt,
+            "cDAmt": item?.cDAmt,
+            "gSTAmt": item?.gSTAmt,
+            "gCESSAmt": item?.gCESSAmt,
+            "taxable": item?.taxable,
+            "createdAt": item?.createdAt,
+            "updatedAt": item?.updatedAt,
+            "deletedAt": item?.deletedAt,
+            "orderId": item?.orderId,
+            "stockId": item?.stockId,
+            "BoxQty": item?.BoxQty,
+            "Scheme": item?.Scheme,
+            "loose": item?.loose,
+            // "PTS": item?.PTS,
+            "product": item?.product,
+            "stock": item?.stocks || item?.stock || {}
           }
         }),
         "payments": order?.payments
@@ -1089,7 +1105,7 @@ class OrdersService {
       // Determine tax type based on state
       const getStateFromAddress = (user) => {
         const billingAddress = user?.address?.find(addr => addr.addressType === 'Billing');
-        return billingAddress?.State || null;  
+        return billingAddress?.State || null;
       };
 
 
@@ -1122,14 +1138,14 @@ class OrdersService {
   async confirm_payment(data) {
     try {
       const { id, paymentId } = data
-      const checkAllPayments = await db.payments.findAll({where:{ id: Number(paymentId) }})
-      if(checkAllPayments.length>0){
-      const checkOrders = await db.orders.findOne({attributes:['id','orderStatus','balance'],where:{id:Number(checkAllPayments[0]?.orderId)}})
-      if(checkOrders?.dataValues?.balance==0){
-        if(checkOrders?.dataValues?.orderStatus=='Paid' || checkOrders?.dataValues?.orderStatus=='Inward'){
-        await db.orders.update({orderStatus:"Settled"},{where:{id:Number(checkAllPayments[0]?.orderId)}})
+      const checkAllPayments = await db.payments.findAll({ where: { id: Number(paymentId) } })
+      if (checkAllPayments.length > 0) {
+        const checkOrders = await db.orders.findOne({ attributes: ['id', 'orderStatus', 'balance'], where: { id: Number(checkAllPayments[0]?.orderId) } })
+        if (checkOrders?.dataValues?.balance == 0) {
+          if (checkOrders?.dataValues?.orderStatus == 'Paid' || checkOrders?.dataValues?.orderStatus == 'Inward') {
+            await db.orders.update({ orderStatus: "Settled" }, { where: { id: Number(checkAllPayments[0]?.orderId) } })
+          }
         }
-      }
       }
       await db.payments.update(
         { status: 'Confirmed' },
@@ -1213,7 +1229,7 @@ class OrdersService {
       throw new Error("Failed to update address details");
     }
   }
-  
+
   async calculate_price(orderItems, orderData) {
 
     // console.log(orderData);
@@ -1268,9 +1284,9 @@ class OrdersService {
           SId: stockIds
         }
       });
-      console.log("Existing stocks",  existingStocks);
+      console.log("Existing stocks", existingStocks);
 
-      
+
 
       for (const payloadItem of orderItems) {
         // Find matching stock in existingStocks based on stockId
@@ -1294,7 +1310,7 @@ class OrdersService {
           // };
           return mismatched;
         }
-        
+
         let price = user.userType === 'Manufacturer' ? payloadItem.PTS : payloadItem.PTR;
 
         if (Number(price) !== Number(payloadItem.price)) {

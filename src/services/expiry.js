@@ -629,7 +629,7 @@ class expiryService {
             const baseUserCondition = {
               [db.Op.or]: [
                 { returnTo: userId },
-                { returnFrom: userId }
+                // { returnFrom: userId }
               ]
             };
             
@@ -675,6 +675,7 @@ class expiryService {
                         required: false
                     }
                 ],
+                order:[['returnId','desc']],
                 offset: skip,
                 limit: Limit,
             });
