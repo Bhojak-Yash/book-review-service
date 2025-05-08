@@ -623,14 +623,14 @@ class expiryService {
             const Limit = Number(data.limit) || 10;
             let skip = (Page - 1) * Limit;
             const userId = Number(id)
-            const whereClause = {};
+            const whereClause = {returnTo: userId };
 
             // Required condition: returnTo or returnFrom must match userId
-            const baseUserCondition = {
-                returnTo: userId 
-            };
+            // const baseUserCondition = {
+                
+            // };
             
-            const andConditions = [baseUserCondition];
+            // const andConditions = [baseUserCondition];
             
             // Optional search filter
             if (search) {
