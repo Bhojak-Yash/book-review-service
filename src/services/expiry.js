@@ -627,10 +627,7 @@ class expiryService {
 
             // Required condition: returnTo or returnFrom must match userId
             const baseUserCondition = {
-              [db.Op.or]: [
-                { returnTo: userId },
-                // { returnFrom: userId }
-              ]
+                returnTo: userId 
             };
             
             const andConditions = [baseUserCondition];
