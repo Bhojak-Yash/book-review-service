@@ -184,7 +184,7 @@ class DistributorService {
             //         { userType: 'Distributor' }
             //     ]
             // }
-
+// console.log(whereCondition,'[[[[[[[[[',id)
 
             const result = await db.users.findAll({
                 attributes: ['id', 'userType'],

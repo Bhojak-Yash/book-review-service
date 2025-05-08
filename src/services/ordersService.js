@@ -299,8 +299,8 @@ class OrdersService {
               );
               console.log(orderFromRow)
               await db.sequelize.query(
-                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTR,Scheme,BoxQty,loose,purchasedFrom) 
-               VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
+                `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTS,PTR,Scheme,BoxQty,loose,purchasedFrom) 
+               VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTS,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
                ON DUPLICATE KEY UPDATE Stock = Stock + :itemQuantity`,
                 {
                   replacements: {
@@ -312,6 +312,7 @@ class OrdersService {
                     updatedAt: new Date(),
                     organisationId: order.orderFrom,
                     MRP: item.MRP,
+                    PTS:item?.PTR,
                     PTR: item?.PTR,
                     Scheme: item.Scheme,
                     BoxQty: item.BoxQty,
