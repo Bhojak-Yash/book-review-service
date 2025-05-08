@@ -60,11 +60,11 @@ class AuthService {
                 title: "Authorization Request Pending",
                 description: `You have received an authorization request that is pending approval.`
             });
-            await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
-                userId: Number(authorizedBy),
-                title: "Authorization Request Pending",
-                description: `You have received an authorization request that is pending approval.`
-            })
+            // await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
+            //     userId: Number(authorizedBy),
+            //     title: "Authorization Request Pending",
+            //     description: `You have received an authorization request that is pending approval.`
+            // })
 
 
             return {
@@ -611,11 +611,11 @@ class AuthService {
             if (newNotification.status === 200 && newNotification.data) {
                 await notificationsService.updateNotificationStatus(newNotification.data.id, "Unread");
             }
-            await axios.post(`${process.env.Socket_URL}/auth-request-action-notification`, {
-                userId: Number(userId),
-                title: `Authorization Request: ${statusMessage}`,
-                description: `An authorization request has been ${statusMessage}.`
-            })
+            // await axios.post(`${process.env.Socket_URL}/auth-request-action-notification`, {
+            //     userId: Number(userId),
+            //     title: `Authorization Request: ${statusMessage}`,
+            //     description: `An authorization request has been ${statusMessage}.`
+            // })
 
 
             return {

@@ -80,11 +80,11 @@ class OrdersService {
       }, transaction);
 
       await transaction.commit();
-      await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
-        userId: Number(orderData?.orderData?.orderTo),
-        title: "New Purchase Order Received",
-        description: `You have received a new purchase order.`
-      })
+      // await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
+      //   userId: Number(orderData?.orderData?.orderTo),
+      //   title: "New Purchase Order Received",
+      //   description: `You have received a new purchase order.`
+      // })
 
       return {
         status: message.code200,
@@ -379,13 +379,13 @@ class OrdersService {
         // console.log('099999999999999999999999999999')
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
-      if(updates?.orderStatus == "Rejected"){
-        await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
-          userId: Number(order?.orderFrom),
-          title: "Purchase Order: Rejected",
-          description: `Your purchase order has been Rejected for orderId ${orderId}.`
-        })
-      }
+      // if(updates?.orderStatus == "Rejected"){
+      //   await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+      //     userId: Number(order?.orderFrom),
+      //     title: "Purchase Order: Rejected",
+      //     description: `Your purchase order has been Rejected for orderId ${orderId}.`
+      //   })
+      // }
       // const aaa=await this.db.orders.findByPk(orderId);
       // console.log(aaa)
       return await this.db.orders.findByPk(orderId);
