@@ -233,11 +233,11 @@ class OrdersService {
           title: "Purchase Order: Confirmed",
           description: `Your purchase order has been confirmed for orderId ${orderId}.`
         });
-        await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
-          userId: Number(order?.orderFrom),
-          title: "Purchase Order: Confirmed",
-          description: `Your purchase order has been confirmed for orderId ${orderId}.`
-        })
+        // await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+        //   userId: Number(order?.orderFrom),
+        //   title: "Purchase Order: Confirmed",
+        //   description: `Your purchase order has been confirmed for orderId ${orderId}.`
+        // })
       }
       // if(updates.orderStatus === "Rejected"){
 
