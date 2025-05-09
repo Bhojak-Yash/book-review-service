@@ -147,3 +147,16 @@ exports.redeem_cn = async (req, res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 }
+
+exports.returned_list = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const returned_list = await expiryService.returned_list(data);
+  
+      return res.status(returned_list?.status || 200).json(crreturned_listeditNote);
+      
+      } catch (error) {
+      console.error("Error fetching returned_list:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}

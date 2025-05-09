@@ -635,16 +635,16 @@ class AuthService {
         try {
             const { id, search } = data
             const checkId = Number(id)
-            const Data = await db.authorizations.findAll(
+            const Data = await db.users.findAll(
                 {
-                    attributes: ['authorizedBy'],
-                    where: { authorizedId: checkId, status: { [db.Op.in]: ['Not Send', 'Approved'] } },
+                    // attributes: ['authorizedBy'],
+                    // where: {  userType: { [db.Op.in]: ['Distributor', 'Manufacturer'] } },
                     include: [
                         {
                             model: db.distributors,
-                            as: "distributor",
+                            as: "disuser",
                             attributes: ['companyName', 'distributorId', 'type'],
-                            // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
+                            // where: {type:'CNF'}
                         },
                         {
                             model: db.manufacturers,
@@ -653,16 +653,17 @@ class AuthService {
                             // where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                         }
                     ],
-                    group: ['authorizedBy'],
+                    // group: ['authorizedBy'],
                     where: {
+                        // userType: { [db.Op.in]: ['Distributor', 'Manufacturer'] },
                         [db.Op.or]: [
-                            { '$distributor.distributorId$': { [db.Op.ne]: null } },
+                            { '$disuser.type$': 'CNF' },
                             { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
                         ]
                     }
                 }
             )
-
+// console.log(Data)
             // const Data = await db.authorizations.findAll({
             //     attributes: ['authorizedBy'],
             //     where: {
@@ -693,9 +694,9 @@ class AuthService {
 
             const finalResult = Data?.map((item) => {
                 return {
-                    "companyName": item.distributor ? item.distributor?.companyName : item.manufacturer?.companyName,
-                    "id": item.distributor ? item.distributor?.distributorId : item.manufacturer?.manufacturerId,
-                    "type": item.distributor ? item.distributor?.type : 'Manufacturer'
+                    "companyName": item.disuser.length>0 ? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
+                    "id": item.disuser.length>0 ? item.disuser[0]?.distributorId : item.manufacturer[0]?.manufacturerId,
+                    "type": item.disuser.length>0 ? item.disuser[0]?.type : 'Manufacturer'
                 }
             })
             return {

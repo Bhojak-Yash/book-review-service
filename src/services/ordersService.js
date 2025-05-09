@@ -193,7 +193,7 @@ class OrdersService {
                 }
               );
               // console.log('ppppp',updates)
-              if (!stock || stock.Stock < item.quantity) {
+              if (!stock || Number(stock.Stock) < Number(item.quantity)) {
                 throw new Error(
                   `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
                 );
@@ -920,6 +920,30 @@ class OrdersService {
       const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const as = checkUser?.dataValues?.userType == 'Manufacturer' ? 'stocks' : 'stock';
       const isManufacturer = checkUser?.dataValues?.userType === 'Manufacturer';
+      const atrr =  checkUser?.dataValues?.userType == 'Manufacturer' ? 
+      [
+        "BatchNo",
+        "PId",
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.SId')), 'SId'],
+        [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stocks.stock')), 'stock'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stocks.PTS`)), 'PTS'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.ExpDate')), 'ExpDate'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.location')), 'location'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.Scheme')), 'Scheme'],
+      ]:
+      [
+        "BatchNo",
+        "PId",
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.SId')), 'SId'],
+        [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stock.stock')), 'stock'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stock.PTS`)), 'PTS'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.ExpDate')), 'ExpDate'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.location')), 'location'],
+        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.Scheme')), 'Scheme']
+      ]
+      let groupBy= checkUser?.dataValues?.userType == 'Manufacturer' ? 
+      ['orderItems.stocks.PId', 'orderItems.stocks.BatchNo']:
+      ['orderItems.stock.PId', 'orderItems.stock.BatchNo'];
       console.log("isManufacturer", isManufacturer);
 
       console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
@@ -946,7 +970,8 @@ class OrdersService {
               {
                 model: tableName,
                 as: as,
-                attributes: ['SId', 'BatchNo', 'stock', 'PTS', 'ExpDate', 'location', 'Scheme']
+                // attributes: ['SId', 'BatchNo', 'stock', 'PTS', 'ExpDate', 'location', 'Scheme']
+                attributes:atrr
               }
             ]
           },
@@ -954,7 +979,8 @@ class OrdersService {
             model: db.payments,
             as: 'payments',
           }
-        ]
+        ],
+        group:groupBy
       })
 
       order.balance = parseFloat(order.balance).toFixed(2);

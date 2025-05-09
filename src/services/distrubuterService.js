@@ -47,7 +47,11 @@ class DistributorService {
             if (userName) {
                 const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
                 if (existingUser) {
-                    throw new Error('A distributor with this email already exists.');
+                    return {
+                        status:message.code400,
+                        message:'A distributor with this email already exists'
+                    }
+                    // throw new Error('A distributor with this email already exists.');
                 }
             }
 
@@ -343,10 +347,36 @@ class DistributorService {
             //     }
             // }
             let tableName = db.manufacturerStocks
-            let attr = ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS']
+            // let attr = ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS']
+            let attr = [
+                "BatchNo",
+                "PId",
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.SId')), 'SId'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.ExpDate')), 'ExpDate'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.Scheme')), 'Scheme'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.MRP')), 'MRP'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.PTS')), 'PTS']
+            ]
             if (type) {
                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-                attr = type === 'Manufacturer' ? ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'] : ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS', 'PTR']
+                attr = type === 'Manufacturer' ? [
+                    "BatchNo",
+                    "PId",
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.SId')), 'SId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.ExpDate')), 'ExpDate'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.Scheme')), 'Scheme'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.MRP')), 'MRP'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.PTS')), 'PTS']
+                ] : [
+                    "BatchNo",
+                    "PId",
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.SId')), 'SId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.ExpDate')), 'ExpDate'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Scheme')), 'Scheme'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.MRP')), 'MRP'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTS')), 'PTS'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTR')), 'PTR']
+                ]
             }
             // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
@@ -363,6 +393,7 @@ class DistributorService {
                         where: whereCondition
                     }
                 ],
+                group: ['PId', 'BatchNo'],
                 offset: skip,
                 limit: Limit
             })
@@ -424,13 +455,13 @@ class DistributorService {
                     };
                 });
             }
-            const totalPage = Math.ceil(count / Limit)
+            const totalPage = Math.ceil(count.length / Limit)
             return {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
                 totalPage: totalPage,
-                totalData: count,
+                totalData: count.length || 0,
                 limit: Limit,
                 authStatus: manufacturer?.status || 'Not Send',
                 apiData: { manufacturer, stocks: updatedStockWithQuantity.length > 0 ? updatedStockWithQuantity : updatedStock }

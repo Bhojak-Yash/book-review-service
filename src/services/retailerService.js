@@ -50,7 +50,13 @@ class RetailerService {
             transaction = await db.sequelize.transaction();
 
             const hashedPassword = await hashPassword(password);
-
+            const checkR= await db.users.findOne({where:{userName:userName}})
+            if(checkR){
+                return {
+                    status:message.code400,
+                    message:`User already registered with mail - ${userName}`
+                }
+            }
             //Create User
             const user = await Users.create(
                 {
@@ -839,8 +845,47 @@ class RetailerService {
                     }
                 ]
             })
-            const { rows: stocks, count } = await db.stocks.findAndCountAll({
-                // attributes:[]
+            // const { rows: stocks, count } = await db.stocks.findAndCountAll({
+            //     // attributes:[]
+            //     where: {
+            //         ...whereCondition,
+            //         locked: false,
+            //     },
+            //     include: [
+            //         {
+            //             model: db.products,
+            //             as: 'product',
+            //             attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
+            //         }
+            //     ],
+            //     offset: skip,
+            //     limit: Limit,
+            // })
+            const count = await db.stocks.count({where: {
+                ...whereCondition,
+                locked: false,
+            }})
+            const stocks = await db.stocks.findAll({
+                attributes: [
+                    // 'SId',
+                    'PId',
+                    'BatchNo',
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
+                    [db.Sequelize.fn('SUM', db.Sequelize.col('quantity')), 'quantity'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.MRP')), 'MRP'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTR')), 'PTR'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Scheme')), 'Scheme'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.BoxQty')), 'BoxQty'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Loose')), 'Loose'],
+                    [db.Sequelize.fn('SUM', db.Sequelize.col('Stock')), 'Stock'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('organisationId')), 'organisationId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.entityId')), 'entityId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.location')), 'location'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.createdAt')), 'createdAt'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.updatedAt')), 'updatedAt'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('purchasedFrom')), 'purchasedFrom'],
+                ],
                 where: {
                     ...whereCondition,
                     locked: false,
@@ -852,9 +897,11 @@ class RetailerService {
                         attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
                     }
                 ],
+                group: ['PId', 'BatchNo'],
                 offset: skip,
                 limit: Limit,
-            })
+            });
+            
             const updatedApiData = stocks.map(item => {
                 const match = checkCart?.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
                 // item.quantity=match ? match.quantity : 0
