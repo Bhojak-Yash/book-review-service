@@ -1,6 +1,7 @@
 const db = require('../models/db');
 const message = require('../helpers/message')
 const Op = db.Op
+const axios = require('axios')
 const notificationsService = require('../services/notificationsService')
 class AuthService {
     constructor(db) {
@@ -18,7 +19,7 @@ class AuthService {
                 }
             })
             console.log(check)
-            if (check) {    
+            if (check) {
                 console.log('check')
                 if (check.status == 'Pending') {
                     console.log('pendign')
@@ -36,10 +37,10 @@ class AuthService {
                         message: 'Authorization request sent',
                         // apiData: Data
                     }
-                }else if (check.status === 'Approved') {
+                } else if (check.status === 'Approved') {
                     return {
-                        status:200,
-                        message:"Request already approved"
+                        status: 200,
+                        message: "Request already approved"
                     }
                 }
 
@@ -57,8 +58,13 @@ class AuthService {
                 organisationId: authorizedBy,
                 category: "Authorization Request",
                 title: "Authorization Request Pending",
-                description: `You Received an authorization request & is pending approval.`
+                description: `You have received an authorization request that is pending approval.`
             });
+            // await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
+            //     userId: Number(authorizedBy),
+            //     title: "Authorization Request Pending",
+            //     description: `You have received an authorization request that is pending approval.`
+            // })
 
 
             return {
@@ -83,8 +89,10 @@ class AuthService {
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
-            let whereClause = { authorizedBy: Number(data.id),
-                status:{[db.Op.in]:['Pending','Approved','Rejected']}, }
+            let whereClause = {
+                authorizedBy: Number(data.id),
+                status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] },
+            }
             if (data.status) {
                 if (data.status === 'active') {
                     whereClause.status = 'Approved'
@@ -440,8 +448,10 @@ class AuthService {
     async auth_page_card_data_distributor(data) {
         try {
             const { id, start_date, end_date } = data;
-            let whereClause = { authorizedBy: Number(id),
-                status:{[db.Op.in]:['Pending','Approved','Rejected']} };
+            let whereClause = {
+                authorizedBy: Number(id),
+                status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] }
+            };
 
             // Date range filter
             if (start_date && end_date) {
@@ -501,22 +511,22 @@ class AuthService {
             // Get count of all Distributors and CNFs
             console.log(whereClause)
             const retailerCount = await db.authorizations.count({
-                where:whereClause,
+                where: whereClause,
                 include: [{
-                  model: db.retailers,
-                  as:"retailers",
-                  required: true,
+                    model: db.retailers,
+                    as: "retailers",
+                    required: true,
                 }]
-              });
+            });
 
-              const distributorCount = await db.authorizations.count({
-                where:whereClause,
+            const distributorCount = await db.authorizations.count({
+                where: whereClause,
                 include: [{
-                  model: db.distributors,
-                  as:'distributor',
-                  required: true,
+                    model: db.distributors,
+                    as: 'distributor',
+                    required: true,
                 }]
-              });
+            });
             const getPercentageChange = (current, previous) => {
                 if (previous === 0) return current === 0 ? 0 : 100;
                 return ((current - previous) / Math.abs(previous)) * 100;
@@ -601,6 +611,11 @@ class AuthService {
             if (newNotification.status === 200 && newNotification.data) {
                 await notificationsService.updateNotificationStatus(newNotification.data.id, "Unread");
             }
+            // await axios.post(`${process.env.Socket_URL}/auth-request-action-notification`, {
+            //     userId: Number(userId),
+            //     title: `Authorization Request: ${statusMessage}`,
+            //     description: `An authorization request has been ${statusMessage}.`
+            // })
 
 
             return {
@@ -622,7 +637,7 @@ class AuthService {
             const checkId = Number(id)
             const Data = await db.authorizations.findAll(
                 {
-                    attributes: [ 'authorizedBy'],
+                    attributes: ['authorizedBy'],
                     where: { authorizedId: checkId, status: { [db.Op.in]: ['Not Send', 'Approved'] } },
                     include: [
                         {
@@ -674,7 +689,7 @@ class AuthService {
             //       ]
             //     }
             //   })
-              
+
 
             const finalResult = Data?.map((item) => {
                 return {

@@ -222,7 +222,7 @@ class RetailerService {
 
     async get_search_by_product(data) {
         try {
-            const { search } = data;
+            const { search,id } = data;
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
             const firstThree = search?.substring(0, 3);
@@ -237,6 +237,10 @@ class RetailerService {
             } : null;
 
             let productResults = [];
+            let stockWhere={};
+            if(id){
+                stockWhere.organisationId= { [db.Op.ne]: Number(id) }
+            }
             if (search) {
                 const products = await db.products.findAll({
                     attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN','ProductForm','Package','Quantity'],
@@ -245,6 +249,7 @@ class RetailerService {
                             model: db.stocks,
                             as: 'stocks',
                             attributes: ['SId', 'PId', 'Stock', 'Scheme', 'MRP', 'PTR', 'organisationId'],
+                            where:stockWhere,
                             required: true,
                             include: [
                                 {

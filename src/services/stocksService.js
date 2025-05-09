@@ -483,47 +483,59 @@ class StocksService {
       const { distributorId } = data
       const aboutToEmpty = Number(process.env.aboutToEmpty)
       const nearToExpDate = Number(process.env.lowStockDays)
-      const authRecords = await db.authorizations.findAll({
-        where: {
-            authorizedId: Number(distributorId),
-            // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
-        },
-        attributes: ['authorizedBy'],
-    });
+    //   const authRecords = await db.authorizations.findAll({
+    //     where: {
+    //         authorizedId: Number(distributorId),
+    //         // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+    //     },
+    //     attributes: ['authorizedBy'],
+    // });
 
-    // console.log(authRecords)
-    const authorizedBy = authRecords?.map(a => a.authorizedBy);
-    console.log(authorizedBy)
-    const result = await db.products.findOne({
+    // // console.log(authRecords)
+    // const authorizedBy = authRecords?.map(a => a.authorizedBy);
+    // console.log(authorizedBy)
+    // const result = await db.products.findOne({
+    //   attributes: [
+    //     [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
+    //     [
+    //       db.sequelize.fn(
+    //         "SUM",
+    //         db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
+    //       ),
+    //       "unlockedProducts"
+    //     ]
+    //   ],
+    //   where: {manufacturerId:{[db.Op.in]:authorizedBy}},
+    //   raw: true
+    // })
+    const sss = await db.stocks.findAll({
       attributes: [
-        [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
+        'PId',
+        [db.sequelize.fn('COUNT', db.sequelize.col('PId')), 'totalProducts'],
         [
           db.sequelize.fn(
-            "SUM",
-            db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
+            'SUM',
+            db.sequelize.literal('CASE WHEN locked = false THEN 1 ELSE 0 END')
           ),
-          "unlockedProducts"
+          'unlockedProducts'
         ]
       ],
-      where: {manufacturerId:{[db.Op.in]:authorizedBy}},
+      where: {
+        organisationId: Number(distributorId)
+      },
+      group: ['PId'],
       raw: true
-    })
-    // console.log(result)
-      // let whereCondition = { manufacturerId: Number(manufacturerId) };
-      // const result = await db.products.findOne({
-      //   attributes: [
-      //     [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
-      //     [
-      //       db.sequelize.fn(
-      //         "SUM",
-      //         db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
-      //       ),
-      //       "unlockedProducts"
-      //     ]
-      //   ],
-      //   where: whereCondition,
-      //   raw: true
-      // })
+    });
+
+    const result = sss?.reduce(
+      (acc, item) => {
+        acc.totalProducts += Number(item.totalProducts);
+        acc.unlockedProducts += Number(item.unlockedProducts);
+        return acc;
+      },
+      { totalProducts: 0, unlockedProducts: 0 }
+    );
+    
       const today = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
 
       const results = await db.stocks.findOne({
