@@ -13,5 +13,6 @@ router.get('/returned-details',verifyToken,expiryc.returned_details)
 router.get('/expiry-list-card-data',verifyToken,expiryc.expiry_list_card_data)
 router.get('/get-credit-notes',verifyToken,expiryc.get_credit_notes)
 router.get('/redeem-cn',verifyToken,expiryc.redeem_cn)
+router.get('/returned-list',verifyToken,expiryc.returned_list)
 
 module.exports =router
