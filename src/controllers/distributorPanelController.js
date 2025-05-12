@@ -56,7 +56,7 @@ exports.topRetailers = async(req, res) => {
 exports.topDistributors = async(req, res) => {
     try{
         const {filterType} = req.query;
-        const stats = await distributorDashboard.topDistributors(req.user, filterType);
+        const stats = await distributorDashboard.topDistributorsandretailers(req.user, filterType);
         return res.status(stats.status).json(stats);
     }catch (error){
         console.log("Error in topDistributors Controller:", error);

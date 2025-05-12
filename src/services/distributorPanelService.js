@@ -637,14 +637,14 @@ class distributorDashboard {
     //     }
     // }
 
-    async topDistributors(tokenData) {
+    async topDistributorsandretailers(tokenData) {
         try {
             let ownerId = tokenData.id;
             if (tokenData.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
             }
 
-            console.log(`Fetching Top Distributors for Owner ID: ${ownerId}`);
+            console.log(`Fetching Top Entities for Owner ID: ${ownerId}`);
 
             // Step 1: Find the latest month with orders
             const latestOrder = await db.orders.findOne({
@@ -690,47 +690,57 @@ class distributorDashboard {
                 };
             }
 
-            // Step 3: Fetch top distributors for the latest month
+            // Step 3: Fetch orders grouped by orderFrom with entity details
             const results = await db.orders.findAll({
                 attributes: [
                     'orderFrom',
-                    [db.Sequelize.col('distributer.companyName'), 'companyName'],
                     [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'total_invAmt']
                 ],
                 include: [
                     {
                         model: db.distributors,
                         as: 'distributer',
-                        attributes: []
+                        attributes: ['distributorId', 'companyName', 'type', 'profilePic']
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'fromRetailer',
+                        attributes: ['retailerId', 'firmName', 'profilePic']
+                    },
+                    {
+                        model: db.users,
+                        as: 'orderFromUser',
+                        attributes: ['id', 'userType']
                     }
                 ],
                 where: {
                     orderTo: ownerId,
                     createdAt: { [db.Sequelize.Op.between]: [startDate, endDate] }
                 },
-                group: ['orderFrom', 'distributer.companyName'],
+                group: ['orderFrom', 'distributer.distributorId', 'fromRetailer.retailerId', 'orderFromUser.id'],
                 having: db.Sequelize.literal('total_invAmt > 0'),
                 order: [[db.Sequelize.literal('total_invAmt'), 'DESC']],
-                raw: true
+                raw: true,
+                nest: true
             });
-
-            console.log("Distributors Data Before Percentage Calculation:", results);
-
-            // Step 4: Calculate percentage of total invoice amount
-            const distributorsWithPercentage = results.map(distributor => ({
-                ...distributor,
-                percentage: ((distributor.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
+            console.log(results,';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;')
+            // Step 4: Format output with either distributor or retailer data
+            const topEntities = results.map(entity => ({
+                orderFrom: entity?.distributer?.distributorId || entity?.fromRetailer?.retailerId || null,
+                companyName: entity?.distributer?.companyName || entity?.fromRetailer?.firmName || null,
+                logo: entity?.distributer?.profilePic || entity?.fromRetailer?.profilePic || null,
+                userType: entity?.orderFromUser?.userType || null,
+                total_invAmt: parseFloat(entity?.total_invAmt),
+                percentage: ((entity?.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
             }));
-
-            console.log("Distributors Data After Percentage Calculation:", distributorsWithPercentage);
 
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: distributorsWithPercentage
+                apiData: topEntities
             };
         } catch (error) {
-            console.error("❌ Error in topDistributors:", error);
+            console.error("❌ Error in topEntities:", error);
             return {
                 status: message.code500,
                 message: message.message500
