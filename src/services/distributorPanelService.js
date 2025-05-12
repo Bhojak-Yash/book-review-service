@@ -1,6 +1,6 @@
 const message = require('../helpers/message');
 const db = require('../models/db');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const notificationsService = require('./notificationsService')
 
 class distributorDashboard {
@@ -245,7 +245,7 @@ class distributorDashboard {
                         model: db.distributors,
                         as: 'distributors',
                         attributes: [
-                            'distributorId', 'companyName', 
+                            'distributorId', 'companyName', 'wholeSaleDrugLicence', 
                             'address','phone','profilePic' ,'createdAt'
                         ],
                         required:false
@@ -254,7 +254,7 @@ class distributorDashboard {
                         model: db.retailers,
                         as: 'retailers',
                         attributes: [
-                            'retailerId', 'firmName', 
+                            'retailerId', 'firmName', 'drugLicense', 
                             'address', 'phone','profilePic' ,'createdAt'
                         ],
                         required:false
@@ -289,6 +289,7 @@ class distributorDashboard {
                   profilePic: entity?.distributors?.profilePic || entity?.retailers?.profilePic || null,
                   createdAt:createdAt || null,
                   daysSinceCreated:daysSinceCreated || null,
+                  licence: entity?.distributors?.wholeSaleDrugLicence || entity?.retailers?.drugLicense || null 
                 };
             });
 
@@ -636,14 +637,14 @@ class distributorDashboard {
     //     }
     // }
 
-    async topDistributors(tokenData) {
+    async topDistributorsandretailers(tokenData) {
         try {
             let ownerId = tokenData.id;
             if (tokenData.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
             }
 
-            console.log(`Fetching Top Distributors for Owner ID: ${ownerId}`);
+            console.log(`Fetching Top Entities for Owner ID: ${ownerId}`);
 
             // Step 1: Find the latest month with orders
             const latestOrder = await db.orders.findOne({
@@ -689,47 +690,57 @@ class distributorDashboard {
                 };
             }
 
-            // Step 3: Fetch top distributors for the latest month
+            // Step 3: Fetch orders grouped by orderFrom with entity details
             const results = await db.orders.findAll({
                 attributes: [
                     'orderFrom',
-                    [db.Sequelize.col('distributer.companyName'), 'companyName'],
                     [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'total_invAmt']
                 ],
                 include: [
                     {
                         model: db.distributors,
                         as: 'distributer',
-                        attributes: []
+                        attributes: ['distributorId', 'companyName', 'type', 'profilePic']
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'fromRetailer',
+                        attributes: ['retailerId', 'firmName', 'profilePic']
+                    },
+                    {
+                        model: db.users,
+                        as: 'orderFromUser',
+                        attributes: ['id', 'userType']
                     }
                 ],
                 where: {
                     orderTo: ownerId,
                     createdAt: { [db.Sequelize.Op.between]: [startDate, endDate] }
                 },
-                group: ['orderFrom', 'distributer.companyName'],
+                group: ['orderFrom', 'distributer.distributorId', 'fromRetailer.retailerId', 'orderFromUser.id'],
                 having: db.Sequelize.literal('total_invAmt > 0'),
                 order: [[db.Sequelize.literal('total_invAmt'), 'DESC']],
-                raw: true
+                raw: true,
+                nest: true
             });
-
-            console.log("Distributors Data Before Percentage Calculation:", results);
-
-            // Step 4: Calculate percentage of total invoice amount
-            const distributorsWithPercentage = results.map(distributor => ({
-                ...distributor,
-                percentage: ((distributor.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
+            console.log(results,';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;')
+            // Step 4: Format output with either distributor or retailer data
+            const topEntities = results.map(entity => ({
+                orderFrom: entity?.distributer?.distributorId || entity?.fromRetailer?.retailerId || null,
+                companyName: entity?.distributer?.companyName || entity?.fromRetailer?.firmName || null,
+                logo: entity?.distributer?.profilePic || entity?.fromRetailer?.profilePic || null,
+                userType: entity?.orderFromUser?.userType || null,
+                total_invAmt: parseFloat(entity?.total_invAmt),
+                percentage: ((entity?.total_invAmt / totalInvAmt) * 100).toFixed(2) + "%"
             }));
-
-            console.log("Distributors Data After Percentage Calculation:", distributorsWithPercentage);
 
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: distributorsWithPercentage
+                apiData: topEntities
             };
         } catch (error) {
-            console.error("❌ Error in topDistributors:", error);
+            console.error("❌ Error in topEntities:", error);
             return {
                 status: message.code500,
                 message: message.message500
@@ -737,11 +748,896 @@ class distributorDashboard {
         }
     }
 
+    //KPIs API.......
+    async getDashboardStatsToday(tokenData) {
+        try {
+            // console.log("toeknData : ", tokenData);
+            const [
+                topProductsResult,
+                topCitiesResult,
+                paymentsCollectedResult,
+                cancelledOrders,
+                newlyOnboardedCount,
+                countExpiringSoon,
+            ] = await Promise.all([
+                module.exports.getTopProductsToday(tokenData),
+                module.exports.getTop_Three_Cities(tokenData),
+                module.exports.getPayments_Collected_Today(tokenData),
+                module.exports.getCancelledOrdersCount(tokenData),
+                module.exports.getRecentApprovedAuthorizations(tokenData),
+                module.exports.getExpiringMedicinesSoon(tokenData),
+
+            ]);
+
+            return {
+                status: 200,
+                message: "Dashboard stats for today fetched successfully.",
+                data: {
+                    topProducts: topProductsResult.data || 0,
+                    topCities: topCitiesResult.data || 0,
+                    totalAmountReceivedToday: paymentsCollectedResult.data.totalAmountReceived || 0,
+                    failedDispatches: cancelledOrders.cancelledOrdersCount || 0,
+                    newlyOnboarded: newlyOnboardedCount.data.recentApprovedCount,
+                    expirySoon: countExpiringSoon.expiringSoonCount || 0
+                }
+            };
+        } catch (error) {
+            console.error("❌ Error in getDashboardStatsToday:", error);
+            return {
+                status: 500,
+                message: error.message || "Internal Server Error",
+            };
+        }
+    }
+
+        //KPI functions....Start.................
+        async getTopProductsToday(tokenData) {
+            try {
+
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+
+                const topProducts = await db.orderitems.findAll({
+                    attributes: [
+                        'PId',
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderitems.Quantity')), 'totalQuantity']
+                    ],
+                    include: [
+                        {
+                            model: db.orders,
+                            as: 'orders',
+                            where: {
+                                createdAt: {
+                                    [Op.between]: [startOfDay, endOfDay]
+                                },
+                                orderTo: ownerId
+                            },
+                            attributes: []
+                        },
+                        {
+                            model: db.products,
+                            as: 'products',
+                            attributes: ['PName']
+                        }
+                    ],
+                    group: ['PId', 'products.PName'],
+                    order: [[db.Sequelize.literal('totalQuantity'), 'DESC']],
+                    limit: 1
+                });
+
+                if (!topProducts.length) {
+                    return {
+                        status: 404,
+                        message: "No top products found for today",
+                        data: []
+                    };
+                }
+
+                const result = topProducts.map(item => ({
+                    PId: item.PId,
+                    PName: item.products?.PName,
+                    totalQuantity: item.get('totalQuantity')
+                }));
+
+                return {
+                    status: 200,
+                    message: "Top product retrieved successfully",
+                    data: result
+                };
+
+            } catch (error) {
+                console.error("❌ Error in getTopProductsToday:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }    
+        async getTop_Three_Cities(tokenData) {
+            try {
+
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+
+                const orderItems = await db.orderitems.findAll({
+                    attributes: [
+                        'PId',
+                        [Sequelize.fn('SUM', Sequelize.col('Quantity')), 'totalQuantity']
+                    ],
+                    include: [
+                        {
+                            model: db.orders,
+                            as: 'order',
+                            attributes: ['id', 'orderFrom'],
+                            where: {
+                                createdAt: {
+                                    [Op.between]: [startOfDay, endOfDay]
+                                },
+                                orderTo: ownerId
+                            },
+                            required: true
+                        }
+                    ],
+                    group: ['PId', 'order.id', 'order.orderFrom'],
+                    raw: true
+                });
+
+                const productTotals = {};
+
+                for (const item of orderItems) {
+                    const key = item.PId;
+                    if (!productTotals[key]) {
+                        productTotals[key] = {
+                            PId: key,
+                            totalQuantity: 0,
+                            orders: []
+                        };
+                    }
+
+                    productTotals[key].totalQuantity += parseInt(item.totalQuantity);
+                    if (item['order.orderFrom'] && item['order.id']) {
+                        productTotals[key].orders.push({
+                            orderFrom: item['order.orderFrom'],
+                            orderId: item['order.id']
+                        });
+                    }
+                }
+
+                const sortedProducts = Object.values(productTotals)
+                    .sort((a, b) => b.totalQuantity - a.totalQuantity)
+                    .slice(0, 3);
+
+                const orderFromIds = [...new Set(
+                    sortedProducts.flatMap(p => p.orders.map(o => o.orderFrom))
+                )];
+
+                const addresses = await db.address.findAll({
+                    where: {
+                        userId: {
+                            [Op.in]: orderFromIds
+                        },
+                        addressType: 'Billing'
+                    },
+                    attributes: ['userId', 'city'],
+                    raw: true
+                });
+
+                const cityCount = {};
+
+                for (const product of sortedProducts) {
+                    for (const order of product.orders) {
+                        const address = addresses.find(a => a.userId === order.orderFrom);
+                        if (address && address.city) {
+                            const key = `${address.city}_${order.orderId}`;
+                            if (!cityCount[key]) {
+                                cityCount[key] = {
+                                    city: address.city,
+                                    orderId: order.orderId,
+                                    count: 0
+                                };
+                            }
+                            cityCount[key].count += 1;
+                        }
+                    }
+                }
+
+                const topCities = Object.values(cityCount)
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3)
+                    .map(({ city, orderId, count }) => ({
+                        city,
+                        orderId,
+                        orderCount: count
+                    }));
+
+                return {
+                    status: 200,
+                    message: "Top 3 cities retrieved successfully",
+                    data: topCities
+                };
+            } catch (error) {
+                console.error("Error in getTopCitiesToday:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }
+        async getPayments_Collected_Today(tokenData) {
+            try {
+
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+
+                // Step 1: Get today's orders where orderTo = tokenData.id
+                const orders = await db.orders.findAll({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay],
+                        },
+                    },
+                    attributes: ['id'],
+                    raw: true
+                });
+
+                const orderIds = orders.map(order => order.id);
+
+                if (orderIds.length === 0) {
+                    return {
+                        status: 200,
+                        message: "No payments collected for today.",
+                        data: {
+                            totalAmountReceived: 0,
+                        }
+                    };
+                }
+
+                // Step 2: Get payments for those orderIds
+                const result = await db.payments.findAll({
+                    where: {
+                        orderId: {
+                            [Op.in]: orderIds
+                        },
+                        status: 'Confirmed',
+                        updatedAt: {
+                            [Op.between]: [startOfDay, endOfDay],
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('amount')), 'totalAmountReceived'],
+                    ],
+                    raw: true,
+                });
+
+                return {
+                    status: 200,
+                    message: "Data fetched successfully.",
+                    data: {
+                        totalAmountReceived: result[0].totalAmountReceived || 0,
+                    }
+                };
+            } catch (error) {
+                console.error('Error in getPayments_Collected_Today:', error);
+                return {
+                    status: 500,
+                    message: error.message,
+                };
+            }
+        }    
+        async getCancelledOrdersCount(tokenData) {
+            try {
+
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                // Query to count orders where the status is 'Cancelled'
+                const cancelledOrders = await db.orders.count({
+                    where: {
+                        orderStatus: 'Cancelled',
+                        [Op.or]: [
+                            { orderFrom: ownerId },
+                            { orderTo: ownerId }
+                        ]
+                    }
+                });
+
+                return {
+                    status: 200,
+                    message: "Cancelled orders count fetched successfully.",
+                    cancelledOrdersCount: cancelledOrders
+                };
+
+            } catch (error) {
+                console.error("❌ Error in getCancelledOrdersCount:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }
+        async getRecentApprovedAuthorizations(tokenData) {
+            try {
+                let organisationId = tokenData.id;
+
+                if (tokenData.userType === 'Employee') {
+                    organisationId = tokenData.data.employeeOf;
+                }
+
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+                thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+                const count = await db.authorizations.count({
+                    where: {
+                        [Op.or]: [
+                            { authorizedBy: organisationId },
+                            { authorizedId: organisationId }
+                        ],
+                        status: 'Approved',
+                        createdAt: {
+                            [Op.between]: [thirtyDaysAgo, today]
+                        }
+                    }
+                });
+
+                return {
+                    status: 200,
+                    message: "Approved authorizations fetched successfully.",
+                    data: {
+                        recentApprovedCount: count
+                    }
+                };
+            } catch (error) {
+                console.error("❌ Error in getRecentApprovedAuthorizations:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }
+        async getExpiringMedicinesSoon(tokenData) {
+            try {
+                const userType = tokenData.userType;
+                let organisationId = tokenData.id;
+
+                if (userType === 'Employee') {
+                    organisationId = tokenData.data.employeeOf;
+                }
+
+                // Convert to local time (IST) and format as 'YYYY-MM-DD HH:mm:ss'
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const ninetyDaysLater = new Date(today);
+                ninetyDaysLater.setDate(ninetyDaysLater.getDate() + 90);
+                ninetyDaysLater.setHours(23, 59, 59, 999);
+
+                const formatDateTime = (date) => {
+                    return date.toISOString().slice(0, 19).replace('T', ' ');
+                };
+
+                const startDateStr = formatDateTime(today);
+                const endDateStr = formatDateTime(ninetyDaysLater);
+
+                let stockModel;
+                if (userType === 'Manufacturer') {
+                    stockModel = db.manufacturerStocks;
+                } else if (userType === 'Distributor' || userType === 'Retailer') {
+                    stockModel = db.stocks;
+                } else {
+                    return {
+                        status: 400,
+                        message: "Invalid userType for checking expiry."
+                    };
+                }
+
+                const countExpiringSoon = await stockModel.count({
+                    where: {
+                        organisationId,
+                        ExpDate: {
+                            [Op.between]: [startDateStr, endDateStr]
+                        }
+                    }
+                });
+
+                return {
+                    status: 200,
+                    message: "Expiring medicines fetched successfully.",
+                    data: {
+                        expiringSoonCount: countExpiringSoon
+                    }
+                };
+            } catch (error) {
+                console.error("❌ Error in getExpiringMedicinesSoon:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }     
+        //KPI functions....end.................
 
 
+    //SO PO related Card Data API....
+    async getPaymentRelatedStats(tokenData) {
+        try {
+            const [
+                paymentCollected,
+                soReceivedToday,
+                soProcessedToday,
+                pendingSo,
+            ] = await Promise.all([
+                module.exports.paymentsCollected(tokenData),
+                module.exports.getOrdersReceivedToday(tokenData),
+                module.exports.getNonPendingOrdersReceivedToday(tokenData),
+                module.exports.getPendingOrdersReceivedToday(tokenData),
+            ]);
+
+            return {
+                status: 200,
+                message: "Dashboard stats for today fetched successfully.",
+                data: {
+                    paymentCollected: paymentCollected.data || 0,
+                    soReceivedToday: soReceivedToday.data || 0,
+                    soProcessedToday: soProcessedToday.data || 0,
+                    pendingSo: pendingSo.data || 0,
+                }
+            };
+        } catch (error) {
+            console.error("❌ Error in getPaymentRelatedStats:", error);
+            return {
+                status: 500,
+                message: error.message || "Internal Server Error",
+            };
+        }
+    }
+        //So PO functions....Start.................
+        async paymentsCollected(tokenData) {
+            try {
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                // ----- TODAY -----
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                startOfDay.setHours(startOfDay.getHours() + 5);
+                startOfDay.setMinutes(startOfDay.getMinutes() + 30);
+                console.log("Today start date",startOfDay);
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                endOfDay.setHours(endOfDay.getHours() + 5);
+                endOfDay.setMinutes(endOfDay.getMinutes() + 30);
+                console.log("Today end date",endOfDay);
+
+                // ----- YESTERDAY -----
+                const startOfYesterday = new Date(startOfDay);
+                startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+                console.log("yesterday start date", startOfYesterday);
+
+                const endOfYesterday = new Date(endOfDay);
+                endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+                console.log("yesterday end date", endOfYesterday);
+
+                // --- Step 1: Get today's order IDs ---
+                const todayOrders = await db.orders.findAll({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay],
+                        },
+                    },
+                    attributes: ['id'],
+                    raw: true,
+                });
+
+                const todayOrderIds = todayOrders.map(order => order.id);
+
+                // --- Step 2: Get yesterday's order IDs ---
+                const yesterdayOrders = await db.orders.findAll({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfYesterday, endOfYesterday],
+                        },
+                    },
+                    attributes: ['id'],
+                    raw: true,
+                });
+                console.log(startOfYesterday)
+
+                const yesterdayOrderIds = yesterdayOrders.map(order => order.id);
+
+                // --- Step 3: Get today's payments ---
+                const todayResult = todayOrderIds.length > 0 ? await db.payments.findAll({
+                    where: {
+                        orderId: { [Op.in]: todayOrderIds },
+                        status: 'Confirmed',
+                        updatedAt: {
+                            [Op.between]: [startOfDay, endOfDay],
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('amount')), 'totalAmountReceived'],
+                    ],
+                    raw: true,
+                }) : [{ totalAmountReceived: 0 }];
+
+                const todayAmount = parseFloat(todayResult[0].totalAmountReceived) || 0;
+
+                // --- Step 4: Get yesterday's payments ---
+                const yesterdayResult = yesterdayOrderIds.length > 0 ? await db.payments.findAll({
+                    where: {
+                        orderId: { [Op.in]: yesterdayOrderIds },
+                        status: 'Confirmed',
+                        updatedAt: {
+                            [Op.between]: [startOfYesterday, endOfYesterday],
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('amount')), 'totalAmountReceived'],
+                    ],
+                    raw: true,
+                }) : [{ totalAmountReceived: 0 }];
+
+                const yesterdayAmount = parseFloat(yesterdayResult[0].totalAmountReceived) || 0;
+
+                // --- Step 5: Calculate percentage change ---
+                let percentageChange = 0;
+                if (yesterdayAmount > 0) {
+                    percentageChange = ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100;
+                } else if (todayAmount > 0) {
+                    percentageChange = 100; 
+                } else {
+                    percentageChange = 0; 
+                }
+
+                return {
+                    status: 200,
+                    message: "Data fetched successfully.",
+                    data: {
+                        totalAmountReceivedToday: todayAmount,
+                        // totalAmountReceivedYesterday: yesterdayAmount,
+                        percentageChange: Number(percentageChange.toFixed(2)) 
+                    }
+                };
+            } catch (error) {
+                console.error('Error in getPayments_Collected_Today:', error);
+                return {
+                    status: 500,
+                    message: error.message,
+                };
+            }
+        }
+
+        async getOrdersReceivedToday(tokenData) {
+            try {
+                let ownerId = tokenData.id;
+
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                // ----- TODAY -----
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                endOfDay.setMinutes(endOfDay.getMinutes() + 330); // Add 5.5 hrs
+
+                // ----- YESTERDAY -----
+                const startOfYesterday = new Date(startOfDay);
+                startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+                const endOfYesterday = new Date(endOfDay);
+                endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+
+                // 1. Count orders today
+                const orderCount = await db.orders.count({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    }
+                });
+
+                // 2. Total invAmt today
+                const todayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalToday = parseFloat(todayTotal.totalInvAmt || 0);
+
+                // 3. Total invAmt yesterday
+                const yesterdayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfYesterday, endOfYesterday]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalYesterday = parseFloat(yesterdayTotal.totalInvAmt || 0);
+
+                // 4. Calculate percentage change
+                let percentageChange = 0;
+                if (totalYesterday > 0) {
+                    percentageChange = ((totalToday - totalYesterday) / totalYesterday) * 100;
+                } else if (totalToday > 0) {
+                    percentageChange = 100;
+                }
+
+                return {
+                    status: 200,
+                    message: "Orders and invAmt stats fetched successfully.",
+                    data: {
+                        SoReceivedToday: orderCount,
+                        totalInvAmtToday: totalToday,
+                        // totalInvAmtYesterday: totalYesterday,
+                        percentageChange: parseFloat(percentageChange.toFixed(2))
+                    }
+                };
+
+            } catch (error) {
+                console.error("❌ Error in getOrdersReceivedToday:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }
+
+        async getNonPendingOrdersReceivedToday(tokenData) {
+            try {
+                let ownerId = tokenData.id;
+
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                // Start & End of Today (IST)
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                startOfDay.setMinutes(startOfDay.getMinutes() + 330); 
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
+                // Start & End of Yesterday
+                const startOfYesterday = new Date(startOfDay);
+                startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+                const endOfYesterday = new Date(endOfDay);
+                endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+
+                // 1. Count Non-Pending Orders Today
+                const orderCount = await db.orders.count({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: {
+                            [Op.ne]: 'Pending'
+                        },
+                        confirmationDate: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    }
+                });
+
+                // 2. Total invAmt Today
+                const todayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: {
+                            [Op.ne]: 'Pending'
+                        },
+                        confirmationDate: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalToday = parseFloat(todayTotal.totalInvAmt || 0);
+
+                // 3. Total invAmt Yesterday
+                const yesterdayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: {
+                            [Op.ne]: 'Pending'
+                        },
+                        confirmationDate: {
+                            [Op.between]: [startOfYesterday, endOfYesterday]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('invAmt')), 'totalInvAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalYesterday = parseFloat(yesterdayTotal.totalInvAmt || 0);
+
+                // 4. Percentage Change
+                let percentageChange = 0;
+                if (totalYesterday > 0) {
+                    percentageChange = ((totalToday - totalYesterday) / totalYesterday) * 100;
+                } else if (totalToday > 0) {
+                    percentageChange = 100;
+                }
+
+                return {
+                    status: 200,
+                    message: "Non-pending orders stats fetched successfully.",
+                    data: {
+                        SoProcessedToday: orderCount,
+                        totalInvAmtToday: totalToday,
+                        // totalInvAmtYesterday: totalYesterday,
+                        percentageChange: parseFloat(percentageChange.toFixed(2))
+                    }
+                };
+            } catch (error) {
+                console.error("❌ Error in getNonPendingOrdersReceivedToday:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }     
+
+        async getPendingOrdersReceivedToday(tokenData) {
+            try {
+                let ownerId = tokenData.id;
+
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                // IST time range for today
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
+
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
+                // IST time range for yesterday
+                const startOfYesterday = new Date(startOfDay);
+                startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+                const endOfYesterday = new Date(endOfDay);
+                endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+
+                // Count of pending orders today
+                const pendingOrderCount = await db.orders.count({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: 'Pending',
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    }
+                });
+
+                // Total orderTotal for today
+                const todayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: 'Pending',
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderTotal')), 'totalOrderAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalToday = parseFloat(todayTotal.totalOrderAmt || 0);
+
+                // Total orderTotal for yesterday
+                const yesterdayTotal = await db.orders.findOne({
+                    where: {
+                        orderTo: ownerId,
+                        orderStatus: 'Pending',
+                        createdAt: {
+                            [Op.between]: [startOfYesterday, endOfYesterday]
+                        }
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderTotal')), 'totalOrderAmt']
+                    ],
+                    raw: true
+                });
+
+                const totalYesterday = parseFloat(yesterdayTotal.totalOrderAmt || 0);
+
+                // Calculate percentage change
+                let percentageChange = 0;
+                if (totalYesterday > 0) {
+                    percentageChange = ((totalToday - totalYesterday) / totalYesterday) * 100;
+                } else if (totalToday > 0) {
+                    percentageChange = 100;
+                }
+
+                return {
+                    status: 200,
+                    message: "Pending orders stats fetched successfully.",
+                    data: {
+                        pendingSo: pendingOrderCount,
+                        totalOrderAmtToday: totalToday,
+                        // totalOrderAmtYesterday: totalYesterday,
+                        percentageChange: parseFloat(percentageChange.toFixed(2))
+                    }
+                };
+
+            } catch (error) {
+                console.error("❌ Error in getPendingOrdersReceivedToday:", error);
+                return {
+                    status: 500,
+                    message: error.message || "Internal Server Error"
+                };
+            }
+        }
+
+        //So PO functions....end.................
 
 
-
+    
 }
-
 module.exports = new distributorDashboard(db);

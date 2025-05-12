@@ -35,6 +35,7 @@ const patients = require('./patient');
 const doctors =require('./doctors');
 const doctorPayments = require('./doctorsPayments');
 const stocksReport = require('./stocksReport')
+const HSN_code = require('./HSN_code');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -95,7 +96,8 @@ const db = {
   patients:patients(sequelize,Sequelize),
   doctors:doctors(sequelize,Sequelize),
   doctorPayments:doctorPayments(sequelize,Sequelize),
-  stocksReport:stocksReport(sequelize,Sequelize)
+  stocksReport:stocksReport(sequelize,Sequelize),
+  HSN_code: HSN_code(sequelize,Sequelize),
 };
 
 db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
@@ -233,6 +235,22 @@ db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSal
 db.doctors.hasMany(db.doctorPayments,{foreignKey:"doctorId",as:'doctorPayments'})
 db.payments.belongsTo(db.orders,{foreignKey:"orderId",as:'order'});
 db.address.belongsTo(db.states,{foreignKey: "State",targetKey:'state', as: "states" })
+
+db.orders.belongsTo(db.products, {
+  foreignKey: 'PId',
+  targetKey: 'PId',
+  as: 'product'
+});
+db.orderitems.belongsTo(db.orders, {
+  foreignKey: 'orderId',
+  as: 'orders',
+});
+db.orderitems.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'products',
+});
+db.orderitems.belongsTo(db.orders, { foreignKey: 'orderId', as: 'order' });
+
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 
