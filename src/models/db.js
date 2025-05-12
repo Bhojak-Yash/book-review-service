@@ -235,6 +235,22 @@ db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSal
 db.doctors.hasMany(db.doctorPayments,{foreignKey:"doctorId",as:'doctorPayments'})
 db.payments.belongsTo(db.orders,{foreignKey:"orderId",as:'order'});
 db.address.belongsTo(db.states,{foreignKey: "State",targetKey:'state', as: "states" })
+
+db.orders.belongsTo(db.products, {
+  foreignKey: 'PId',
+  targetKey: 'PId',
+  as: 'product'
+});
+db.orderitems.belongsTo(db.orders, {
+  foreignKey: 'orderId',
+  as: 'orders',
+});
+db.orderitems.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'products',
+});
+db.orderitems.belongsTo(db.orders, { foreignKey: 'orderId', as: 'order' });
+
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 

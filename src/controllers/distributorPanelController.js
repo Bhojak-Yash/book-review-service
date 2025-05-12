@@ -63,3 +63,25 @@ exports.topDistributors = async(req, res) => {
         return res.status(500).json({message: "Internal Server Error"});
     }
 };
+
+//KPIs......
+exports.topProductsToday = async (req, res) => {
+    try {
+        const stats = await distributorDashboard.getDashboardStatsToday(req.user);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in topProductsToday Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+//payment Card stats
+exports.getPaymentRelatedStats = async (req, res) => {
+    try {
+        const stats = await distributorDashboard.getPaymentRelatedStats(req.user);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in getPaymentRelatedStats Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
