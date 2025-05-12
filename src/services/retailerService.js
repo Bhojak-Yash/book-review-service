@@ -50,11 +50,11 @@ class RetailerService {
             transaction = await db.sequelize.transaction();
 
             const hashedPassword = await hashPassword(password);
-            const checkR= await db.users.findOne({where:{userName:userName}})
-            if(checkR){
+            const checkR = await db.users.findOne({ where: { userName: userName } })
+            if (checkR) {
                 return {
-                    status:message.code400,
-                    message:`User already registered with mail - ${userName}`
+                    status: message.code400,
+                    message: `User already registered with mail - ${userName}`
                 }
             }
             //Create User
@@ -228,7 +228,7 @@ class RetailerService {
 
     async get_search_by_product(data) {
         try {
-            const { search,id } = data;
+            const { search, id } = data;
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
             const firstThree = search?.substring(0, 3);
@@ -243,25 +243,25 @@ class RetailerService {
             } : null;
 
             let productResults = [];
-            let stockWhere={};
-            if(id){
-                stockWhere.organisationId= { [db.Op.ne]: Number(id) }
+            let stockWhere = {};
+            if (id) {
+                stockWhere.organisationId = { [db.Op.ne]: Number(id) }
             }
             if (search) {
                 const products = await db.products.findAll({
-                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN','ProductForm','Package','Quantity'],
+                    attributes: ['PId', 'PName', 'PackagingDetails', 'SaltComposition', 'HSN', 'ProductForm', 'Package', 'Quantity'],
                     include: [
                         {
                             model: db.stocks,
                             as: 'stocks',
                             attributes: ['SId', 'PId', 'Stock', 'Scheme', 'MRP', 'PTR', 'organisationId'],
-                            where:stockWhere,
+                            where: stockWhere,
                             required: true,
                             include: [
                                 {
                                     model: db.distributors,
                                     as: 'distributors',
-                                    attributes: ['companyName','type'],
+                                    attributes: ['companyName', 'type'],
                                     required: true
                                 }
                             ]
@@ -861,10 +861,12 @@ class RetailerService {
             //     offset: skip,
             //     limit: Limit,
             // })
-            const count = await db.stocks.count({where: {
-                ...whereCondition,
-                locked: false,
-            }})
+            const count = await db.stocks.count({
+                where: {
+                    ...whereCondition,
+                    locked: false,
+                }
+            })
             const stocks = await db.stocks.findAll({
                 attributes: [
                     // 'SId',
@@ -889,6 +891,7 @@ class RetailerService {
                 where: {
                     ...whereCondition,
                     locked: false,
+                    Stock: { [db.Op.gt]: 0 }
                 },
                 include: [
                     {
@@ -901,7 +904,7 @@ class RetailerService {
                 offset: skip,
                 limit: Limit,
             });
-            
+
             const updatedApiData = stocks.map(item => {
                 const match = checkCart?.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
                 // item.quantity=match ? match.quantity : 0
@@ -1278,7 +1281,7 @@ class RetailerService {
                             data.MRP,
                             data.PTR, data.PTS, false, new Date(),
                             new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme || null,
-                            data?.Stock, data?.location, data?.HSN, data?.purchasedFrom,data?.BoxQty || null,data?.Loose || null
+                            data?.Stock, data?.location, data?.HSN, data?.purchasedFrom, data?.BoxQty || null, data?.Loose || null
                         ],
                         //   type: db.Sequelize.QueryTypes.INSERT
                     }

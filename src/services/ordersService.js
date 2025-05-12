@@ -180,50 +180,117 @@ class OrdersService {
         updates.confirmationDate = new Date();
         if (orderItems && orderItems.length > 0) {
 
+          // await db.sequelize.transaction(async (t) => {
+          //   // First, check if all items have enough stock before making any updates
+          //   for (const item of updates.items) {
+          //     // console.log('pppppppp')
+          //     const [stock] = await db.sequelize.query(
+          //       `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
+          //       {
+          //         replacements: { stockId: item.stockId },
+          //         type: db.Sequelize.QueryTypes.SELECT,
+          //         transaction: t, // Use the transaction
+          //       }
+          //     );
+          //     // console.log('ppppp',updates)
+          //     if (!stock || Number(stock.Stock) < Number(item.quantity)) {
+          //       throw new Error(
+          //         `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
+          //       );
+          //     }
+          //   }
+          //   console.log(updates?.items);
+
+          //   for (let item of updates?.items) {
+          //     console.log('dwekjh')
+          //     await db.orderitems.update(item, { where: { id: item.id } }, { transaction: t });
+          //   }
+
+          //   // If all items have sufficient stock, update them
+          //   await Promise.all(
+          //     updates?.items?.map(async (item) => {
+          //       // console.log(item?.stockId)
+          //       await db.sequelize.query(
+          //         `UPDATE ${tableNameRow} SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+          //         {
+          //           replacements: {
+          //             itemQuantity: item.quantity,
+          //             stockId: item.stockId,
+          //           },
+          //           transaction: t,
+          //         }
+          //       );
+          //       // await db.orderitems.update(item)
+          //     })
+          //   );
+          // })
+
           await db.sequelize.transaction(async (t) => {
-            // First, check if all items have enough stock before making any updates
-            for (const item of updates.items) {
-              // console.log('pppppppp')
-              const [stock] = await db.sequelize.query(
-                `SELECT Stock FROM ${tableNameRow} WHERE SId = :stockId`,
+            for (const item of updates?.items) {
+              const itemQty = Number(item?.quantity || 0);
+
+              // 1. Check stock of current item.stockId
+              const [mainStock] = await db.sequelize.query(
+                `SELECT SId, Stock, PId, BatchNo, organisationId FROM ${tableNameRow} WHERE SId = :stockId`,
                 {
                   replacements: { stockId: item.stockId },
                   type: db.Sequelize.QueryTypes.SELECT,
-                  transaction: t, // Use the transaction
+                  transaction: t,
                 }
               );
-              // console.log('ppppp',updates)
-              if (!stock || Number(stock.Stock) < Number(item.quantity)) {
+
+              if (!mainStock) throw new Error(`Stock not found for SId ${item.stockId}`);
+
+              const { PId, BatchNo, organisationId } = mainStock;
+
+              // 2. Get all stocks with same PId, BatchNo, and organisationId
+              const groupedStocks = await db.sequelize.query(
+                `SELECT SId, Stock FROM ${tableNameRow}
+       WHERE PId = :PId AND BatchNo = :BatchNo AND organisationId = :organisationId AND Stock > 0
+       ORDER BY SId Desc`, // Prefer lower SId or change if needed
+                {
+                  replacements: { PId, BatchNo, organisationId },
+                  type: db.Sequelize.QueryTypes.SELECT,
+                  transaction: t,
+                }
+              );
+
+              // 3. Sum available stock
+              const totalAvailable = groupedStocks.reduce((sum, s) => sum + Number(s.Stock), 0);
+
+              if (totalAvailable < itemQty) {
                 throw new Error(
-                  `Insufficient stock for item ID ${item.stockId}. Ensure sufficient stock is available.`
+                  `Insufficient stock for PId ${PId}, BatchNo ${BatchNo}. Required: ${itemQty}, Available: ${totalAvailable}`
                 );
               }
-            }
-            console.log(updates?.items);
 
-            for (let item of updates?.items) {
-              console.log('dwekjh')
-              await db.orderitems.update(item, { where: { id: item.id } }, { transaction: t });
-            }
+              // 4. Deduct stock across SIds in order
+              let remainingQty = itemQty;
+              for (const stock of groupedStocks) {
+                if (remainingQty <= 0) break;
 
-            // If all items have sufficient stock, update them
-            await Promise.all(
-              updates?.items?.map(async (item) => {
-                // console.log(item?.stockId)
+                const available = Number(stock.Stock);
+                const deductQty = Math.min(available, remainingQty);
+
                 await db.sequelize.query(
-                  `UPDATE ${tableNameRow} SET Stock = Stock - :itemQuantity WHERE SId = :stockId`,
+                  `UPDATE ${tableNameRow} SET Stock = Stock - :deductQty WHERE SId = :SId`,
                   {
                     replacements: {
-                      itemQuantity: item.quantity,
-                      stockId: item.stockId,
+                      deductQty,
+                      SId: stock.SId,
                     },
                     transaction: t,
                   }
                 );
-                // await db.orderitems.update(item)
-              })
-            );
+
+                remainingQty -= deductQty;
+              }
+
+              // 5. Update order item with original data
+              await db.orderitems.update(item, { where: { id: item.id }, transaction: t });
+            }
           });
+
         }
         // console.log("testttttt");
         // Sending notification for PO Received
@@ -920,39 +987,40 @@ class OrdersService {
       const tableName = checkUser?.dataValues?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
       const as = checkUser?.dataValues?.userType == 'Manufacturer' ? 'stocks' : 'stock';
       const isManufacturer = checkUser?.dataValues?.userType === 'Manufacturer';
-      const atrr =  checkUser?.dataValues?.userType == 'Manufacturer' ? 
-      [
-        "BatchNo",
-        "PId",
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.SId')), 'SId'],
-        [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stocks.stock')), 'stock'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stocks.PTS`)), 'PTS'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.ExpDate')), 'ExpDate'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.location')), 'location'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.Scheme')), 'Scheme'],
-      ]:
-      [
-        "BatchNo",
-        "PId",
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.SId')), 'SId'],
-        [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stock.stock')), 'stock'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stock.PTS`)), 'PTS'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.ExpDate')), 'ExpDate'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.location')), 'location'],
-        [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stock.Scheme')), 'Scheme']
-      ]
-      let groupBy= checkUser?.dataValues?.userType == 'Manufacturer' ? 
-      ['orderItems.stocks.PId', 'orderItems.stocks.BatchNo']:
-      ['orderItems.stock.PId', 'orderItems.stock.BatchNo'];
-      console.log("isManufacturer", isManufacturer);
+      const atrr = checkUser?.dataValues?.userType == 'Manufacturer' ?
+        [
+          "BatchNo",
+          "PId",
+          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.SId')), 'SId'],
+          [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stocks.stock')), 'stock'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stocks.PTS`)), 'PTS'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.ExpDate')), 'ExpDate'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.location')), 'location'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.Scheme')), 'Scheme'],
+        ] :
+        [
+          "BatchNo",
+          "PId",
+          [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
+          [db.Sequelize.fn('SUM', db.Sequelize.col('stock')), 'stock'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col(`PTS`)), 'PTS'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('location')), 'location'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('Scheme')), 'Scheme']
+        ]
+      let groupBy = checkUser?.dataValues?.userType == 'Manufacturer' ?
+        ['PId', 'BatchNo'] :
+        ['PId', 'BatchNo'];
 
-      console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
+      // console.log("isManufacturer", isManufacturer);
+
+      // console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
       const order = await db.orders.findOne({
-        // attributes:[''],
         where: { id: Number(orderId) },
         include: [
           {
             model: db.orderitems,
+            // attributes: orderItemsAtrr,
             as: "orderItems",
             include: [
               {
@@ -967,12 +1035,12 @@ class OrdersService {
                   }
                 ]
               },
-              {
-                model: tableName,
-                as: as,
-                // attributes: ['SId', 'BatchNo', 'stock', 'PTS', 'ExpDate', 'location', 'Scheme']
-                attributes:atrr
-              }
+              // {
+              //   model: tableName,
+              //   as: as,
+              //   // attributes: ['SId', 'BatchNo', 'stock', 'PTS', 'ExpDate', 'location', 'Scheme']
+              //   attributes: atrr
+              // }
             ]
           },
           {
@@ -980,7 +1048,7 @@ class OrdersService {
             as: 'payments',
           }
         ],
-        group:groupBy
+        // group: groupBy
       })
 
       order.balance = parseFloat(order.balance).toFixed(2);
@@ -1046,7 +1114,30 @@ class OrdersService {
 
       const discount = Number(order?.subTotal) - Number(order?.taxable);
       const discountPercentage = order?.subTotal ? (discount / Number(order?.subTotal)) * 100 : 0;
+      let SIDs = await order?.orderItems?.map((item) => { return item.stockId })
+      console.log(SIDs)
+      const stocks = await tableName.findAll({
+        attributes: ['PId', 'BatchNo'],
+        where: {
+          SId: {
+            [db.Sequelize.Op.in]: SIDs
+          }
+        },
+      });
+      const pids = await stocks?.map((item) => { return item.PId })
+      const BatchNo = await stocks?.map((item) => { return item.BatchNo })
+      const maxCount = await tableName.findAll({
+        attributes: atrr,
+        where: {
+          Stock: { [db.Op.gt]: 0 },
+          PId: { [db.Sequelize.Op.in]: pids },
+          BatchNo: { [db.Sequelize.Op.in]: BatchNo },
+          organisationId: aaa?.dataValues?.orderTo
+        },
+        group: ['PId', 'BatchNo']
+      });
 
+      // console.log(maxCount)
       const formattedOrder = {
         "id": order?.id,
         "orderDate": order?.orderDate,
@@ -1122,7 +1213,7 @@ class OrdersService {
             "loose": item?.loose,
             // "PTS": item?.PTS,
             "product": item?.product,
-            "stock": item?.stocks || item?.stock || {}
+            "stock": maxCount.find(s => s.dataValues.PId === item.PId) || {}
           }
         }),
         "payments": order?.payments
