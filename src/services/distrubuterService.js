@@ -48,8 +48,8 @@ class DistributorService {
                 const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
                 if (existingUser) {
                     return {
-                        status:message.code400,
-                        message:'A distributor with this email already exists'
+                        status: message.code400,
+                        message: 'A distributor with this email already exists'
                     }
                     // throw new Error('A distributor with this email already exists.');
                 }
@@ -188,7 +188,7 @@ class DistributorService {
             //         { userType: 'Distributor' }
             //     ]
             // }
-// console.log(whereCondition,'[[[[[[[[[',id)
+            // console.log(whereCondition,'[[[[[[[[[',id)
 
             const result = await db.users.findAll({
                 attributes: ['id', 'userType'],
@@ -383,7 +383,8 @@ class DistributorService {
                 attributes: attr,
                 where: {
                     ...whereStock,
-                    locked:false, 
+                    locked: false,
+                    Stock: { [db.Op.gt]: 0 }
                 },
                 include: [
                     {
@@ -397,7 +398,7 @@ class DistributorService {
                 offset: skip,
                 limit: Limit
             })
-            console.log("................   `",type)
+            console.log("................   `", type)
             let ids = []
             const updatedStock = await stocks?.map((item) => {
                 ids.push(item.SId)
@@ -431,7 +432,7 @@ class DistributorService {
                         "SaltComposition": item.product.SaltComposition,
                         // "PTR": null,
                         // "PTS": null,
-                        "PTS":null,
+                        "PTS": null,
                         "MRP": null,
                         "BatchNo": item.BatchNo,
                         "ExpDate": item.ExpDate,
@@ -1352,10 +1353,10 @@ class DistributorService {
 
             if (search) {
                 stockFilters[db.Op.or] = [
-                  { '$product.PName$':         { [db.Op.like]: `%${search}%` } },
-                  { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
                 ];
-              }
+            }
 
             // Step 1: Get all products to count
             // const allProducts = await db.products.count({
@@ -1432,13 +1433,13 @@ class DistributorService {
                         attributes: ['companyName', 'distributorCode']
                     }
                 ],
-                order:[['SId','desc']],
+                order: [['SId', 'desc']],
                 offset: skip,
                 limit: Limit
             })
             // return {paginatedProducts}
-           
-            const formatData = paginatedProducts?.map((stock)=>{
+
+            const formatData = paginatedProducts?.map((stock) => {
                 return {
                     SId: stock.SId,
                     PId: stock?.PId,
@@ -1458,8 +1459,8 @@ class DistributorService {
                     updatedAt: stock?.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
-                    stockStatus:stock?.Stock == 0?"Out of stock":Number(stock?.Stock)<Number(aboutToEmpty)?'About to empty':'Up to date',
-                    expiryStatus:expiryStatus(stock.ExpDate,lowStockDays)  || null,
+                    stockStatus: stock?.Stock == 0 ? "Out of stock" : Number(stock?.Stock) < Number(aboutToEmpty) ? 'About to empty' : 'Up to date',
+                    expiryStatus: expiryStatus(stock.ExpDate, lowStockDays) || null,
                     product: {
                         PId: stock?.product?.PId,
                         PCode: stock?.product?.PCode,
@@ -1470,77 +1471,77 @@ class DistributorService {
                         manufacturerId: stock?.product?.manufacturerId,
                         manufacturerName: stock?.product?.manufacturer?.companyName || null,
                         productForm: stock?.product?.ProductForm,
-                        Package:stock?.product?.Package,
+                        Package: stock?.product?.Package,
                     }
                 }
             })
-//             const formattedData = paginatedProducts.flatMap(product => {
-//                 if (!product.stocks || product.stocks.length === 0) {
-//                     return [{
-//                         SId: null,
-//                         PId: product.PId,
-//                         BatchNo: null,
-//                         ExpDate: null,
-//                         MRP: null,
-//                         PTR: null,
-//                         PTS: null,
-//                         Scheme: null,
-//                         BoxQty: null,
-//                         Loose: null,
-//                         Stock: null,
-//                         organisationId: null,
-//                         entityId: null,
-//                         location: null,
-//                         createdAt: null,
-//                         updatedAt: null,
-//                         purchasedFrom: null,
-//                         purchasedFromCode: null,
-//                         product: {
-//                             PId: product.PId,
-//                             PCode: product.PCode,
-//                             PName: product.PName,
-//                             PackagingDetails: product.PackagingDetails,
-//                             SaltComposition: product.SaltComposition,
-//                             LOCKED: product.LOCKED,
-//                             manufacturerId: product.manufacturerId,
-//                             manufacturerName: product?.manufacturer?.companyName || null,
-//                             productForm: product?.ProductForm
-//                         }
-//                     }];
-//                 }
-// // console.log(product)
-//                 return product?.map(stock => ({
-//                     SId: stock.SId,
-//                     PId: product.PId,
-//                     BatchNo: stock.BatchNo,
-//                     ExpDate: stock.ExpDate,
-//                     MRP: stock.MRP,
-//                     PTR: stock.PTR,
-//                     PTS: stock.PTS,
-//                     Scheme: stock.Scheme,
-//                     BoxQty: stock.BoxQty,
-//                     Loose: stock.Loose,
-//                     Stock: stock.Stock,
-//                     organisationId: stock.organisationId,
-//                     entityId: stock.entityId,
-//                     location: stock.location,
-//                     createdAt: stock.createdAt,
-//                     updatedAt: stock.updatedAt,
-//                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
-//                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
-//                     product: {
-//                         PId: product.PId,
-//                         PCode: product.PCode,
-//                         PName: product.PName,
-//                         PackagingDetails: product.PackagingDetails,
-//                         SaltComposition: product.SaltComposition,
-//                         LOCKED: product.LOCKED,
-//                         manufacturerId: product.manufacturerId,
-//                         manufacturerName: product?.manufacturer?.companyName || null,
-//                         productForm: product?.ProductForm
-//                     }
-//                 }));
-//             });
+            //             const formattedData = paginatedProducts.flatMap(product => {
+            //                 if (!product.stocks || product.stocks.length === 0) {
+            //                     return [{
+            //                         SId: null,
+            //                         PId: product.PId,
+            //                         BatchNo: null,
+            //                         ExpDate: null,
+            //                         MRP: null,
+            //                         PTR: null,
+            //                         PTS: null,
+            //                         Scheme: null,
+            //                         BoxQty: null,
+            //                         Loose: null,
+            //                         Stock: null,
+            //                         organisationId: null,
+            //                         entityId: null,
+            //                         location: null,
+            //                         createdAt: null,
+            //                         updatedAt: null,
+            //                         purchasedFrom: null,
+            //                         purchasedFromCode: null,
+            //                         product: {
+            //                             PId: product.PId,
+            //                             PCode: product.PCode,
+            //                             PName: product.PName,
+            //                             PackagingDetails: product.PackagingDetails,
+            //                             SaltComposition: product.SaltComposition,
+            //                             LOCKED: product.LOCKED,
+            //                             manufacturerId: product.manufacturerId,
+            //                             manufacturerName: product?.manufacturer?.companyName || null,
+            //                             productForm: product?.ProductForm
+            //                         }
+            //                     }];
+            //                 }
+            // // console.log(product)
+            //                 return product?.map(stock => ({
+            //                     SId: stock.SId,
+            //                     PId: product.PId,
+            //                     BatchNo: stock.BatchNo,
+            //                     ExpDate: stock.ExpDate,
+            //                     MRP: stock.MRP,
+            //                     PTR: stock.PTR,
+            //                     PTS: stock.PTS,
+            //                     Scheme: stock.Scheme,
+            //                     BoxQty: stock.BoxQty,
+            //                     Loose: stock.Loose,
+            //                     Stock: stock.Stock,
+            //                     organisationId: stock.organisationId,
+            //                     entityId: stock.entityId,
+            //                     location: stock.location,
+            //                     createdAt: stock.createdAt,
+            //                     updatedAt: stock.updatedAt,
+            //                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
+            //                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+            //                     product: {
+            //                         PId: product.PId,
+            //                         PCode: product.PCode,
+            //                         PName: product.PName,
+            //                         PackagingDetails: product.PackagingDetails,
+            //                         SaltComposition: product.SaltComposition,
+            //                         LOCKED: product.LOCKED,
+            //                         manufacturerId: product.manufacturerId,
+            //                         manufacturerName: product?.manufacturer?.companyName || null,
+            //                         productForm: product?.ProductForm
+            //                     }
+            //                 }));
+            //             });
 
             return {
                 status: message.code200,
@@ -1679,7 +1680,7 @@ class DistributorService {
     }
 }
 
-const expiryStatus =  (ExpDate,nearToExpDate) => {
+const expiryStatus = (ExpDate, nearToExpDate) => {
     const expDate = new Date(ExpDate);
     const today = new Date();
 
@@ -1688,14 +1689,14 @@ const expiryStatus =  (ExpDate,nearToExpDate) => {
 
     let expStatus;
     if (diffDays < 0) {
-      expStatus = "expired";
+        expStatus = "expired";
     } else if (diffDays <= nearToExpDate) {
-      expStatus = "Near expiry";
+        expStatus = "Near expiry";
     } else {
-      expStatus = "Up to date";
+        expStatus = "Up to date";
     }
 
     return expStatus
-  }
+}
 
 module.exports = new DistributorService(db);
