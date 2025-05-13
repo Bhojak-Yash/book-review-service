@@ -1098,12 +1098,12 @@ class OrdersService {
         [
           "BatchNo",
           "PId",
-          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.SId')), 'SId'],
-          [db.Sequelize.fn('SUM', db.Sequelize.col('orderItems.stocks.stock')), 'stock'],
-          [db.Sequelize.fn('MAX', db.Sequelize.col(`orderItems.stocks.PTS`)), 'PTS'],
-          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.ExpDate')), 'ExpDate'],
-          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.location')), 'location'],
-          [db.Sequelize.fn('MAX', db.Sequelize.col('orderItems.stocks.Scheme')), 'Scheme'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
+          [db.Sequelize.fn('SUM', db.Sequelize.col('stock')), 'stock'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col(`PTS`)), 'PTS'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('location')), 'location'],
+          [db.Sequelize.fn('MAX', db.Sequelize.col('Scheme')), 'Scheme'],
         ] :
         [
           "BatchNo",
