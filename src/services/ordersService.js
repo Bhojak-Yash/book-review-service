@@ -386,7 +386,7 @@ class OrdersService {
                     ExpDate: stock.ExpDate,
                     createdAt: new Date(),
                     updatedAt: new Date(),
-                    organisationId: order.orderFrom,
+                    organisationId: order?.dataValues.orderFrom,
                     MRP: item.MRP,
                     PTS: item?.PTR,
                     PTR: item?.PTR,
