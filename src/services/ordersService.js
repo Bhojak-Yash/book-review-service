@@ -1115,9 +1115,9 @@ class OrdersService {
           [db.Sequelize.fn('MAX', db.Sequelize.col('location')), 'location'],
           [db.Sequelize.fn('MAX', db.Sequelize.col('Scheme')), 'Scheme']
         ]
-      let groupBy = checkUser?.dataValues?.userType == 'Manufacturer' ?
-        ['PId', 'BatchNo'] :
-        ['PId', 'BatchNo'];
+      // let groupBy = checkUser?.dataValues?.userType == 'Manufacturer' ?
+      //   ['PId', 'BatchNo'] :
+      //   ['PId', 'BatchNo'];
 
       // console.log("isManufacturer", isManufacturer);
 

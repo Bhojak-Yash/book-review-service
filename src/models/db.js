@@ -236,11 +236,11 @@ db.doctors.hasMany(db.doctorPayments,{foreignKey:"doctorId",as:'doctorPayments'}
 db.payments.belongsTo(db.orders,{foreignKey:"orderId",as:'order'});
 db.address.belongsTo(db.states,{foreignKey: "State",targetKey:'state', as: "states" })
 
-db.orders.belongsTo(db.products, {
-  foreignKey: 'PId',
-  targetKey: 'PId',
-  as: 'product'
-});
+// db.orders.belongsTo(db.products, {
+//   foreignKey: 'PId',
+//   targetKey: 'PId',
+//   as: 'product'
+// });
 db.orderitems.belongsTo(db.orders, {
   foreignKey: 'orderId',
   as: 'orders',
