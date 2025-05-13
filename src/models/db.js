@@ -249,7 +249,6 @@ db.orderitems.belongsTo(db.products, {
   foreignKey: 'PId',
   as: 'products',
 });
-db.orderitems.belongsTo(db.orders, { foreignKey: 'orderId', as: 'order' });
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
