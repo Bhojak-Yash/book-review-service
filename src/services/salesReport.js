@@ -134,8 +134,8 @@ class DoctorsService {
                     const openingDate = new Date(salesData.salesOpening.confirmationDate);
                     const closingDate = new Date(salesData.salesClosing.confirmationDate);
 
-                    console.log('Opening Date:', openingDate);  // Log the opening date
-                    console.log('Closing Date:', closingDate);  // Log the closing date
+                    console.log('Opening Date:', openingDate);  
+                    console.log('Closing Date:', closingDate);  
 
                     const diffMs = closingDate - openingDate;
                     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
@@ -204,6 +204,44 @@ class DoctorsService {
             };
         }
     }
+
+    async stockMetrics(tokenData, dateString, type) {
+        try {
+            const date = dateString ? new Date(dateString) : new Date();
+
+            const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+            startOfDay.setMinutes(startOfDay.getMinutes() + 330);
+
+            const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+            endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
+            // Fetching sales data from stocksReport
+            const salesData = await stocksReport(tokenData.id, startOfDay, endOfDay);
+
+            console.log(salesData);
+            // Check if salesData and salesData.data are defined
+            if (!salesData) {
+                throw new Error('Sales data is not available');
+            }
+
+            // Returning only openingStock and closingStock
+            return {
+                status: 200,
+                message: 'Stock Metrics for today fetched successfully.',
+                data: {
+                    openingStock: salesData?.openingStocks,
+                    closingStock: salesData?.closingStocks
+                }
+            };
+        } catch (error) {
+            console.error("❌ Error in operationalMetrics:", error.message);
+            return {
+                status: 500,
+                message: error.message || "Internal Server Error",
+            };
+        }
+    }
+    
     
     
 }

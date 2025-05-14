@@ -15,6 +15,7 @@ router.get('/stock-runningLow-test', verifyToken, distributorPanelController.sto
 //KPIs.......
 router.get('/top-products-today',verifyToken, distributorPanelController.topProductsToday);
 router.get('/get-payment-stats', verifyToken, distributorPanelController.getPaymentRelatedStats);
+router.get('/get-slow-moving-items', verifyToken, distributorPanelController.getSlowMovingMedicines);
 
 
 module.exports =router

@@ -323,11 +323,22 @@ class distributorDashboard {
                 ownerId = tokenData.data.employeeOf;
             }
 
+            let stockModel;
+            if(tokenData.userType === 'Manufacturer'){
+                stockModel = db.manufacturerStocks
+            }else{
+                stockModel = db.stocks
+            }
+
+            console.log(tokenData.userType);
+            console.log(ownerId);
+            console.log(stockModel);
+
             // Get low stock threshold from the environment (default to 10 if not set)
             const lowStockThreshold = process.env.aboutToEmpty || 10;
 
             // Fetch all PId and Stock where stock is less than the threshold
-            const lowStockItems = await db.stocks.findAll({
+            const lowStockItems = await stockModel.findAll({
                 where: {
                     organisationId: Number(ownerId),
                     Stock: { [db.Sequelize.Op.lt]: Number(lowStockThreshold) },
@@ -352,8 +363,19 @@ class distributorDashboard {
                 attributes: ['PId', 'PName'],
             });
 
+            const groupedStock = lowStockItems.reduce((acc, stock) => {
+                const existing = acc[stock.PId];
+                if (existing) {
+                    existing.Stock += stock.Stock; // Sum stock if PId already exists
+                } else {
+                    acc[stock.PId] = { PId: stock.PId, Stock: stock.Stock };
+                }
+                return acc;
+            }, {});
+
+
             // Map product details with corresponding stock Stock
-            const lowStockMedicines = lowStockItems.map(stock => {
+            const lowStockMedicines = Object.values(groupedStock).map(stock => {
                 const product = productDetails.find(prod => prod.PId === stock.PId);
                 return {
                     PId: stock.PId,
@@ -871,7 +893,7 @@ class distributorDashboard {
                 };
             }
         }    
-        async getTop_Three_Cities(tokenData) {
+        async getTop_Three_Cities(tokenData, startOfDay, endOfDay) {
             try {
 
                 let ownerId = tokenData.id;
@@ -1215,12 +1237,24 @@ class distributorDashboard {
                 soReceivedToday,
                 soProcessedToday,
                 pendingSo,
+                blackBoxResult,
             ] = await Promise.all([
                 this.paymentsCollected(tokenData, startOfDay, endOfDay),
                 this.getOrdersReceivedToday(tokenData, startOfDay, endOfDay),
                 this.getNonPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
                 this.getPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.blackBox(tokenData, startOfDay, endOfDay),
             ]);
+
+            let userSpecificMetric = {};
+
+            if (blackBoxResult?.type === 'Manufacturer') {
+                userSpecificMetric = { returnsReceivedToday: blackBoxResult.returnsReceivedToday || 0 };
+            } else if (blackBoxResult?.type === 'Distributor') {
+                userSpecificMetric = { poRaisedToday: blackBoxResult.poRaisedToday || 0 };
+            } else if (blackBoxResult?.type === 'Retailer') {
+                userSpecificMetric = { expiryRaisedToday: blackBoxResult.expiryRaisedToday || 0 };
+            }
 
             return {
                 status: 200,
@@ -1230,6 +1264,7 @@ class distributorDashboard {
                     soReceivedToday: soReceivedToday.data || 0,
                     soProcessedToday: soProcessedToday.data || 0,
                     pendingSo: pendingSo.data || 0,
+                    ...userSpecificMetric
                 }
             };
         } catch (error) {
@@ -1651,10 +1686,177 @@ class distributorDashboard {
                 };
             }
         }
+        async blackBox(tokenData, startOfDay, endOfDay) {
+            try {
+
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                //Manufacturer Black Box
+                if (tokenData?.userType === 'Manufacturer') {
+                    const count = await db.returnHeader.count({
+                        where: {
+                            returnTo: ownerId,
+                            returnDate: {
+                                [db.Sequelize.Op.between]: [startOfDay, endOfDay],
+                            }
+                        }
+                    });
+
+                    return {
+                        type: 'Manufacturer',
+                        returnsReceivedToday: count || 0
+                    };
+                }
+
+                //Distributor Black Box
+                if (tokenData?.userType === 'Distributor') {
+                    const count = await db.orders.count({
+                        where: {
+                            orderFrom: ownerId,
+                            orderDate: {
+                                [db.Sequelize.Op.between]: [startOfDay, endOfDay],
+                            }
+                        }
+                    });
+
+                    return {
+                        type: 'Distributor',
+                        poRaisedToday: count || 0
+                    };
+                }
+
+                //Retailers Black box
+                if (tokenData?.userType === 'Retailer') {
+                    const count = await db.returnHeader.count({
+                        where: {
+                            returnFrom: ownerId,
+                            returnDate: {
+                                [db.Sequelize.Op.between]: [startOfDay, endOfDay],
+                            }
+                        }
+                    })
+                    return {
+                        type: 'Retailer',
+                        expiryRaisedToday: count || 0
+                    };
+                }
+
+                return {
+                    type: tokenData?.userType || 'Unknown',
+                    message: 'No metrics for this userType',
+                };
+            } catch (error) {
+                console.error('❌ Error in blackBox:', error.message);
+                return {
+                    type: tokenData?.userType || 'Unknown',
+                    error: 'Internal Server Error',
+                };
+            }
+        }
         //So PO functions....end.................
 
+    async getSlowMovingMedicines(tokenData, page = 1, limit = 10) {
+        try {
+            let ownerId = tokenData.id;
+            if (tokenData.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
+            }
 
-    
-    
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const orderedItems = await db.orders.findAll({
+                where: {
+                    orderTo: ownerId,
+                    orderDate: { [Op.gte]: thirtyDaysAgo }
+                },
+                include: [
+                    {
+                        model: db.orderitems,
+                        as: 'orderItems',
+                        required: true,
+                        include: [
+                            {
+                                model: db.products,
+                                as: 'products',
+                                attributes: ['PId', 'PName'],
+                                required: true
+                            }
+                        ],
+                        attributes: ['PId', 'quantity']
+                    }
+                ],
+                attributes: ['id', 'orderDate'],
+                raw: true,
+                nest: true
+            });
+
+            const groupedMap = {};
+
+            for (const item of orderedItems) {
+                const PId = item.orderItems.PId;
+                const PName = item.orderItems.products.PName?.trim();
+                const quantity = item.orderItems.quantity;
+                const orderDate = new Date(item.orderDate);
+
+                if (!groupedMap[PId]) {
+                    groupedMap[PId] = {
+                        PId,
+                        PName,
+                        quantity: 0,
+                        latestOrderDate: orderDate
+                    };
+                }
+
+                groupedMap[PId].quantity += quantity;
+
+                if (orderDate > groupedMap[PId].latestOrderDate) {
+                    groupedMap[PId].latestOrderDate = orderDate;
+                }
+            }
+
+            const groupedArray = Object.values(groupedMap).sort((a, b) => a.quantity - b.quantity);
+
+            // Add the days difference calculation
+            const resultWithDays = groupedArray.map(item => {
+                const today = new Date();
+                const daysDifference = Math.floor((today - item.latestOrderDate) / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+                return {
+                    ...item,
+                    daysSinceOrder: daysDifference
+                };
+            });
+
+            const total = resultWithDays.length;
+            const offset = (page - 1) * limit;
+            const paginated = resultWithDays.slice(offset, offset + limit);
+
+            return {
+                status: 200,
+                message: 'Ordered product quantities from the last 30 days fetched successfully',
+                data: paginated,
+                pagination: {
+                    totalItems: total,
+                    currentPage: parseInt(page),
+                    limit: parseInt(limit),
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
+
+        } catch (error) {
+            console.error('❌ Error in getSlowMovingMedicines:', error);
+            return {
+                status: 500,
+                message: 'Internal Server Error',
+                error: error.message
+            };
+        }
+    }
+        
+        
+        
 }
 module.exports = new distributorDashboard(db);
