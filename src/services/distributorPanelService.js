@@ -1216,10 +1216,10 @@ class distributorDashboard {
                 soProcessedToday,
                 pendingSo,
             ] = await Promise.all([
-                module.exports.paymentsCollected(tokenData, startOfDay, endOfDay),
-                module.exports.getOrdersReceivedToday(tokenData, startOfDay, endOfDay),
-                module.exports.getNonPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
-                module.exports.getPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.paymentsCollected(tokenData, startOfDay, endOfDay),
+                this.getOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.getNonPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.getPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
             ]);
 
             return {
