@@ -106,6 +106,106 @@ class DoctorsService {
             return null
         }
     }
+
+    async operationalMetrics(tokenData, dateString, type) {
+        try {
+            const date = dateString ? new Date(dateString) : new Date();
+
+            const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+            startOfDay.setMinutes(startOfDay.getMinutes() + 330);
+
+            const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+            endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
+            let result = {};
+
+            if (type === 'Sales') {
+                const salesData = await salesOpening(tokenData.id, startOfDay, endOfDay);
+
+                // Log sales data to check the response
+                console.log('Sales Data:', salesData);
+
+                let duration = null;
+
+                if (
+                    salesData?.salesOpening?.confirmationDate &&
+                    salesData?.salesClosing?.confirmationDate
+                ) {
+                    const openingDate = new Date(salesData.salesOpening.confirmationDate);
+                    const closingDate = new Date(salesData.salesClosing.confirmationDate);
+
+                    console.log('Opening Date:', openingDate);  // Log the opening date
+                    console.log('Closing Date:', closingDate);  // Log the closing date
+
+                    const diffMs = closingDate - openingDate;
+                    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                    duration = `${diffHrs} hr${diffHrs !== 1 ? 's' : ''} ${diffMins} min${diffMins !== 1 ? 's' : ''}`;
+                }
+
+                result = {
+                    salesOpeningTime: salesData?.salesOpening || null,
+                    salesClosingTime: salesData?.salesClosing || null,
+                    duration,
+                };
+            }
+            else if (type === 'Purchase') {
+                const purchaseData = await purchaseOpening(tokenData.id, startOfDay, endOfDay);
+
+                // Log purchase data to check the response
+                console.log('Purchase Data:', purchaseData);
+
+                let duration = null;
+
+                const openingTime = purchaseData?.purchaseOpening?.orderDate;
+                const closingTime = purchaseData?.purchaseClosing?.orderDate;
+
+                console.log('Opening Time:', openingTime);  // Log opening time
+                console.log('Closing Time:', closingTime);  // Log closing time
+
+                if (openingTime && closingTime) {
+                    const openingDate = new Date(openingTime);
+                    const closingDate = new Date(closingTime);
+
+                    console.log('Opening Date:', openingDate);  // Log parsed opening date
+                    console.log('Closing Date:', closingDate);  // Log parsed closing date
+
+                    const diffMs = closingDate - openingDate;
+                    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                    duration = `${diffHrs} hr${diffHrs !== 1 ? 's' : ''} ${diffMins} min${diffMins !== 1 ? 's' : ''}`;
+                }
+
+                result = {
+                    purchaseOpeningTime: purchaseData?.purchaseOpening || null,
+                    purchaseClosingTime: purchaseData?.purchaseClosing || null,
+                    duration,
+                };
+            }
+            else {
+                return {
+                    status: 400,
+                    message: "Invalid type. Please pass 'Sales' or 'Purchase'."
+                };
+            }
+
+            return {
+                status: 200,
+                message: `${type} Operational Metrics for today fetched successfully.`,
+                data: result
+            };
+        } catch (error) {
+            console.error("❌ Error in operationalMetrics:", error);
+            return {
+                status: 500,
+                message: error.message || "Internal Server Error",
+            };
+        }
+    }
+    
+    
 }
 
 const salesOpening = async (id, startDate, endDate) => {

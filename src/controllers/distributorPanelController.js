@@ -67,7 +67,7 @@ exports.topDistributors = async(req, res) => {
 //KPIs......
 exports.topProductsToday = async (req, res) => {
     try {
-        const stats = await distributorDashboard.getDashboardStatsToday(req.user);
+        const stats = await distributorDashboard.getDashboardStatsToday(req.user, req.query.date);
         return res.status(stats?.status || 200).json(stats);
     } catch (error) {
         console.log("Error in topProductsToday Controller:", error);
@@ -78,7 +78,7 @@ exports.topProductsToday = async (req, res) => {
 //payment Card stats
 exports.getPaymentRelatedStats = async (req, res) => {
     try {
-        const stats = await distributorDashboard.getPaymentRelatedStats(req.user);
+        const stats = await distributorDashboard.getPaymentRelatedStats(req.user, req.query.date);
         return res.status(stats?.status || 200).json(stats);
     } catch (error) {
         console.log("Error in getPaymentRelatedStats Controller:", error);

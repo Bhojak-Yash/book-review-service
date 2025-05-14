@@ -749,8 +749,15 @@ class distributorDashboard {
     }
 
     //KPIs API.......
-    async getDashboardStatsToday(tokenData) {
+    async getDashboardStatsToday(tokenData, dateString) {
         try {
+            // If date is passed, use it; otherwise, use today's date
+            const date = dateString ? new Date(dateString) : new Date();
+            const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+            startOfDay.setMinutes(startOfDay.getMinutes() + 330);
+
+            const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+            endOfDay.setMinutes(endOfDay.getMinutes() + 330);
             // console.log("toeknData : ", tokenData);
             const [
                 topProductsResult,
@@ -760,12 +767,12 @@ class distributorDashboard {
                 newlyOnboardedCount,
                 countExpiringSoon,
             ] = await Promise.all([
-                module.exports.getTopProductsToday(tokenData),
-                module.exports.getTop_Three_Cities(tokenData),
-                module.exports.getPayments_Collected_Today(tokenData),
-                module.exports.getCancelledOrdersCount(tokenData),
-                module.exports.getRecentApprovedAuthorizations(tokenData),
-                module.exports.getExpiringMedicinesSoon(tokenData),
+               this.getTopProductsToday(tokenData, startOfDay, endOfDay),
+               this.getTop_Three_Cities(tokenData, startOfDay, endOfDay),
+               this.getPayments_Collected_Today(tokenData, startOfDay, endOfDay),
+               this.getCancelledOrdersCount(tokenData, startOfDay, endOfDay),
+               this.getRecentApprovedAuthorizations(tokenData, startOfDay, endOfDay),
+               this.getExpiringMedicinesSoon(tokenData, startOfDay, endOfDay),
 
             ]);
 
@@ -773,8 +780,8 @@ class distributorDashboard {
                 status: 200,
                 message: "Dashboard stats for today fetched successfully.",
                 data: {
-                    topProducts: topProductsResult.data || 0,
-                    topCities: topCitiesResult.data || 0,
+                    topProducts: topProductsResult.data || [],
+                    topCities: topCitiesResult.data || [],
                     totalAmountReceivedToday: paymentsCollectedResult.data.totalAmountReceived || 0,
                     failedDispatches: cancelledOrders.cancelledOrdersCount || 0,
                     newlyOnboarded: newlyOnboardedCount.data.recentApprovedCount,
@@ -789,9 +796,8 @@ class distributorDashboard {
             };
         }
     }
-
         //KPI functions....Start.................
-        async getTopProductsToday(tokenData) {
+        async getTopProductsToday(tokenData, startOfDay, endOfDay) {
             try {
 
                 let ownerId = tokenData.id;
@@ -799,16 +805,17 @@ class distributorDashboard {
                     ownerId = tokenData.data.employeeOf;
                 }
 
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
 
                 const topProducts = await db.orderitems.findAll({
                     attributes: [
                         'PId',
-                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderitems.Quantity')), 'totalQuantity']
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderitems.Quantity')), 'totalQuantity'],
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('orderitems.netAmt')), 'amount']
                     ],
                     include: [
                         {
@@ -824,11 +831,11 @@ class distributorDashboard {
                         },
                         {
                             model: db.products,
-                            as: 'products',
+                            as: 'product',
                             attributes: ['PName']
                         }
                     ],
-                    group: ['PId', 'products.PName'],
+                    group: ['PId', 'product.PName'],
                     order: [[db.Sequelize.literal('totalQuantity'), 'DESC']],
                     limit: 1
                 });
@@ -843,9 +850,12 @@ class distributorDashboard {
 
                 const result = topProducts.map(item => ({
                     PId: item.PId,
-                    PName: item.products?.PName,
-                    totalQuantity: item.get('totalQuantity')
+                    PName: item.product?.PName || "Unnamed Product",
+                    totalQuantity: parseInt(item.get('totalQuantity')),
+                    amount: parseFloat(item.get('amount'))
                 }));
+                
+                // console.log("🔝 Top Product Today:", result[0]); 
 
                 return {
                     status: 200,
@@ -869,11 +879,11 @@ class distributorDashboard {
                     ownerId = tokenData.data.employeeOf;
                 }
 
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
 
                 const orderItems = await db.orderitems.findAll({
                     attributes: [
@@ -883,7 +893,7 @@ class distributorDashboard {
                     include: [
                         {
                             model: db.orders,
-                            as: 'order',
+                            as: 'orders',
                             attributes: ['id', 'orderFrom'],
                             where: {
                                 createdAt: {
@@ -894,7 +904,7 @@ class distributorDashboard {
                             required: true
                         }
                     ],
-                    group: ['PId', 'order.id', 'order.orderFrom'],
+                    group: ['PId', 'orders.id', 'orders.orderFrom'],
                     raw: true
                 });
 
@@ -911,10 +921,10 @@ class distributorDashboard {
                     }
 
                     productTotals[key].totalQuantity += parseInt(item.totalQuantity);
-                    if (item['order.orderFrom'] && item['order.id']) {
+                    if (item['orders.orderFrom'] && item['orders.id']) {
                         productTotals[key].orders.push({
-                            orderFrom: item['order.orderFrom'],
-                            orderId: item['order.id']
+                            orderFrom: item['orders.orderFrom'],
+                            orderId: item['orders.id']
                         });
                     }
                 }
@@ -979,7 +989,7 @@ class distributorDashboard {
                 };
             }
         }
-        async getPayments_Collected_Today(tokenData) {
+        async getPayments_Collected_Today(tokenData, startOfDay, endOfDay) {
             try {
 
                 let ownerId = tokenData.id;
@@ -987,11 +997,11 @@ class distributorDashboard {
                     ownerId = tokenData.data.employeeOf;
                 }
 
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
 
                 // Step 1: Get today's orders where orderTo = tokenData.id
                 const orders = await db.orders.findAll({
@@ -1189,18 +1199,27 @@ class distributorDashboard {
 
 
     //SO PO related Card Data API....
-    async getPaymentRelatedStats(tokenData) {
+    async getPaymentRelatedStats(tokenData, dateString) {
         try {
+            // If date is passed, use it; otherwise, use today's date
+            const date = dateString ? new Date(dateString) : new Date();
+            
+            const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+            startOfDay.setMinutes(startOfDay.getMinutes() + 330); 
+
+            const endOfDay = new Date(date.setHours(23, 59, 59, 999)); 
+            endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
             const [
                 paymentCollected,
                 soReceivedToday,
                 soProcessedToday,
                 pendingSo,
             ] = await Promise.all([
-                module.exports.paymentsCollected(tokenData),
-                module.exports.getOrdersReceivedToday(tokenData),
-                module.exports.getNonPendingOrdersReceivedToday(tokenData),
-                module.exports.getPendingOrdersReceivedToday(tokenData),
+                this.paymentsCollected(tokenData, startOfDay, endOfDay),
+                this.getOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.getNonPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
+                this.getPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay),
             ]);
 
             return {
@@ -1222,7 +1241,7 @@ class distributorDashboard {
         }
     }
         //So PO functions....Start.................
-        async paymentsCollected(tokenData) {
+        async paymentsCollected(tokenData, startOfDay, endOfDay) {
             try {
                 let ownerId = tokenData.id;
                 if (tokenData?.userType === 'Employee') {
@@ -1230,16 +1249,16 @@ class distributorDashboard {
                 }
 
                 // ----- TODAY -----
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
-                startOfDay.setHours(startOfDay.getHours() + 5);
-                startOfDay.setMinutes(startOfDay.getMinutes() + 30);
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
+                // startOfDay.setHours(startOfDay.getHours() + 5);
+                // startOfDay.setMinutes(startOfDay.getMinutes() + 30);
                 console.log("Today start date",startOfDay);
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
-                endOfDay.setHours(endOfDay.getHours() + 5);
-                endOfDay.setMinutes(endOfDay.getMinutes() + 30);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
+                // endOfDay.setHours(endOfDay.getHours() + 5);
+                // endOfDay.setMinutes(endOfDay.getMinutes() + 30);
                 console.log("Today end date",endOfDay);
 
                 // ----- YESTERDAY -----
@@ -1276,7 +1295,7 @@ class distributorDashboard {
                     attributes: ['id'],
                     raw: true,
                 });
-                console.log(startOfYesterday)
+                // console.log(startOfYesterday)
 
                 const yesterdayOrderIds = yesterdayOrders.map(order => order.id);
 
@@ -1341,8 +1360,7 @@ class distributorDashboard {
                 };
             }
         }
-
-        async getOrdersReceivedToday(tokenData) {
+        async getOrdersReceivedToday(tokenData, startOfDay, endOfDay) {
             try {
                 let ownerId = tokenData.id;
 
@@ -1351,13 +1369,13 @@ class distributorDashboard {
                 }
 
                 // ----- TODAY -----
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
-                startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
+                // startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
-                endOfDay.setMinutes(endOfDay.getMinutes() + 330); // Add 5.5 hrs
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
+                // endOfDay.setMinutes(endOfDay.getMinutes() + 330); // Add 5.5 hrs
 
                 // ----- YESTERDAY -----
                 const startOfYesterday = new Date(startOfDay);
@@ -1435,8 +1453,7 @@ class distributorDashboard {
                 };
             }
         }
-
-        async getNonPendingOrdersReceivedToday(tokenData) {
+        async getNonPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay) {
             try {
                 let ownerId = tokenData.id;
 
@@ -1445,13 +1462,14 @@ class distributorDashboard {
                 }
 
                 // Start & End of Today (IST)
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
-                startOfDay.setMinutes(startOfDay.getMinutes() + 330); 
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
+                // startOfDay.setMinutes(startOfDay.getMinutes() + 330); 
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
-                endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
+                // endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+
 
                 // Start & End of Yesterday
                 const startOfYesterday = new Date(startOfDay);
@@ -1537,8 +1555,7 @@ class distributorDashboard {
                 };
             }
         }     
-
-        async getPendingOrdersReceivedToday(tokenData) {
+        async getPendingOrdersReceivedToday(tokenData, startOfDay, endOfDay) {
             try {
                 let ownerId = tokenData.id;
 
@@ -1547,13 +1564,13 @@ class distributorDashboard {
                 }
 
                 // IST time range for today
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
-                startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
+                // const startOfDay = new Date();
+                // startOfDay.setHours(0, 0, 0, 0);
+                // startOfDay.setMinutes(startOfDay.getMinutes() + 330); // Add 5.5 hrs
 
-                const endOfDay = new Date();
-                endOfDay.setHours(23, 59, 59, 999);
-                endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+                // const endOfDay = new Date();
+                // endOfDay.setHours(23, 59, 59, 999);
+                // endOfDay.setMinutes(endOfDay.getMinutes() + 330);
 
                 // IST time range for yesterday
                 const startOfYesterday = new Date(startOfDay);
@@ -1634,10 +1651,10 @@ class distributorDashboard {
                 };
             }
         }
-
         //So PO functions....end.................
 
 
+    
     
 }
 module.exports = new distributorDashboard(db);

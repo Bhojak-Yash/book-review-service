@@ -62,14 +62,28 @@ exports.updateNotificationStatus = async (notificationId, status) => {
     }
 };
 
-exports.getNotifications = async (organisationId) => {
+exports.getNotifications = async (organisationId, limit = 10, page = 1) => {
     try {
-        const notifications = await db.notifications.findAll({
-            where: { organisationId: organisationId },
-            order: [['createdAt', 'DESC']] // Latest notifications first
+        const offset = (page - 1) * limit;
+        const { count = 0, rows = [] } = await db.notifications.findAndCountAll({
+            where:{
+                organisationId: organisationId ,
+                status: { [db.Sequelize.Op.ne]: 'Read' }
+            },
+            order: [['createdAt', 'DESC']], // Latest notifications first
+            limit: parseInt(limit),
+            offset: parseInt(offset)
         });
 
-        return notifications;
+        const totalPages = count > 0 ? Math.ceil(count / limit) : 0;
+
+
+        return {
+            currentPage: page,
+            totalPages,
+            totalCount: count,
+            notifications: rows,
+        };
     } catch (error) {
         console.error("getNotificationsByOrganisation error:", error.message);
         throw new Error("Error fetching notifications");
