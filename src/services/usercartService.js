@@ -2,17 +2,17 @@ const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
 
-const getData = async(userType,id)=>{
+const getData = async (userType, id) => {
     // console.log(userType,id)
-if(userType==='Manufacturer'){
-    return await db.manufacturers.findOne({attributes:['manufacturerId','companyName'],where:{manufacturerId:Number(id)}})
-}else if(userType === 'Distributor'){
-    return await db.distributors.findOne({attributes:['distributorId','companyName'],where:{distributorId:Number(id)}})
-}else if(userType === 'Retailer'){
-    return await db.retailers.findOne({attributes:['retailerId','firmName'],where:{retailerId:Number(id)}})
-}else if(userType === 'Employee'){
-    return await db.employees.findOne({attributes:['employeeId','firstName','lastName'],where:{employeeId:Number(id)}})
-}
+    if (userType === 'Manufacturer') {
+        return await db.manufacturers.findOne({ attributes: ['manufacturerId', 'companyName'], where: { manufacturerId: Number(id) } })
+    } else if (userType === 'Distributor') {
+        return await db.distributors.findOne({ attributes: ['distributorId', 'companyName'], where: { distributorId: Number(id) } })
+    } else if (userType === 'Retailer') {
+        return await db.retailers.findOne({ attributes: ['retailerId', 'firmName'], where: { retailerId: Number(id) } })
+    } else if (userType === 'Employee') {
+        return await db.employees.findOne({ attributes: ['employeeId', 'firstName', 'lastName'], where: { employeeId: Number(id) } })
+    }
 }
 
 class UsersCartService {
@@ -22,7 +22,7 @@ class UsersCartService {
 
     async addToCart(data) {
         try {
-            const { id, quantity, SId, orderTo,PId } = data
+            const { id, quantity, SId, orderTo, PId } = data
             // console.log(data,'check usercart')
             // console.log(id,quantity,SId,orderTo,';;;;;;;')
             if (!id || !String(quantity) || !SId || !orderTo) {
@@ -31,11 +31,11 @@ class UsersCartService {
                     message: 'Invalid data'
                 }
             }
-// console.log(data)
-            let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) },})
+            // console.log(data)
+            let check = await db.usercarts.findOne({ where: { orderFrom: Number(id), stockId: Number(SId), orderTo: Number(orderTo) }, })
             // console.log(check)
             if (check) {
-                if(quantity==0){
+                if (quantity == 0) {
                     await db.usercarts.destroy({
                         where: {
                             id: Number(check.id),
@@ -58,7 +58,7 @@ class UsersCartService {
                     orderFrom: Number(id),
                     orderTo: Number(orderTo),
                     quantity: Number(quantity),
-                    PId:Number(PId)
+                    PId: Number(PId)
                 })
                 return {
                     status: message.code200,
@@ -137,20 +137,20 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            const { id,userType,manufacturerId } = data
+            const { id, userType, manufacturerId } = data
             console.log(data)
             // const userData = awa
             let distributor;
             let manufacturer;
 
-            const user =  await db.users.findOne({
-                where: { id: manufacturerId},
-                attributes : ['userType'],
+            const user = await db.users.findOne({
+                where: { id: manufacturerId },
+                attributes: ['userType'],
             });
-           let orderTo_UserType = user?.userType;
+            let orderTo_UserType = user?.userType;
 
             // Fetch all items in the cart for the logged-in user
-            if(orderTo_UserType === 'Manufacturer'){
+            if (orderTo_UserType === 'Manufacturer') {
                 [manufacturer] = await db.sequelize.query(
                     `SELECT 
                     mn.manufacturerId, 
@@ -182,7 +182,7 @@ class UsersCartService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
-            }else{
+            } else {
                 [manufacturer] = await db.sequelize.query(
                     `SELECT 
                     mn.distributorId, 
@@ -218,8 +218,8 @@ class UsersCartService {
                     }
                 );
             }
-            
-            if(userType==='retailer' || userType === 'Retailer'){
+
+            if (userType === 'retailer' || userType === 'Retailer') {
                 [distributor] = await db.sequelize.query(
                     `SELECT 
                         mn.retailerId, 
@@ -254,10 +254,10 @@ class UsersCartService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
-            }else{
-                console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[',manufacturerId,id)
-           const [distributorr] = await db.sequelize.query(
-                `SELECT 
+            } else {
+                console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[', manufacturerId, id)
+                const [distributorr] = await db.sequelize.query(
+                    `SELECT 
                     mn.distributorId, 
                     mn.companyName,
                     mn.profilePic,
@@ -282,38 +282,38 @@ class UsersCartService {
                    ON ad.userId = mn.distributorId
                  WHERE mn.distributorId = :id
                  GROUP BY mn.distributorId, mn.companyName`,
-                {
-                    replacements: {
-                        manufacturerId: Number(manufacturerId),
-                        id: Number(id),
-                    },
-                    type: db.Sequelize.QueryTypes.SELECT,
-                }
-            );
-            distributor=distributorr
-                console.log(distributorr,'\\\\\\\\\\\\\\\\\\')
-        }
-        // console.log(distributor,';;;;;;;;;;;;;')
-            let orderFromData =await getData(data?.userType,id)
-            const tableName = manufacturer?.userType==='Manufacturer'? db.manufacturerStocks : db.stocks;
-            const assss= manufacturer?.userType==='Manufacturer'?"stockDetailss" : "stockDetails";
-            const attr = manufacturer?.userType==='Manufacturer'?['MRP','BatchNo',"Scheme",'Stock','PTS']:['MRP','BatchNo',"Scheme",'Stock','PTS','PTR']
+                    {
+                        replacements: {
+                            manufacturerId: Number(manufacturerId),
+                            id: Number(id),
+                        },
+                        type: db.Sequelize.QueryTypes.SELECT,
+                    }
+                );
+                distributor = distributorr
+                console.log(distributorr, '\\\\\\\\\\\\\\\\\\')
+            }
+            // console.log(distributor,';;;;;;;;;;;;;')
+            let orderFromData = await getData(data?.userType, id)
+            const tableName = manufacturer?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
+            const assss = manufacturer?.userType === 'Manufacturer' ? "stockDetailss" : "stockDetails";
+            const attr = manufacturer?.userType === 'Manufacturer' ? ['MRP', 'BatchNo', "Scheme", 'Stock', 'PTS'] : ['MRP', 'BatchNo', "Scheme", 'Stock', 'PTS', 'PTR']
             // console.log(assss)
             const cartItems = await db.usercarts.findAll({
                 where: {
                     orderFrom: Number(id),
-                    orderTo:Number(manufacturerId)
+                    orderTo: Number(manufacturerId)
                 },
                 include: [
                     {
-                        model: db.products, 
+                        model: db.products,
                         as: "productDetails",
-                        attributes: ["PName","SaltComposition",'ProductForm','PackagingDetails'], 
+                        attributes: ["PName", "SaltComposition", 'ProductForm', 'PackagingDetails'],
                     },
                     {
-                        model:tableName,
-                        as:assss,
-                        attributes:attr
+                        model: tableName,
+                        as: assss,
+                        attributes: attr
                     }
                 ],
             });
@@ -336,38 +336,58 @@ class UsersCartService {
             console.log("Tax Type:", taxType);
             //.......................................................................................................
             let isManufacturer = false;
-            if (manufacturer?.userType === 'Manufacturer'){
+            if (manufacturer?.userType === 'Manufacturer') {
                 isManufacturer = true;
             }
             console.log("isManufacturer", isManufacturer);
             // console.log("PTR", PTR);
             // console.log("PTS", PTS);
             // let totalAmount = 0
-            const updateCart = await cartItems.map((item)=>{
-                // console.log(item)
-                // totalAmount+= (Number(item.stockDetails.MRP)*Number(item.quantity))
-                return {
-                    "id":item?.id,
-                    "quantity":item?.quantity,
-                    "stockId":item?.stockId,
-                    "PId":item?.PId,
-                    "orderFrom":item?.orderFrom,
-                    "orderTo":item?.orderTo,
-                    "createdAt":item?.createdAt,
-                    "PName":item?.productDetails?.PName,
-                    "SaltComposition":item?.productDetails?.SaltComposition,
-                    "MRP":item?.stockDetails?.MRP || item?.stockDetailss?.MRP,
-                    "PTR": isManufacturer ? item?.stockDetailss?.PTS : item?.stockDetails?.PTR || 0,
-                    "isManufacturer": isManufacturer,
-                    // "PTS":item?.stockDetails?.PTS || item?.stockDetailss?.PTS || 0,
-                    "scheme":item?.stockDetails?.Scheme || item?.stockDetailss?.Scheme || null,
-                    "BatchNo":item?.stockDetails?.BatchNo || item?.stockDetailss?.BatchNo,
-                    "stock":item?.stockDetails?.Stock || item?.stockDetailss?.Stock,
-                    "ProductForm":item?.productDetails?.ProductForm,
-                    "PackagingDetails":item?.productDetails?.PackagingDetails
-                    // "amount":(Number(item.quantity)*Number(item.stockDetails.MRP))
+            const updateCartt = await Promise.all(cartItems.map(async (item) => {
+                const aass = item?.stockDetailss?.Stock || item?.stockDetails?.Stock || 0;
+                console.log(aass);
+
+                if (aass <= 0) {
+                    console.log('check other stock with same pid and BatchNo and organisationId');
+                    const BatchNo = item?.stockDetails?.BatchNo || item?.stockDetailss?.BatchNo;
+                    const checkOtherStock = await tableName.findOne({
+                        where: {
+                            PId: item?.PId,
+                            BatchNo: BatchNo,
+                            organisationId: Number(manufacturerId),
+                            Stock: { [db.Op.gt]: 0 }
+                        }
+                    });
+
+                    if (!checkOtherStock) {
+                        return null;
+                    }
                 }
-            })
+
+                return {
+                    id: item?.id,
+                    quantity: item?.quantity,
+                    stockId: item?.stockId,
+                    PId: item?.PId,
+                    orderFrom: item?.orderFrom,
+                    orderTo: item?.orderTo,
+                    createdAt: item?.createdAt,
+                    PName: item?.productDetails?.PName,
+                    SaltComposition: item?.productDetails?.SaltComposition,
+                    MRP: item?.stockDetails?.MRP || item?.stockDetailss?.MRP,
+                    PTR: isManufacturer ? item?.stockDetailss?.PTS : item?.stockDetails?.PTR || 0,
+                    isManufacturer: isManufacturer,
+                    scheme: item?.stockDetails?.Scheme || item?.stockDetailss?.Scheme || null,
+                    BatchNo: item?.stockDetails?.BatchNo || item?.stockDetailss?.BatchNo,
+                    stock: item?.stockDetails?.Stock || item?.stockDetailss?.Stock,
+                    ProductForm: item?.productDetails?.ProductForm,
+                    PackagingDetails: item?.productDetails?.PackagingDetails
+                };
+            }));
+
+            // Filter out nulls if any were returned (i.e., when checkOtherStock was falsy)
+            const updateCart = updateCartt.filter(Boolean);
+
 
             // Check if the cart is empty
             if (!cartItems.length) {
@@ -375,7 +395,7 @@ class UsersCartService {
                     return {
                         status: message.code200,
                         message: "Your cart is empty.",
-                        manufacturer:manufacturer,
+                        manufacturer: manufacturer,
                         retailer: distributor, // Send data in `retailers` key
                         cart: [],
                     };
@@ -383,38 +403,38 @@ class UsersCartService {
                     return {
                         status: message.code200,
                         message: "Your cart is empty.",
-                        manufacturer:manufacturer,
+                        manufacturer: manufacturer,
                         distributor: distributor, // Send data in `distributor` key
                         cart: [],
                     };
                 }
-                
+
             }
-            if(userType==='Retailer'){
+            if (userType === 'Retailer') {
                 // console.log('ppppppppppppppppretailers',manufacturer,distributor)
                 return {
                     status: message.code200,
                     message: "Cart fetched successfully.",
-                    manufacturer:manufacturer,
-                    retailer:distributor,
+                    manufacturer: manufacturer,
+                    retailer: distributor,
                     cart: updateCart,
-                    userType:data?.userType,
-                    orderFrom:orderFromData
+                    userType: data?.userType,
+                    orderFrom: orderFromData
                 };
             }
             return {
                 status: message.code200,
                 message: "Cart fetched successfully.",
-                manufacturer:manufacturer,
+                manufacturer: manufacturer,
                 distributor,
                 cart: updateCart,
-                userType:data?.userType,
-                orderFrom:orderFromData,
+                userType: data?.userType,
+                orderFrom: orderFromData,
                 taxType
             };
         } catch (error) {
             console.error("getUserCart servcie error:", error);
-            return { status:message.code500, message: error.message };
+            return { status: message.code500, message: error.message };
         }
     }
 }

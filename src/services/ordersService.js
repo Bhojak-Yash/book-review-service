@@ -373,7 +373,7 @@ class OrdersService {
                   transaction: t, // Use the transaction
                 }
               );
-              console.log(orderFromRow)
+              // console.log(item,stock,order?.dataValues?.orderFrom,order?.dataValues?.orderTo)
               await db.sequelize.query(
                 `INSERT INTO stocks (PId, BatchNo,ExpDate, Stock,createdAt,updatedAt,organisationId,MRP,PTS,PTR,Scheme,BoxQty,loose,purchasedFrom) 
                VALUES (:PId, :BatchNo,:ExpDate ,:itemQuantity,:createdAt,:updatedAt,:organisationId,:MRP,:PTS,:PTR,:Scheme,:BoxQty,:loose,:purchasedFrom) 
@@ -386,7 +386,7 @@ class OrdersService {
                     ExpDate: stock.ExpDate,
                     createdAt: new Date(),
                     updatedAt: new Date(),
-                    organisationId: order.orderFrom,
+                    organisationId: order?.dataValues?.orderFrom,
                     MRP: item.MRP,
                     PTS: item?.PTR,
                     PTR: item?.PTR,
@@ -1285,6 +1285,7 @@ class OrdersService {
         "vehicleNo": order?.vehicleNo,
         "EWayBillNo": order?.EWayBillNo,
         "creditPeriod": order?.creditPeriod,
+        "referralCode":order?.referralCode,
         "orderItems": order?.orderItems?.map((item) => {
           return {
             "id": item?.id,

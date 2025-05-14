@@ -118,6 +118,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         TCS:{
           type:Sequelize.BIGINT
+        },
+        referralCode:{
+          type:Sequelize.STRING
         }
       },
       {
