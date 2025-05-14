@@ -1285,7 +1285,8 @@ class OrdersService {
         "vehicleNo": order?.vehicleNo,
         "EWayBillNo": order?.EWayBillNo,
         "creditPeriod": order?.creditPeriod,
-        "referralCode":order?.referralCode,
+        "referralCode": order?.referralCode,
+        // "dMobile":order?.dMobile,
         "orderItems": order?.orderItems?.map((item) => {
           return {
             "id": item?.id,
@@ -1562,6 +1563,41 @@ class OrdersService {
       //   message: 'Internal server error.'
       // };
       return true;
+    }
+  }
+
+  async remove_order_item(data) {
+    try {
+      const { id, itemId, orderId, userType } = data
+      const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
+      const checkOrder = await db.orders.findOne({
+        where: {
+          id: Number(orderId),
+          [db.Op.or]: [
+            { orderTo: Number(checkId) },
+            { orderFrom: Number(checkId) }
+          ]
+        }
+      });
+      if(!checkOrder){
+        return {
+          status:message.code400,
+          message:'You are not authorized'
+        }
+      }
+      await db.orderitems.destroy({
+        where:{id:Number(itemId)}
+      })
+      return {
+        status:message.code200,
+        message:message.message200
+      }
+    } catch (error) {
+      console.log('remove_order_item service error:', error.message)
+      return {
+        status: message.code500,
+        message: message.message500
+      }
     }
   }
 
