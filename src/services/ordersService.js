@@ -1285,6 +1285,7 @@ class OrdersService {
         "vehicleNo": order?.vehicleNo,
         "EWayBillNo": order?.EWayBillNo,
         "creditPeriod": order?.creditPeriod,
+        "referralCode":order?.referralCode,
         "orderItems": order?.orderItems?.map((item) => {
           return {
             "id": item?.id,
