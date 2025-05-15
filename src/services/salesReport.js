@@ -217,8 +217,9 @@ class DoctorsService {
 
             // Fetching sales data from stocksReport
             const salesData = await stocksReport(tokenData.id, startOfDay, endOfDay);
+            const stockAdded = await StockAdded(tokenData, startOfDay, endOfDay);
+            const stockSold = await StockSold(tokenData, startOfDay, endOfDay);
 
-            console.log(salesData);
             // Check if salesData and salesData.data are defined
             if (!salesData) {
                 throw new Error('Sales data is not available');
@@ -230,7 +231,9 @@ class DoctorsService {
                 message: 'Stock Metrics for today fetched successfully.',
                 data: {
                     openingStock: salesData?.openingStocks,
-                    closingStock: salesData?.closingStocks
+                    closingStock: salesData?.closingStocks,
+                    stockAdded: stockAdded?.data,
+                    stockSold : stockSold?.data
                 }
             };
         } catch (error) {
@@ -456,5 +459,126 @@ const stocksReport = async (id,startDate,endDate) => {
         return null
     }
 }
+const StockAdded = async (tokenData, startDate, endDate) => {
+    try {
+        let ownerId = tokenData.id;
+        if (tokenData.userType === 'Employee') {
+            ownerId = tokenData.data.employeeOf;
+        }
+
+        const stockModel = tokenData.userType === 'Manufacturer'
+            ? db.manufacturerStocks
+            : db.stocks;
+
+        const priceField = tokenData.userType === 'Manufacturer' ? 'PTS' : 'PTR';
+
+        const stockData = await stockModel.findAll({
+            where: {
+                organisationId: ownerId,
+                createdAt: {
+                    [Op.between]: [startDate, endDate],
+                },
+            },
+            attributes: ['Stock', priceField],
+            raw: true
+        });
+
+        let totalStockCount = 0;
+        let totalPriceSum = 0;
+
+        for (const item of stockData) {
+            const stock = item.Stock || 0;
+            const price = item[priceField] || 0;
+            totalStockCount += stock;
+            totalPriceSum += stock * price;
+        }
+
+        return {
+            status: 200,
+            message: 'Stock Added fetched successfully.',
+            data: {
+                totalStockCount,
+                priceSum: totalPriceSum,
+                // priceFieldUsed: priceField
+            }
+        };
+
+    } catch (error) {
+        console.error('❌ Error in StockAdded:', error.message);
+        return {
+            status: 500,
+            message: 'Internal Server Error',
+            error: error.message,
+        };
+    }
+}
+const StockSold = async (tokenData, startDate, endDate) => {
+    try {
+        let ownerId = tokenData.id;
+        if (tokenData.userType === 'Employee') {
+            ownerId = tokenData.data.employeeOf;
+        }
+
+        const orderList = await db.orders.findAll({
+            where: {
+                orderTo: ownerId,
+                createdAt: {
+                    [Op.between]: [startDate, endDate],
+                },
+            },
+            attributes: ['id'],
+            raw: true
+        });
+
+        const orderIds = orderList.map(order => order.id);
+        if (orderIds.length === 0) {
+            return {
+                status: 400,
+                message: 'No orders found for today.',
+                data: {
+                    totalStockCount: 0,
+                    priceSum: 0
+                }
+            };
+        }
+
+        const orderItems = await db.orderitems.findAll({
+            where: {
+                orderId: { [Op.in]: orderIds }
+            },
+            attributes: ['quantity', 'price'],
+            raw: true
+        });
+
+        let totalStockCount = 0;
+        let totalPriceSum = 0;
+
+        for (const item of orderItems) {
+            const quantity = item.quantity || 0;
+            const price = item.price || 0;
+
+            totalStockCount += quantity;
+            totalPriceSum += quantity * price;
+        }
+
+        return {
+            status: 200,
+            message: 'Stock Sold fetched successfully.',
+            data: {
+                totalStockCount,
+                priceSum: totalPriceSum
+            }
+        };
+
+    } catch (error) {
+        console.error('❌ Error in StockSold:', error.message);
+        return {
+            status: 500,
+            message: 'Internal Server Error',
+            error: error.message,
+        };
+    }
+}
+
 
 module.exports = new DoctorsService(db);
