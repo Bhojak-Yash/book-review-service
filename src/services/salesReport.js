@@ -15,8 +15,8 @@ class DoctorsService {
             const startDate = moment(start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const endDate = moment(end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
             const users = await db.distributors.findAll({
-                attributes:['distributorId','email','companyName'],
-                where:{mailstats:true}
+                attributes: ['distributorId', 'email', 'companyName'],
+                where: { mailstats: true }
             })
             // console.log(startDate,endDate,data,';;;;;;;;;;;;;;;;;;;;;;;')
             // const userIds = users.map((item) => { return item?.distributorId })
@@ -29,27 +29,27 @@ class DoctorsService {
                     const collections = await totalCollections(item?.distributorId, startDate, endDate);
                     const totalPayout = await totalPayouts(item?.distributorId, startDate, endDate);
                     const stocksReports = await stocksReport(item?.distributorId, startDate, endDate);
-                    const id=item?.distributorId
+                    const id = item?.distributorId
                     // console.log(purchase,';;;;',id);
                     // return {id ,sales, purchase, totalSales, totalpurchase,collections,totalPayout,stocksReports };
                     return {
-                        userId:id,
-                        companyName:item?.companyName,
-                        email:item?.email,
-                        salesOpeningTime:sales?.salesOpening?.confirmationDate || null,
-                        salesOpeningInv:sales?.salesOpening?.invNo || null,
-                        salesClosingTime:sales?.salesClosing?.confirmationDate || null, 
-                        salesClosingInv:sales?.salesClosing?.invNo || null,
-                        purchaseOpeningTime:purchase?.purchaseOpening?.orderDate || null,
-                        purchaseOpeningInv:purchase?.purchaseOpening?.invNo || null,
-                        purchaseClosingTime:purchase?.purchaseClosing?.orderDate || null,
-                        purchaseClosingInv:purchase?.purchaseClosing?.invNo || null,
-                        totalSales:totalSales,
-                        totalpurchase:totalpurchase,
-                        collections:collections,
-                        totalPayout:totalPayout,
-                        openingStocks:stocksReports?.openingStocks || 0,
-                        closingStocks:stocksReports?.closingStocks || 0
+                        userId: id,
+                        companyName: item?.companyName,
+                        email: item?.email,
+                        salesOpeningTime: sales?.salesOpening?.confirmationDate || null,
+                        salesOpeningInv: sales?.salesOpening?.invNo || null,
+                        salesClosingTime: sales?.salesClosing?.confirmationDate || null,
+                        salesClosingInv: sales?.salesClosing?.invNo || null,
+                        purchaseOpeningTime: purchase?.purchaseOpening?.orderDate || null,
+                        purchaseOpeningInv: purchase?.purchaseOpening?.invNo || null,
+                        purchaseClosingTime: purchase?.purchaseClosing?.orderDate || null,
+                        purchaseClosingInv: purchase?.purchaseClosing?.invNo || null,
+                        totalSales: totalSales,
+                        totalpurchase: totalpurchase,
+                        collections: collections,
+                        totalPayout: totalPayout,
+                        openingStocks: stocksReports?.openingStocks || 0,
+                        closingStocks: stocksReports?.closingStocks || 0
                     }
                 })
             );
@@ -64,48 +64,98 @@ class DoctorsService {
         }
     }
 
-    async stocksReport(startDate,endDate){
+    // async stocksReport(startDate,endDate){
+    //     try {
+    //         const users = await db.users.findAll({
+    //             attributes:['id','userType'],
+    //             // where:{userType:{[db.Op.in]:['Manufacturer','Distributor']}}
+    //         })
+    //         console.log(users)
+    //        await users?.map(async(item)=>{
+    //         const data = await db.stocks.sum('Stock',{
+    //             where:{
+    //                 organisationId:Number(item.id)
+    //             }
+    //         })
+    //         const todayStart = new Date();
+    //         todayStart.setHours(0, 0, 0, 0);
+
+    //         const todayEnd = new Date();
+    //         todayEnd.setHours(23, 59, 59, 999);
+
+    //         const existingReport = await db.stocksReport.findOne({
+    //             where: {
+    //                 userId: Number(item.id),
+    //                 createdAt: {
+    //                     [Op.between]: [todayStart, todayEnd]
+    //                 }
+    //             }
+    //         });
+
+    //         if (existingReport) {
+    //             await existingReport.update({ closingStock: Number(data) });
+    //         } else {
+    //             await db.stocksReport.create({
+    //                 userId: Number(item.id),
+    //                 openingStock: Number(data)
+    //             });
+    //         }
+    //        })
+    //         return true
+    //     } catch (error) {
+    //         console.log('stocksReport error:',error.message)
+    //         return null
+    //     }
+    // }
+
+    async stocksReport(startDate, endDate) {
         try {
-            const users = await db.distributors.findAll({
-                attributes:['distributorId','email','companyName'],
-                where:{mailstats:true}
-            })
-           await users?.map(async(item)=>{
-            const data = await db.stocks.sum('Stock',{
-                where:{
-                    organisationId:Number(item.distributorId)
-                }
-            })
+            const users = await db.users.findAll({
+                attributes: ['id', 'userType'],
+                // where: { userType: { [db.Sequelize.Op.in]: ['Manufacturer', 'Distributor'] } }
+            });
+
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
-    
+
             const todayEnd = new Date();
             todayEnd.setHours(23, 59, 59, 999);
-    
-            const existingReport = await db.stocksReport.findOne({
-                where: {
-                    userId: Number(item.distributorId),
-                    createdAt: {
-                        [Op.between]: [todayStart, todayEnd]
+
+            for (const user of users) {
+                const orgId = Number(user.id);
+
+                const totalStock = await db.stocks.sum('Stock', {
+                    where: {
+                        organisationId: orgId
                     }
-                }
-            });
-    
-            if (existingReport) {
-                await existingReport.update({ closingStock: Number(data) });
-            } else {
-                await db.stocksReport.create({
-                    userId: Number(item.distributorId),
-                    openingStock: Number(data)
                 });
+
+                const existingReport = await db.stocksReport.findOne({
+                    where: {
+                        userId: orgId,
+                        createdAt: {
+                            [db.Sequelize.Op.between]: [todayStart, todayEnd]
+                        }
+                    }
+                });
+
+                if (existingReport) {
+                    await existingReport.update({ closingStock: Number(totalStock) });
+                } else {
+                    await db.stocksReport.create({
+                        userId: orgId,
+                        openingStock: Number(totalStock)
+                    });
+                }
             }
-           })
-            return true
+
+            return true;
         } catch (error) {
-            console.log('stocksReport error:',error.message)
-            return null
+            console.error('stocksReport error:', error.message);
+            return null;
         }
     }
+
 
     async operationalMetrics(tokenData, dateString, type) {
         try {
@@ -204,8 +254,8 @@ class DoctorsService {
             };
         }
     }
-    
-    
+
+
 }
 
 const salesOpening = async (id, startDate, endDate) => {
@@ -293,7 +343,7 @@ const totalSlaes = async (id, startDate, endDate) => {
         const total = await db.orders.sum('invAmt', {
             where: {
                 orderTo: id,
-                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                orderStatus: { [db.Op.notIn]: ['Rejected', 'Cancelled'] },
                 confirmationDate: {
                     [Op.between]: [startDate, endDate]
                 }
@@ -311,7 +361,7 @@ const totalPurchase = async (id, startDate, endDate) => {
         const total = await db.orders.sum('invAmt', {
             where: {
                 orderFrom: id,
-                orderStatus:{[db.Op.notIn]:['Rejected','Cancelled']},
+                orderStatus: { [db.Op.notIn]: ['Rejected', 'Cancelled'] },
                 confirmationDate: {
                     [Op.between]: [startDate, endDate]
                 }
@@ -324,32 +374,32 @@ const totalPurchase = async (id, startDate, endDate) => {
     }
 }
 const totalCollections = async (id, startDate, endDate) => {
-        try {
-            const total = await db.payments.sum('amount', {
-                include: [{
-                    model: db.orders,
-                    as: 'order',
-                    attributes: [], // prevent including order.id and others
-                    where: {
-                        orderTo: id,
-                        createdAt: {
-                            [Op.between]: [startDate, endDate]
-                        }
-                    }
-                }],
+    try {
+        const total = await db.payments.sum('amount', {
+            include: [{
+                model: db.orders,
+                as: 'order',
+                attributes: [], // prevent including order.id and others
                 where: {
-                    status: 'Confirmed'
-                },
-                raw: true // ensures plain SQL result
-            });
-            
+                    orderTo: id,
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                }
+            }],
+            where: {
+                status: 'Confirmed'
+            },
+            raw: true // ensures plain SQL result
+        });
 
-            return total || 0; // return 0 if no payments found
 
-        } catch (error) {
-            console.log('totalCollections error:', error.message)
-            return null
-        }
+        return total || 0; // return 0 if no payments found
+
+    } catch (error) {
+        console.log('totalCollections error:', error.message)
+        return null
+    }
 }
 const totalPayouts = async (id, startDate, endDate) => {
     try {
@@ -370,7 +420,7 @@ const totalPayouts = async (id, startDate, endDate) => {
             },
             raw: true // ensures plain SQL result
         });
-        
+
 
         return total || 0; // return 0 if no payments found
 
@@ -379,11 +429,11 @@ const totalPayouts = async (id, startDate, endDate) => {
         return null
     }
 }
-const stocksReport = async (id,startDate,endDate) => {
+const stocksReport = async (id, startDate, endDate) => {
     try {
-        const data = await db.stocks.sum('Stock',{
-            where:{
-                organisationId:Number(id)
+        const data = await db.stocks.sum('Stock', {
+            where: {
+                organisationId: Number(id)
             }
         })
         const todayStart = new Date();
@@ -410,11 +460,11 @@ const stocksReport = async (id,startDate,endDate) => {
             });
         }
         return {
-            openingStocks:existingReport?.openingStock || 0,
-            closingStocks:data || 0
+            openingStocks: existingReport?.openingStock || 0,
+            closingStocks: data || 0
         }
     } catch (error) {
-        console.log('stocksReport error:',error.message)
+        console.log('stocksReport error:', error.message)
         return null
     }
 }
