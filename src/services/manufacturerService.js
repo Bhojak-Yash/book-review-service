@@ -498,7 +498,11 @@ class ManufacturerService {
       if (data?.status) {
         if (data?.status === 'Unpaid') {
           whereCondition.balance = { [Op.gt]: 0 }
-        } else {
+        }else if(data?.status === 'Delivered'){
+          whereCondition.orderStatus={
+            [db.Op.in]:['Inward','Partially paid','Paid']
+          }
+        }else {
           whereCondition.orderStatus = data.status
         }
       }
