@@ -283,7 +283,7 @@ class DoctorsService {
                     openingStock: salesData?.openingStocks,
                     closingStock: salesData?.closingStocks,
                     stockAdded: stockAdded?.data,
-                    stockSold : stockSold?.data
+                    stockSold: stockSold?.data
                 }
             };
         } catch (error) {
@@ -294,9 +294,9 @@ class DoctorsService {
             };
         }
     }
-    
-    
-    
+
+
+
 }
 
 const salesOpening = async (id, startDate, endDate) => {
