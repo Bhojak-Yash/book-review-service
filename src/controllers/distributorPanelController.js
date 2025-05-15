@@ -96,3 +96,14 @@ exports.getSlowMovingMedicines = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+//get Patients and Doctors
+exports.getPatientsAndDoctors = async (req, res) => {
+    try {
+        const stats = await distributorDashboard.getPatientsAndDoctors(req.user, req.query.page, req.query.limit);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in getPatientsAndDoctors Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};

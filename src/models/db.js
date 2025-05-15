@@ -252,6 +252,16 @@ db.orderitems.belongsTo(db.products, {
   as: 'products',
 });
 
+db.retailerSalesHeader.belongsTo(db.patients, {
+  foreignKey: 'patientId',
+  as: 'patients'
+});
+db.retailerSalesHeader.belongsTo(db.doctors, {
+  foreignKey: 'doctorId',
+  as: 'doctors'
+});
+
+
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
 
