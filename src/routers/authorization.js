@@ -9,6 +9,7 @@ router.get('/auth-page-card-data-distributor',verifyToken,authorization.auth_pag
 router.post('/stop-po',verifyToken,authorization.stop_po)
 router.get('/update-auth-request',verifyToken,authorization.update_auth_request)
 router.get('/authorizedBy-users',authorization.authorizedBy_users)
-router.get('/distributor-auth-request-list',verifyToken,authorization.distributor_auth_request_list)
+router.get('/distributor-auth-request-list',verifyToken,authorization.distributor_auth_request_list);
+router.get('/dis-details-card-data',verifyToken,authorization.dis_details_card_data)
 
 module.exports =router

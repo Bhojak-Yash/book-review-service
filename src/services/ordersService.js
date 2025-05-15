@@ -289,8 +289,17 @@ class OrdersService {
               // 5. Update order item with original data
               await db.orderitems.update(item, { where: { id: item.id }, transaction: t });
             }
-          });
+          })
 
+        }
+        const orderFromUserType = await db.users.findOne({ attributes: ['userType'], where: { id: Number(order?.dataValues?.orderFrom) } })
+        console.log('uiiuiuiuuiuiu', orderFromUserType?.dataValues?.userType)
+        if (orderFromUserType?.dataValues?.userType === 'Retailer') {
+          await db.authorizations.upsert({
+            authorizedBy: Number(order?.dataValues?.orderTo),
+            authorizedId: Number(order?.dataValues?.orderFrom),
+            status: 'Approved'
+          });
         }
         // console.log("testttttt");
         // Sending notification for PO Received
@@ -556,6 +565,7 @@ class OrdersService {
           }
         ];
       }
+      
       if (data.start_date && data.end_date) {
         const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
         const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
@@ -564,7 +574,19 @@ class OrdersService {
           [Op.between]: [startDate, endDate]
         };
       }
-      // console.log(whereClause)
+       if (data.status) {
+        if (data.status === 'Unpaid') {
+          whereClause.balance = { [Op.gt]: 0 };
+        }else if(data?.status === 'Delivered'){
+          whereCondition.orderStatus={
+            [db.Op.in]:['Inward','Partially paid','Paid']
+          }
+        }
+         else {
+          whereClause.orderStatus = data.status;
+        }
+      }
+
       const { count, rows: orders } = await db.orders.findAndCountAll({
         attributes: [
           "id",
@@ -675,7 +697,12 @@ class OrdersService {
       if (data.status) {
         if (data.status === 'Unpaid') {
           whereClause.balance = { [Op.gt]: 0 };
-        } else {
+        }else if(data?.status === 'Delivered'){
+          whereClause.orderStatus={
+            [db.Op.in]:['Inward','Partially paid','Paid']
+          }
+        }
+         else {
           whereClause.orderStatus = data.status;
         }
       }
@@ -1286,7 +1313,7 @@ class OrdersService {
         "EWayBillNo": order?.EWayBillNo,
         "creditPeriod": order?.creditPeriod,
         "referralCode": order?.referralCode,
-        // "dMobile":order?.dMobile,
+        "dMobile": order?.dMobile,
         "orderItems": order?.orderItems?.map((item) => {
           return {
             "id": item?.id,
@@ -1579,18 +1606,18 @@ class OrdersService {
           ]
         }
       });
-      if(!checkOrder){
+      if (!checkOrder) {
         return {
-          status:message.code400,
-          message:'You are not authorized'
+          status: message.code400,
+          message: 'You are not authorized'
         }
       }
       await db.orderitems.destroy({
-        where:{id:Number(itemId)}
+        where: { id: Number(itemId) }
       })
       return {
-        status:message.code200,
-        message:message.message200
+        status: message.code200,
+        message: message.message200
       }
     } catch (error) {
       console.log('remove_order_item service error:', error.message)

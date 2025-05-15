@@ -2,7 +2,8 @@ const db = require('../models/db');
 const message = require('../helpers/message')
 const Op = db.Op
 const axios = require('axios')
-const notificationsService = require('../services/notificationsService')
+const notificationsService = require('../services/notificationsService');
+const { includes } = require('lodash');
 class AuthService {
     constructor(db) {
         this.db = db;
@@ -663,7 +664,7 @@ class AuthService {
                     }
                 }
             )
-// console.log(Data)
+            // console.log(Data)
             // const Data = await db.authorizations.findAll({
             //     attributes: ['authorizedBy'],
             //     where: {
@@ -694,9 +695,9 @@ class AuthService {
 
             const finalResult = Data?.map((item) => {
                 return {
-                    "companyName": item.disuser.length>0 ? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
-                    "id": item.disuser.length>0 ? item.disuser[0]?.distributorId : item.manufacturer[0]?.manufacturerId,
-                    "type": item.disuser.length>0 ? item.disuser[0]?.type : 'Manufacturer'
+                    "companyName": item.disuser.length > 0 ? item.disuser[0]?.companyName : item.manufacturer[0]?.companyName,
+                    "id": item.disuser.length > 0 ? item.disuser[0]?.distributorId : item.manufacturer[0]?.manufacturerId,
+                    "type": item.disuser.length > 0 ? item.disuser[0]?.type : 'Manufacturer'
                 }
             })
             return {
@@ -709,6 +710,158 @@ class AuthService {
             return {
                 status: message.code500,
                 message: error.message
+            }
+        }
+    }
+
+    async dis_details_card_data(data) {
+        try {
+            const { id, userId, startDate, endDate, userType } = data
+            const checkId = userType === "Employee" ? Number(data?.data?.employeeOf) : Number(id);
+            const { Op, fn, col, literal } = db.sequelize;
+            let whereClause={
+                    orderTo: Number(checkId),
+                    orderFrom: Number(userId)
+                }
+            let whereReturn = {
+                    returnTo: Number(checkId),
+                    returnFrom: Number(userId)
+                }
+                 if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereClause.orderDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                whereReturn.returnDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
+            //   if (startDate && endDate) {
+            //     whereClause.orderDate = {
+            //         [db.Op.between]: [
+            //             new Date(startDate + " 00:00:00"),
+            //             new Date(endDate + " 23:59:59"),
+            //         ],
+            //     }
+            //     whereReturn.returnDate = {
+            //         [db.Op.between]: [
+            //             new Date(startDate + " 00:00:00"),
+            //             new Date(endDate + " 23:59:59"),
+            //         ],
+            //     };
+            // }
+
+            const userData = await db.users.findOne({
+                where: { id: Number(userId) },
+                attributes: ['id', 'status'],
+                include: [
+                    {
+                        model: db.distributors,
+                        as: 'disuser',
+                        attributes: ['distributorId', 'companyName', 'phone', 'email', 'profilePic', 'GST', 'CIN']
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'reuser',
+                        attributes: ['retailerId', 'firmName', 'phone', 'email', 'profilePic', 'GST', 'CIN']
+                    },
+                    {
+                        model: db.address,
+                        as: 'address',
+                        attributes:['addLine1','addLine2','city','state','addressType']
+                    }
+                ]
+            })
+
+            const orderStats = await db.orders.findAll({
+                attributes: [
+                    [fn('COUNT', col('id')), 'totalOrders'],
+                    [
+                        fn('SUM', literal(`CASE WHEN orderStatus = 'Settled' THEN 1 ELSE 0 END`)),
+                        'completedCount'
+                    ],
+                    [
+                        fn('SUM', literal(`CASE WHEN orderStatus != 'Settled' THEN 1 ELSE 0 END`)),
+                        'pendingCount'
+                    ],
+                    [
+                        fn('SUM', literal(`CASE WHEN balance > 0 THEN 1 ELSE 0 END`)),
+                        'pendingPaymentCount'
+                    ],
+                    [fn('SUM', col('invAmt')), 'totalInvoiceAmount'],
+                    [fn('MAX', col('orderDate')), 'lastOrderDate'],
+                    [fn('MIN', col('orderDate')), 'firstOrderDate'],
+                ],
+                where: whereClause,
+                raw: true
+            });
+
+            const returnStats = await db.returnHeader.findAll({
+                attributes: [
+                    [fn('COUNT', col('returnId')), 'totalReturns'],
+                    [
+                        fn('SUM', literal(`CASE WHEN cNAmt IS NOT NULL THEN 1 ELSE 0 END`)),
+                        'cnIssuedCount'
+                    ],
+                    [
+                        fn('SUM', literal(`CASE WHEN cNAmt IS NOT NULL THEN cNAmt ELSE 0 END`)),
+                        'totalCNAmt'
+                    ]
+                ],
+                where:whereReturn,
+                raw: true
+            });
+
+            const auth = await db.authorizations.findOne({
+                where:{
+                    authorizedBy:Number(checkId),
+                    authorizedId:Number(userId)
+                },
+                attributes:['status']
+            })
+
+            const returnData= {
+                user:{
+                userSince:orderStats?.length>0?orderStats[0]?.firstOrderDate:null,
+                userId:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.distributorId : userData?.dataValues?.reuser[0]?.retailerId || null,
+                companyName:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.companyName : userData?.dataValues?.reuser[0]?.companyName || null,
+                lastOrderDate:orderStats.length>0? orderStats[0]?.lastOrderDate : null,
+                phone :userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.phone : userData?.dataValues?.reuser[0]?.phone || null,
+                email:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.email : userData?.dataValues?.reuser[0]?.email || null,
+                profilePic:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.profilePic : userData?.dataValues?.reuser[0]?.profilePic || null,
+                CIN:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.CIN : userData?.dataValues?.reuser[0]?.CIN || null,
+                GST:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.GST : userData?.dataValues?.reuser[0]?.GST || null,
+                },
+                address:userData?.dataValues?.address,
+                orders:{
+                    allOrders:orderStats?.length>0?orderStats[0]?.totalOrders:0,
+                    completedCount:orderStats?.length>0?orderStats[0]?.completedCount:0,
+                    pendingCount:orderStats?.length>0?orderStats[0]?.pendingCount:0,
+                    pendingPayment:orderStats?.length>0?orderStats[0]?.pendingPaymentCount:0,
+                    totalInvoiceAmount:orderStats?.length>0?orderStats[0]?.totalInvoiceAmount:0,
+                },
+                returns:{
+                    totalReturns:returnStats?.length>0?returnStats[0]?.totalReturns:0,
+                    cnIssuedCount:returnStats?.length>0?returnStats[0]?.cnIssuedCount:0,
+                    totalCNAmt:returnStats?.length>0?returnStats[0]?.totalCNAmt:0,
+                },
+                authStatus:auth?auth?.dataValues?.status:'Not Send'
+                }
+            return { 
+                status:message.code200,
+                message:message.message200,
+                apiData:returnData
+             }
+        } catch (error) {
+            console.log('dis_details_card_data service error:', error.message)
+            return {
+                status: message.code500,
+                message: message.message500
             }
         }
     }

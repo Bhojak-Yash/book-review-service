@@ -509,8 +509,29 @@ class DistributorService {
 
     async po_page_data(data) {
         try {
-            const { id } = data;
+            const { id ,startDate,endDate} = data;
             const userId = Number(id);
+            let whereCondition = { orderFrom: userId }
+            let whereauth =  { authorizedBy: userId, status: "Approved" }
+            let wherePending = { authorizedBy: userId, status: "Pending" }
+
+             if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereCondition.orderDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                whereauth.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                wherePending.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
 
             // Parallelizing queries for better performance
             const [orderStats, retailerCounts, pendingAuthorizations] = await Promise.all([
@@ -521,7 +542,7 @@ class DistributorService {
                         [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                     ],
-                    where: { orderFrom: userId },
+                    where: whereCondition,
                     raw: true,
                 }),
 
@@ -531,7 +552,7 @@ class DistributorService {
                         "retailers.companyType",
                         [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
                     ],
-                    where: { authorizedBy: userId, status: "Approved" },
+                    where:whereauth,
                     include: [
                         {
                             model: db.retailers,
@@ -544,7 +565,7 @@ class DistributorService {
                 }),
 
                 // Count pending authorizations
-                db.authorizations.count({ where: { authorizedBy: userId, status: "Pending" } }),
+                db.authorizations.count({ where: wherePending }),
             ]);
 
 
@@ -575,7 +596,29 @@ class DistributorService {
 
     async so_page_data(data) {
         try {
+             const { startDate,endDate} = data;
             const id = Number(data.id)
+            let whereCondition = { orderTo: id }
+            let whereauth =  {
+                    authorizedBy: id,
+                    status: "Approved"
+                }
+            // let wherePending = { authorizedBy: userId, status: "Pending" }
+
+             if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereCondition.orderDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                whereauth.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
             const result = await db.orders.findOne({
                 attributes: [
                     [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
@@ -583,7 +626,7 @@ class DistributorService {
                     [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                     [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                 ],
-                where: { orderTo: id },
+                where: whereCondition,
                 raw: true
             });
 
@@ -610,10 +653,7 @@ class DistributorService {
                         required: true // Ensures only matching users are counted
                     }
                 ],
-                where: {
-                    authorizedBy: id, // Replace with actual ID
-                    status: "Approved"
-                },
+                where: whereauth,
                 raw: true
             });
 
@@ -635,6 +675,10 @@ class DistributorService {
             }
         } catch (error) {
             console.log('so_page_data service error:', error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
         }
     }
     async distributor_profile(data) {
