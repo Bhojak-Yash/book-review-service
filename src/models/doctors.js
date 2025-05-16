@@ -42,6 +42,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "balance":{
             type:Sequelize.DOUBLE
+        },
+        "userStatus":{
+            type:Sequelize.ENUM("Active",'Inactive')
         }
     },
 

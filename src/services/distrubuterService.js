@@ -1708,7 +1708,7 @@ class DistributorService {
     async delete_document(data) {
         try {
             const { id, documentId } = data
-            // console.log(id,documentId)
+            console.log(id,documentId)
             await db.documents.update({ isDeleted: true }, { where: { documentId: Number(documentId), userId: Number(id) } })
             return {
                 status: message.code200,

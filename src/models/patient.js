@@ -66,6 +66,9 @@ module.exports =(sequelize,Sequelize)=>{
         "retailerId":{
             type:Sequelize.INTEGER,
             allowNull: false,
+        },
+        "userStatus":{
+            type:Sequelize.ENUM("Active",'Inactive')
         }
     },
 

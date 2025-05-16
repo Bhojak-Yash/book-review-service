@@ -205,12 +205,12 @@ class ManufacturerService {
             phone,
             address,
             GST,
-            licence,
+            licence:licence?licence:'',
             PAN,
             CIN,
-            drugLicense,
-            fssaiLicense,
-            wholesaleLicense,
+            drugLicense:drugLicense || "",
+            fssaiLicense: fssaiLicense || "",
+            wholesaleLicense: wholesaleLicense || "",
           },
           transaction, // Pass the transaction here
         }
@@ -343,8 +343,9 @@ class ManufacturerService {
           {
             model: db.documents,
             as: "documnets",
-            attributes: ['image', "status","imageSize", 'updatedAt'],
+            attributes: ['documentId','image', "status","imageSize", 'updatedAt'],
             where: {
+              isDeleted:{[db.Op.not]:true},
               userId: Number(manufacturerId)
             },
             required: false,
@@ -373,7 +374,7 @@ class ManufacturerService {
     mn.updatedAt, 
     mn.address, 
     mn.phone, 
-    mn.email, 
+    mn.email as Email, 
     mn.GST as gst, 
     mn.manufacturerId, 
     mn.licence, 
@@ -409,7 +410,7 @@ class ManufacturerService {
               updatedAt: row.updatedAt,
               address: row.address,
               phone: row.phone,
-              email: row.email,
+              email: row.Email,
               GST: row.gst,
               manufacturerId: row.manufacturerId,
               licence: row.licence,

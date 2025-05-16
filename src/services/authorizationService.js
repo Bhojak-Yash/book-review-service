@@ -85,7 +85,7 @@ class AuthService {
 
     async auth_request_list(data) {
         try {
-            // console.log(data)
+            console.log(data)
             const { start_date, end_date, search } = data
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
@@ -148,6 +148,15 @@ class AuthService {
                     {
                         model: db.retailers,
                         as: 'retailers',
+                    },
+                    {
+                        model:db.address,
+                        as:'address',
+                        attributes:['city','State'],
+                        where:{
+                            addressType:"Business"
+                        },
+                        required:false
                     }
                 ],
                 where: whereClause,
@@ -187,7 +196,9 @@ class AuthService {
                 "wholeSaleDrugLicence": rows?.distributers?.wholeSaleDrugLicence,
                 "type": rows?.distributers?.type,
                 "createdAt": rows?.distributers?.createdAt,
-                "updatedAt": rows?.distributers?.updatedAt
+                "updatedAt": rows?.distributers?.updatedAt,
+                "city":rows?.address[0]?.city || null,
+                "State":rows?.address[0]?.State || null,
             }:{
                  "distributorId": rows?.retailers?.retailerId,
                 "distributorCode": rows?.retailers?.retailerCode,
@@ -209,7 +220,9 @@ class AuthService {
                 "wholeSaleDrugLicence": rows?.retailers?.wholeSaleDrugLicence,
                 "type": rows?.retailers?.type,
                 "createdAt": rows?.retailers?.createdAt,
-                "updatedAt": rows?.retailers?.updatedAt
+                "updatedAt": rows?.retailers?.updatedAt,
+                "city":rows?.address[0]?.city || null,
+                "State":rows?.address[0]?.State || null,
             }
             }
             })

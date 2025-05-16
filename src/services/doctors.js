@@ -122,6 +122,7 @@ class DoctorsService {
                     'mobile',
                     'commission',
                     'RGNo',
+                    "userStatus",
                     [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
                     [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'totalAmount'],
                 ],
@@ -146,6 +147,7 @@ class DoctorsService {
                     "commission": item?.commission,
                     "orderCount": item?.dataValues?.orderCount,
                     "totalAmount": item?.dataValues?.totalAmount,
+                    "userStatus" :item?.dataValues?.userStatus,
                     "totalCommission":(Number(item?.dataValues?.totalAmount)*Number(item?.commission)/100)
                 }
             })

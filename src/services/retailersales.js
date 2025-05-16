@@ -187,7 +187,7 @@ class RetailerSalesService {
             }
             // console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date'],
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date','paymentMode'],
                 include: [
                     {
                         model: db.patients,
@@ -216,7 +216,9 @@ class RetailerSalesService {
                     "doctorName": item?.doctor?.name,
                     "commission": Math.round(Number(item?.totalAmt) * Number(item?.doctor?.commission) / 100),
                     "balance": item?.balance || 0,
-                    "status": item?.balance > 0 ? 'Unpaid' : 'Paid'
+                    "status": item?.balance > 0 ? 'Unpaid' : 'Paid',
+                    "paymentMode":item?.paymentMode,
+                    "orderStatus":'Completed'
                 }
             })
             return {

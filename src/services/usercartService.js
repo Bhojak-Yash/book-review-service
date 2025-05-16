@@ -339,6 +339,10 @@ class UsersCartService {
             if (manufacturer?.userType === 'Manufacturer') {
                 isManufacturer = true;
             }
+            let isaddressRequired = true
+            if(fromState){
+                isaddressRequired=false
+            }
             console.log("isManufacturer", isManufacturer);
             // console.log("PTR", PTR);
             // console.log("PTS", PTS);
@@ -395,6 +399,7 @@ class UsersCartService {
                     return {
                         status: message.code200,
                         message: "Your cart is empty.",
+                        isaddressRequired,
                         manufacturer: manufacturer,
                         retailer: distributor, // Send data in `retailers` key
                         cart: [],
@@ -403,6 +408,7 @@ class UsersCartService {
                     return {
                         status: message.code200,
                         message: "Your cart is empty.",
+                         isaddressRequired,
                         manufacturer: manufacturer,
                         distributor: distributor, // Send data in `distributor` key
                         cart: [],
@@ -415,6 +421,7 @@ class UsersCartService {
                 return {
                     status: message.code200,
                     message: "Cart fetched successfully.",
+                    isaddressRequired,
                     manufacturer: manufacturer,
                     retailer: distributor,
                     cart: updateCart,
@@ -425,6 +432,7 @@ class UsersCartService {
             return {
                 status: message.code200,
                 message: "Cart fetched successfully.",
+                isaddressRequired,
                 manufacturer: manufacturer,
                 distributor,
                 cart: updateCart,

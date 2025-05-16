@@ -1369,7 +1369,7 @@ class OrdersService {
       if (fromState && toState) {
         taxType = (fromState?.trim()?.toLowerCase() === toState?.trim()?.toLowerCase()) ? 'SGST_CGST' : 'IGST';
       }
-console.log(fromState,toState,taxType,(fromState == toState),typeof(fromState),typeof(toState))
+// console.log(fromState,toState,taxType,(fromState == toState),typeof(fromState),typeof(toState))
       return {
         status: message.code200,
         message: "Order fetched successfully.",

@@ -122,6 +122,7 @@ class PatientService {
                     'createdAt',
                     'mobile',
                     'discount',
+                    'userStatus',
                     [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
                     [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'totalAmount'],
                 ],
@@ -130,7 +131,8 @@ class PatientService {
                         model: db.retailerSalesHeader,
                         as: 'retailerSalesHeaders',
                         attributes: [],
-                        where: { retailerId: Number(id) }
+                        where: { retailerId: Number(id) },
+                        required:false
                     },
                 ],
                 where: whereCondition,
