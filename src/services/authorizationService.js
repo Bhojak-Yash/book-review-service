@@ -86,7 +86,7 @@ class AuthService {
     async auth_request_list(data) {
         try {
             // console.log(data)
-            const { start_date, end_date } = data
+            const { start_date, end_date, search } = data
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
@@ -102,6 +102,23 @@ class AuthService {
                 } else {
                     whereClause.status = data.status
                 }
+            }
+            if (start_date && end_date) {
+                const startDateParts = data.start_date.split('-');
+                const endDateParts = data.end_date.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereClause.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
+            if (search) {
+                whereClause[db.Op.in] = [
+                    { "$distributers.companyName$": search },
+                    { "$retailers.firmName$": search }
+                ]
             }
             // if (start_date && end_date) {
             //     whereClause.createdAt = {
@@ -120,13 +137,17 @@ class AuthService {
                     {
                         model: db.distributors,
                         as: "distributers",
-                        required: true,
-                        where: {
-                            ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
-                            ...(start_date && end_date
-                                ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
-                                : {}),
-                        },
+                        // required: true,
+                        // where: {
+                        //     ...(data.search ? { companyName: { [Op.like]: `%${data.search}%` } } : {}),
+                        //     ...(start_date && end_date
+                        //         ? { createdAt: { [Op.between]: [new Date(start_date), new Date(end_date)] } }
+                        //         : {}),
+                        // },
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'retailers',
                     }
                 ],
                 where: whereClause,
@@ -134,13 +155,72 @@ class AuthService {
                 offset: skip,
                 limit: Limit
             })
+            const returnData = rows?.map((rows)=>{
+                return {
+                "id": rows?.id,
+                "authorizedBy": rows?.authorizedBy,
+                "authorizedId": rows?.authorizedId,
+                "status": rows?.status,
+                "poStatus": rows?.poStatus,
+                "creditCycle": rows?.icreditCycled,
+                "createdAt": rows?.createdAt,
+                "updatedAt": rows?.updatedAt,
+                "distributers":rows?.distributers ? 
+                {
+                "distributorId": rows?.distributers?.distributorId,
+                "distributorCode": rows?.distributers?.distributorCode,
+                "companyName": rows?.distributers?.companyName,
+                "ownerName": rows?.distributers?.ownerName,
+                "address": rows?.distributers?.address,
+                "phone": rows?.distributers?.phone,
+                "profilePic": rows?.distributers?.profilePic,
+                "email": rows?.distributers?.email,
+                "licence": rows?.distributers?.licence,
+                "status": rows?.distributers?.status,
+                "empMin": rows?.distributers?.empMin,
+                "empMax": rows?.distributers?.empMax,
+                "companyType": rows?.distributers?.companyType,
+                "PAN": rows?.distributers?.PAN,
+                "GST":rows?.distributers?.GST,
+                "CIN": rows?.distributers?.CIN,
+                "FSSAI": rows?.distributers?.FSSAI,
+                "wholeSaleDrugLicence": rows?.distributers?.wholeSaleDrugLicence,
+                "type": rows?.distributers?.type,
+                "createdAt": rows?.distributers?.createdAt,
+                "updatedAt": rows?.distributers?.updatedAt
+            }:{
+                 "distributorId": rows?.retailers?.retailerId,
+                "distributorCode": rows?.retailers?.retailerCode,
+                "companyName": rows?.retailers?.firmName,
+                "ownerName": rows?.retailers?.ownerName,
+                "address": rows?.retailers?.address,
+                "phone": rows?.retailers?.phone,
+                "profilePic": rows?.retailers?.profilePic,
+                "email": rows?.retailers?.email,
+                "licence": rows?.retailers?.drugLicense,
+                "status": rows?.retailers?.status,
+                "empMin": rows?.retailers?.empMin,
+                "empMax": rows?.retailers?.empMax,
+                "companyType": rows?.retailers?.companyType,
+                "PAN": rows?.retailers?.PAN,
+                "GST":rows?.retailers?.GST,
+                "CIN": rows?.retailers?.CIN,
+                "FSSAI": rows?.retailers?.FSSAI,
+                "wholeSaleDrugLicence": rows?.retailers?.wholeSaleDrugLicence,
+                "type": rows?.retailers?.type,
+                "createdAt": rows?.retailers?.createdAt,
+                "updatedAt": rows?.retailers?.updatedAt
+            }
+            }
+            })
             return {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
                 totalPage: Math.ceil(Number(count) / Limit),
                 totalItems: count,
-                apiData: rows
+                apiData: returnData,
+                
             }
         } catch (error) {
             console.log("auth_request_list errr:", error.message)
@@ -719,15 +799,15 @@ class AuthService {
             const { id, userId, startDate, endDate, userType } = data
             const checkId = userType === "Employee" ? Number(data?.data?.employeeOf) : Number(id);
             const { Op, fn, col, literal } = db.sequelize;
-            let whereClause={
-                    orderTo: Number(checkId),
-                    orderFrom: Number(userId)
-                }
+            let whereClause = {
+                orderTo: Number(checkId),
+                orderFrom: Number(userId)
+            }
             let whereReturn = {
-                    returnTo: Number(checkId),
-                    returnFrom: Number(userId)
-                }
-                 if (startDate && endDate) {
+                returnTo: Number(checkId),
+                returnFrom: Number(userId)
+            }
+            if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
 
@@ -773,7 +853,7 @@ class AuthService {
                     {
                         model: db.address,
                         as: 'address',
-                        attributes:['addLine1','addLine2','city','state','addressType']
+                        attributes: ['addLine1', 'addLine2', 'city', 'state', 'addressType']
                     }
                 ]
             })
@@ -813,50 +893,50 @@ class AuthService {
                         'totalCNAmt'
                     ]
                 ],
-                where:whereReturn,
+                where: whereReturn,
                 raw: true
             });
 
             const auth = await db.authorizations.findOne({
-                where:{
-                    authorizedBy:Number(checkId),
-                    authorizedId:Number(userId)
+                where: {
+                    authorizedBy: Number(checkId),
+                    authorizedId: Number(userId)
                 },
-                attributes:['status']
+                attributes: ['status']
             })
 
-            const returnData= {
-                user:{
-                userSince:orderStats?.length>0?orderStats[0]?.firstOrderDate:null,
-                userId:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.distributorId : userData?.dataValues?.reuser[0]?.retailerId || null,
-                companyName:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.companyName : userData?.dataValues?.reuser[0]?.companyName || null,
-                lastOrderDate:orderStats.length>0? orderStats[0]?.lastOrderDate : null,
-                phone :userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.phone : userData?.dataValues?.reuser[0]?.phone || null,
-                email:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.email : userData?.dataValues?.reuser[0]?.email || null,
-                profilePic:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.profilePic : userData?.dataValues?.reuser[0]?.profilePic || null,
-                CIN:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.CIN : userData?.dataValues?.reuser[0]?.CIN || null,
-                GST:userData?.dataValues?.disuser?.length>0?userData?.dataValues?.disuser[0]?.GST : userData?.dataValues?.reuser[0]?.GST || null,
+            const returnData = {
+                user: {
+                    userSince: orderStats?.length > 0 ? orderStats[0]?.firstOrderDate : null,
+                    userId: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.distributorId : userData?.dataValues?.reuser[0]?.retailerId || null,
+                    companyName: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.companyName : userData?.dataValues?.reuser[0]?.companyName || null,
+                    lastOrderDate: orderStats.length > 0 ? orderStats[0]?.lastOrderDate : null,
+                    phone: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.phone : userData?.dataValues?.reuser[0]?.phone || null,
+                    email: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.email : userData?.dataValues?.reuser[0]?.email || null,
+                    profilePic: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.profilePic : userData?.dataValues?.reuser[0]?.profilePic || null,
+                    CIN: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.CIN : userData?.dataValues?.reuser[0]?.CIN || null,
+                    GST: userData?.dataValues?.disuser?.length > 0 ? userData?.dataValues?.disuser[0]?.GST : userData?.dataValues?.reuser[0]?.GST || null,
                 },
-                address:userData?.dataValues?.address,
-                orders:{
-                    allOrders:orderStats?.length>0?orderStats[0]?.totalOrders:0,
-                    completedCount:orderStats?.length>0?orderStats[0]?.completedCount:0,
-                    pendingCount:orderStats?.length>0?orderStats[0]?.pendingCount:0,
-                    pendingPayment:orderStats?.length>0?orderStats[0]?.pendingPaymentCount:0,
-                    totalInvoiceAmount:orderStats?.length>0?orderStats[0]?.totalInvoiceAmount:0,
+                address: userData?.dataValues?.address,
+                orders: {
+                    allOrders: orderStats?.length > 0 ? orderStats[0]?.totalOrders : 0,
+                    completedCount: orderStats?.length > 0 ? orderStats[0]?.completedCount : 0,
+                    pendingCount: orderStats?.length > 0 ? orderStats[0]?.pendingCount : 0,
+                    pendingPayment: orderStats?.length > 0 ? orderStats[0]?.pendingPaymentCount : 0,
+                    totalInvoiceAmount: orderStats?.length > 0 ? orderStats[0]?.totalInvoiceAmount : 0,
                 },
-                returns:{
-                    totalReturns:returnStats?.length>0?returnStats[0]?.totalReturns:0,
-                    cnIssuedCount:returnStats?.length>0?returnStats[0]?.cnIssuedCount:0,
-                    totalCNAmt:returnStats?.length>0?returnStats[0]?.totalCNAmt:0,
+                returns: {
+                    totalReturns: returnStats?.length > 0 ? returnStats[0]?.totalReturns : 0,
+                    cnIssuedCount: returnStats?.length > 0 ? returnStats[0]?.cnIssuedCount : 0,
+                    totalCNAmt: returnStats?.length > 0 ? returnStats[0]?.totalCNAmt : 0,
                 },
-                authStatus:auth?auth?.dataValues?.status:'Not Send'
-                }
-            return { 
-                status:message.code200,
-                message:message.message200,
-                apiData:returnData
-             }
+                authStatus: auth ? auth?.dataValues?.status : 'Not Send'
+            }
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: returnData
+            }
         } catch (error) {
             console.log('dis_details_card_data service error:', error.message)
             return {
