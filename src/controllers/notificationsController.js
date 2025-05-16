@@ -3,7 +3,7 @@ const notificationsService = require("../services/notificationsService");
 exports.getNotifications = async (req, res) => {
     try {
         const { organisationId } = req.params;
-
+        const { limit, page } = req.query;
         if (!organisationId) {
             return res.status(400).json({
                 status: 400,
@@ -11,7 +11,7 @@ exports.getNotifications = async (req, res) => {
             });
         }
 
-        const notifications = await notificationsService.getNotifications(organisationId);
+        const notifications = await notificationsService.getNotifications(organisationId, limit, page);
 
         return res.status(200).json({
             status: 200,

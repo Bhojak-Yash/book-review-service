@@ -12,4 +12,9 @@ router.get('/topDistributors', verifyToken, distributorPanelController.topDistri
 router.get('/distributor-request-test', verifyToken, distributorPanelController.distributorRequest)// test 
 router.get('/stock-runningLow-test', verifyToken, distributorPanelController.stockRunningLow)// test
 
+//KPIs.......
+router.get('/top-products-today',verifyToken, distributorPanelController.topProductsToday);
+router.get('/get-payment-stats', verifyToken, distributorPanelController.getPaymentRelatedStats);
+
+
 module.exports =router

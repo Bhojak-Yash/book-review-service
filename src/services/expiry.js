@@ -707,6 +707,101 @@ class expiryService {
         }
     }
 
+    async returned_list(data) {
+        try {
+            let { id, page, limit, search, startDate, endDate } = data
+            // console.log(data)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            const Page = Number(data.page) || 1;
+            const Limit = Number(data.limit) || 10;
+            let skip = (Page - 1) * Limit;
+            const userId = Number(id)
+            const whereClause = {returnFrom: userId };
+
+            // Required condition: returnTo or returnFrom must match userId
+            // const baseUserCondition = {
+                
+            // };
+            
+            // const andConditions = [baseUserCondition];
+            
+            // Optional search filter
+            if (search) {
+              andConditions.push({
+                [db.Op.or]: [
+                  { returnId: { [db.Op.like]: `%${search}%` } },
+                  { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+                ]
+              });
+            }
+            
+            // Optional date range filter
+            if (startDate && endDate) {
+              andConditions.push({
+                returnDate: {
+                  [db.Op.between]: [startDate, endDate]
+                }
+              });
+            }
+            
+            // Assign final AND clause to whereClause
+            // whereClause[db.Op.and] = andConditions;            
+
+            console.log(whereClause)
+            const { count, rows: Data } = await db.returnHeader.findAndCountAll({
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate'],
+                where: whereClause,
+                include: [
+                    {
+                        model: db.distributors,
+                        as: 'returnFromUser',
+                        attributes: ['companyName', 'distributorId'],
+                        required: false,
+                    },
+                    {
+                        model: db.retailers,
+                        as: 'returnByUser',
+                        attributes: ['retailerId', 'firmName'],
+                        required: false
+                    }
+                ],
+                order:[['returnId','desc']],
+                offset: skip,
+                limit: Limit,
+            });
+
+            const result = await Data?.map((item) => {
+                return {
+                    "returnId": item.returnId,
+                    "returnFrom": item.returnFrom,
+                    "returnTo": item.returnTo,
+                    "returnAmt": item.returnAmt,
+                    "returnTotal": item.returnTotal,
+                    "returnStatus": item.returnStatus,
+                    "returnDate": item.returnDate,
+                    "returnFromUser": item?.returnFromUser?.companyName || item?.returnByUser?.firmName,
+                }
+            })
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                totalData: count,
+                totalPages: Math.ceil(count / Limit),
+                currentPage: Page,
+                apiData: result
+            }
+        } catch (error) {
+            console.log('expiry_return_list service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+
     async update_expiry_return(data) {
         let transaction;
         try {

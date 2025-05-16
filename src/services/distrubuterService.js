@@ -47,7 +47,11 @@ class DistributorService {
             if (userName) {
                 const existingUser = await db.users.findOne({ where: { userName: userName } }, { transaction });
                 if (existingUser) {
-                    throw new Error('A distributor with this email already exists.');
+                    return {
+                        status: message.code400,
+                        message: 'A distributor with this email already exists'
+                    }
+                    // throw new Error('A distributor with this email already exists.');
                 }
             }
 
@@ -184,7 +188,7 @@ class DistributorService {
             //         { userType: 'Distributor' }
             //     ]
             // }
-// console.log(whereCondition,'[[[[[[[[[',id)
+            // console.log(whereCondition,'[[[[[[[[[',id)
 
             const result = await db.users.findAll({
                 attributes: ['id', 'userType'],
@@ -343,17 +347,44 @@ class DistributorService {
             //     }
             // }
             let tableName = db.manufacturerStocks
-            let attr = ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS']
+            // let attr = ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS']
+            let attr = [
+                "BatchNo",
+                "PId",
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.SId')), 'SId'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.ExpDate')), 'ExpDate'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.Scheme')), 'Scheme'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.MRP')), 'MRP'],
+                [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturerStocks.PTS')), 'PTS']
+            ]
             if (type) {
                 tableName = type === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
-                attr = type === 'Manufacturer' ? ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS'] : ['SId', 'BatchNo', 'ExpDate', 'Scheme', 'MRP', 'PTS', 'PTR']
+                attr = type === 'Manufacturer' ? [
+                    "BatchNo",
+                    "PId",
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.SId')), 'SId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.ExpDate')), 'ExpDate'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.Scheme')), 'Scheme'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.MRP')), 'MRP'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.PTS')), 'PTS']
+                ] : [
+                    "BatchNo",
+                    "PId",
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.SId')), 'SId'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.ExpDate')), 'ExpDate'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Scheme')), 'Scheme'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.MRP')), 'MRP'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTS')), 'PTS'],
+                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTR')), 'PTR']
+                ]
             }
             // console.log(whereStock, whereCondition)
             const { count, rows: stocks } = await tableName.findAndCountAll({
                 attributes: attr,
                 where: {
                     ...whereStock,
-                    locked:false, 
+                    locked: false,
+                    Stock: { [db.Op.gt]: 0 }
                 },
                 include: [
                     {
@@ -363,10 +394,11 @@ class DistributorService {
                         where: whereCondition
                     }
                 ],
+                group: ['PId', 'BatchNo'],
                 offset: skip,
                 limit: Limit
             })
-            console.log("................   `",type)
+            console.log("................   `", type)
             let ids = []
             const updatedStock = await stocks?.map((item) => {
                 ids.push(item.SId)
@@ -400,7 +432,7 @@ class DistributorService {
                         "SaltComposition": item.product.SaltComposition,
                         // "PTR": null,
                         // "PTS": null,
-                        "PTS":null,
+                        "PTS": null,
                         "MRP": null,
                         "BatchNo": item.BatchNo,
                         "ExpDate": item.ExpDate,
@@ -424,13 +456,13 @@ class DistributorService {
                     };
                 });
             }
-            const totalPage = Math.ceil(count / Limit)
+            const totalPage = Math.ceil(count.length / Limit)
             return {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
                 totalPage: totalPage,
-                totalData: count,
+                totalData: count.length || 0,
                 limit: Limit,
                 authStatus: manufacturer?.status || 'Not Send',
                 apiData: { manufacturer, stocks: updatedStockWithQuantity.length > 0 ? updatedStockWithQuantity : updatedStock }
@@ -477,8 +509,29 @@ class DistributorService {
 
     async po_page_data(data) {
         try {
-            const { id } = data;
+            const { id ,startDate,endDate} = data;
             const userId = Number(id);
+            let whereCondition = { orderFrom: userId }
+            let whereauth =  { authorizedBy: userId, status: "Approved" }
+            let wherePending = { authorizedBy: userId, status: "Pending" }
+
+             if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereCondition.orderDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                whereauth.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                wherePending.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
 
             // Parallelizing queries for better performance
             const [orderStats, retailerCounts, pendingAuthorizations] = await Promise.all([
@@ -489,7 +542,7 @@ class DistributorService {
                         [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                     ],
-                    where: { orderFrom: userId },
+                    where: whereCondition,
                     raw: true,
                 }),
 
@@ -499,7 +552,7 @@ class DistributorService {
                         "retailers.companyType",
                         [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
                     ],
-                    where: { authorizedBy: userId, status: "Approved" },
+                    where:whereauth,
                     include: [
                         {
                             model: db.retailers,
@@ -512,7 +565,7 @@ class DistributorService {
                 }),
 
                 // Count pending authorizations
-                db.authorizations.count({ where: { authorizedBy: userId, status: "Pending" } }),
+                db.authorizations.count({ where: wherePending }),
             ]);
 
 
@@ -543,7 +596,29 @@ class DistributorService {
 
     async so_page_data(data) {
         try {
+             const { startDate,endDate} = data;
             const id = Number(data.id)
+            let whereCondition = { orderTo: id }
+            let whereauth =  {
+                    authorizedBy: id,
+                    status: "Approved"
+                }
+            // let wherePending = { authorizedBy: userId, status: "Pending" }
+
+             if (startDate && endDate) {
+                const startDateParts = data.startDate.split('-');
+                const endDateParts = data.endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`;
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`;
+
+                whereCondition.orderDate = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+                whereauth.createdAt = {
+                    [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
             const result = await db.orders.findOne({
                 attributes: [
                     [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
@@ -551,7 +626,7 @@ class DistributorService {
                     [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                     [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                 ],
-                where: { orderTo: id },
+                where: whereCondition,
                 raw: true
             });
 
@@ -578,10 +653,7 @@ class DistributorService {
                         required: true // Ensures only matching users are counted
                     }
                 ],
-                where: {
-                    authorizedBy: id, // Replace with actual ID
-                    status: "Approved"
-                },
+                where: whereauth,
                 raw: true
             });
 
@@ -603,6 +675,10 @@ class DistributorService {
             }
         } catch (error) {
             console.log('so_page_data service error:', error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
         }
     }
     async distributor_profile(data) {
@@ -1321,10 +1397,10 @@ class DistributorService {
 
             if (search) {
                 stockFilters[db.Op.or] = [
-                  { '$product.PName$':         { [db.Op.like]: `%${search}%` } },
-                  { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
+                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } },
                 ];
-              }
+            }
 
             // Step 1: Get all products to count
             // const allProducts = await db.products.count({
@@ -1401,13 +1477,13 @@ class DistributorService {
                         attributes: ['companyName', 'distributorCode']
                     }
                 ],
-                order:[['SId','desc']],
+                order: [['SId', 'desc']],
                 offset: skip,
                 limit: Limit
             })
             // return {paginatedProducts}
-           
-            const formatData = paginatedProducts?.map((stock)=>{
+
+            const formatData = paginatedProducts?.map((stock) => {
                 return {
                     SId: stock.SId,
                     PId: stock?.PId,
@@ -1427,8 +1503,8 @@ class DistributorService {
                     updatedAt: stock?.updatedAt,
                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
-                    stockStatus:stock?.Stock == 0?"Out of stock":Number(stock?.Stock)<Number(aboutToEmpty)?'About to empty':'Up to date',
-                    expiryStatus:expiryStatus(stock.ExpDate,lowStockDays)  || null,
+                    stockStatus: stock?.Stock == 0 ? "Out of stock" : Number(stock?.Stock) < Number(aboutToEmpty) ? 'About to empty' : 'Up to date',
+                    expiryStatus: expiryStatus(stock.ExpDate, lowStockDays) || null,
                     product: {
                         PId: stock?.product?.PId,
                         PCode: stock?.product?.PCode,
@@ -1439,77 +1515,77 @@ class DistributorService {
                         manufacturerId: stock?.product?.manufacturerId,
                         manufacturerName: stock?.product?.manufacturer?.companyName || null,
                         productForm: stock?.product?.ProductForm,
-                        Package:stock?.product?.Package,
+                        Package: stock?.product?.Package,
                     }
                 }
             })
-//             const formattedData = paginatedProducts.flatMap(product => {
-//                 if (!product.stocks || product.stocks.length === 0) {
-//                     return [{
-//                         SId: null,
-//                         PId: product.PId,
-//                         BatchNo: null,
-//                         ExpDate: null,
-//                         MRP: null,
-//                         PTR: null,
-//                         PTS: null,
-//                         Scheme: null,
-//                         BoxQty: null,
-//                         Loose: null,
-//                         Stock: null,
-//                         organisationId: null,
-//                         entityId: null,
-//                         location: null,
-//                         createdAt: null,
-//                         updatedAt: null,
-//                         purchasedFrom: null,
-//                         purchasedFromCode: null,
-//                         product: {
-//                             PId: product.PId,
-//                             PCode: product.PCode,
-//                             PName: product.PName,
-//                             PackagingDetails: product.PackagingDetails,
-//                             SaltComposition: product.SaltComposition,
-//                             LOCKED: product.LOCKED,
-//                             manufacturerId: product.manufacturerId,
-//                             manufacturerName: product?.manufacturer?.companyName || null,
-//                             productForm: product?.ProductForm
-//                         }
-//                     }];
-//                 }
-// // console.log(product)
-//                 return product?.map(stock => ({
-//                     SId: stock.SId,
-//                     PId: product.PId,
-//                     BatchNo: stock.BatchNo,
-//                     ExpDate: stock.ExpDate,
-//                     MRP: stock.MRP,
-//                     PTR: stock.PTR,
-//                     PTS: stock.PTS,
-//                     Scheme: stock.Scheme,
-//                     BoxQty: stock.BoxQty,
-//                     Loose: stock.Loose,
-//                     Stock: stock.Stock,
-//                     organisationId: stock.organisationId,
-//                     entityId: stock.entityId,
-//                     location: stock.location,
-//                     createdAt: stock.createdAt,
-//                     updatedAt: stock.updatedAt,
-//                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
-//                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
-//                     product: {
-//                         PId: product.PId,
-//                         PCode: product.PCode,
-//                         PName: product.PName,
-//                         PackagingDetails: product.PackagingDetails,
-//                         SaltComposition: product.SaltComposition,
-//                         LOCKED: product.LOCKED,
-//                         manufacturerId: product.manufacturerId,
-//                         manufacturerName: product?.manufacturer?.companyName || null,
-//                         productForm: product?.ProductForm
-//                     }
-//                 }));
-//             });
+            //             const formattedData = paginatedProducts.flatMap(product => {
+            //                 if (!product.stocks || product.stocks.length === 0) {
+            //                     return [{
+            //                         SId: null,
+            //                         PId: product.PId,
+            //                         BatchNo: null,
+            //                         ExpDate: null,
+            //                         MRP: null,
+            //                         PTR: null,
+            //                         PTS: null,
+            //                         Scheme: null,
+            //                         BoxQty: null,
+            //                         Loose: null,
+            //                         Stock: null,
+            //                         organisationId: null,
+            //                         entityId: null,
+            //                         location: null,
+            //                         createdAt: null,
+            //                         updatedAt: null,
+            //                         purchasedFrom: null,
+            //                         purchasedFromCode: null,
+            //                         product: {
+            //                             PId: product.PId,
+            //                             PCode: product.PCode,
+            //                             PName: product.PName,
+            //                             PackagingDetails: product.PackagingDetails,
+            //                             SaltComposition: product.SaltComposition,
+            //                             LOCKED: product.LOCKED,
+            //                             manufacturerId: product.manufacturerId,
+            //                             manufacturerName: product?.manufacturer?.companyName || null,
+            //                             productForm: product?.ProductForm
+            //                         }
+            //                     }];
+            //                 }
+            // // console.log(product)
+            //                 return product?.map(stock => ({
+            //                     SId: stock.SId,
+            //                     PId: product.PId,
+            //                     BatchNo: stock.BatchNo,
+            //                     ExpDate: stock.ExpDate,
+            //                     MRP: stock.MRP,
+            //                     PTR: stock.PTR,
+            //                     PTS: stock.PTS,
+            //                     Scheme: stock.Scheme,
+            //                     BoxQty: stock.BoxQty,
+            //                     Loose: stock.Loose,
+            //                     Stock: stock.Stock,
+            //                     organisationId: stock.organisationId,
+            //                     entityId: stock.entityId,
+            //                     location: stock.location,
+            //                     createdAt: stock.createdAt,
+            //                     updatedAt: stock.updatedAt,
+            //                     purchasedFrom: stock?.manufacturer?.companyName || stock?.distributor?.companyName || stock.purchasedFrom,
+            //                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
+            //                     product: {
+            //                         PId: product.PId,
+            //                         PCode: product.PCode,
+            //                         PName: product.PName,
+            //                         PackagingDetails: product.PackagingDetails,
+            //                         SaltComposition: product.SaltComposition,
+            //                         LOCKED: product.LOCKED,
+            //                         manufacturerId: product.manufacturerId,
+            //                         manufacturerName: product?.manufacturer?.companyName || null,
+            //                         productForm: product?.ProductForm
+            //                     }
+            //                 }));
+            //             });
 
             return {
                 status: message.code200,
@@ -1648,7 +1724,7 @@ class DistributorService {
     }
 }
 
-const expiryStatus =  (ExpDate,nearToExpDate) => {
+const expiryStatus = (ExpDate, nearToExpDate) => {
     const expDate = new Date(ExpDate);
     const today = new Date();
 
@@ -1657,14 +1733,14 @@ const expiryStatus =  (ExpDate,nearToExpDate) => {
 
     let expStatus;
     if (diffDays < 0) {
-      expStatus = "expired";
+        expStatus = "expired";
     } else if (diffDays <= nearToExpDate) {
-      expStatus = "Near expiry";
+        expStatus = "Near expiry";
     } else {
-      expStatus = "Up to date";
+        expStatus = "Up to date";
     }
 
     return expStatus
-  }
+}
 
 module.exports = new DistributorService(db);

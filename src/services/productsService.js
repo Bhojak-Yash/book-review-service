@@ -1,7 +1,7 @@
 const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
-const sequelize =db.sequelize
+const sequelize = db.sequelize
 // const products = require('../models/products')
 const Products = db.products;
 const Op = db.Op;
@@ -13,33 +13,39 @@ class ProductsService {
 
     async addProduct(data) {
         try {
-            const { manufacturerId, PackagingDetails,HSN, ...productData } = data;
+            const { manufacturerId, PackagingDetails, HSN,PName, ...productData } = data;
             // console.log("Product Data",productData);
             // Check if the product already exists
+            function toTitleCase(str) {
+                return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+            }
+            const NewPName = await toTitleCase(PName)
             const existingProduct = await Products.findOne({
                 where: {
-                    PName: productData.PName,
+                    PName: {[db.Op.in]:[PName,NewPName]},
                     manufacturerId,
                 },
             });
+            console.log(NewPName,PName,existingProduct)
 
             if (existingProduct) {
-                return { status: message.code200, message: `Product '${productData.PName}' already exists.` };
+                return { status: message.code200, message: `Product '${PName}' already exists.` };
             }
 
             let PackagingDetailss = `${productData.Quantity} ${productData.ProductForm}`;
             if (productData.Package) {
                 PackagingDetailss = `${productData.Quantity} ${productData.ProductForm} ${productData.Package}`;
             }
-            
             // Add the new product
+            // console.log(PackagingDetails,productData,HSN,manufacturerId)
             const newProduct = await Products.create({
                 ...productData,
-                HSN:HSN || null,
-                PackagingDetails : PackagingDetailss,
+                PName:NewPName,
+                HSN: HSN || null,
+                PackagingDetails: PackagingDetailss,
                 manufacturerId,
-                CreatedAt: new Date(),
-                UpdatedAt: new Date(),
+                // CreatedAt: new Date(),
+                // UpdatedAt: new Date(),
             });
 
             return { status: message.code200, message: 'Product added successfully.', product: newProduct }
@@ -87,7 +93,7 @@ class ProductsService {
 
     async getproducts(data) {
         try {
-            const { page } =data
+            const { page } = data
             let skip = 0;
             let limit = 20
             if (page || Number(page)) {
@@ -140,18 +146,18 @@ class ProductsService {
 
         try {
             // console.log(data,';p;p;p;');
-            const { manufacturerId,page,limit,locked,search } = data;
+            const { manufacturerId, page, limit, locked, search } = data;
             let Page = Number(page) || 1;
             let Limit = Number(limit) || 10;
-            let skip  = 0;
-            if(Page>1){
-                skip = (Page-1)*Limit
+            let skip = 0;
+            if (Page > 1) {
+                skip = (Page - 1) * Limit
             }
-            let whereCondition ={
+            let whereCondition = {
                 manufacturerId,
             }
-            if(locked){
-                whereCondition.LOCKED=locked=="true"?true:false
+            if (locked) {
+                whereCondition.LOCKED = locked == "true" ? true : false
             }
 
             if (search) {
@@ -167,17 +173,17 @@ class ProductsService {
             });
             const products = await Products.findAll({
                 where: whereCondition,
-                limit:Limit,
-                offset:skip
+                limit: Limit,
+                offset: skip
             });
 
-            let totalPage = Math.ceil(totalItems/Limit)
+            let totalPage = Math.ceil(totalItems / Limit)
 
             if (products.length === 0) {
                 return { status: message.code400, message: "No products found for this manufacturer." };
             }
 
-            return { status: message.code200, message: "Products retrieved successfully.",currentPage:Page,totalPage:totalPage,totalItems, products };
+            return { status: message.code200, message: "Products retrieved successfully.", currentPage: Page, totalPage: totalPage, totalItems, products };
         } catch (error) {
             console.error("Error fetching products:", error);
             return { status: message.code500, message: "Failed to retrieve products.", error: error.message };
@@ -205,69 +211,69 @@ class ProductsService {
 
     async bulk_product_update(data) {
         try {
-            const {ids,locked} = data
+            const { ids, locked } = data
             const result = await db.products.update(
                 { LOCKED: locked }, // Fields to update
                 { where: { PId: { [Op.in]: ids } } } // Condition
-            );       
+            );
             return {
-                status:message.code200,
-                message:message.message200
-            }     
+                status: message.code200,
+                message: message.message200
+            }
         } catch (error) {
-            console.log('bulk_product_update service error:',error.message)
+            console.log('bulk_product_update service error:', error.message)
             return {
-                status:message.code500,
-                message:message.message500
+                status: message.code500,
+                message: message.message500
             }
         }
     }
     async product_page_data(data) {
         try {
-            const{id,userType} = data
-            let checkId= id
+            const { id, userType } = data
+            let checkId = id
             // console.log(data)
-            if(userType && userType === 'Employee'){
-                checkId=data.data.employeeOf
+            if (userType && userType === 'Employee') {
+                checkId = data.data.employeeOf
             }
-            const productCount = await db.products.count({where:{manufacturerId:checkId}})
-            const lockedCount = await db.products.count({where:{manufacturerId:checkId,LOCKED:true}}) 
-            const lastDate = await db.products.findOne({where:{manufacturerId:checkId},order:[["PId","desc"]]})
+            const productCount = await db.products.count({ where: { manufacturerId: checkId } })
+            const lockedCount = await db.products.count({ where: { manufacturerId: checkId, LOCKED: true } })
+            const lastDate = await db.products.findOne({ where: { manufacturerId: checkId }, order: [["PId", "desc"]] })
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:{
-                    productCount,lockedCount,
-                    unlockCount:productCount-lockedCount,
-                    lastUpdatedDate:lastDate?.createdAt || null
+                status: message.code200,
+                message: message.message200,
+                apiData: {
+                    productCount, lockedCount,
+                    unlockCount: productCount - lockedCount,
+                    lastUpdatedDate: lastDate?.createdAt || null
                 }
             }
         } catch (error) {
-            console.log('product_page_data service error:',error.message)
+            console.log('product_page_data service error:', error.message)
             return {
-                status:message.code500,
-                message:message.message500
+                status: message.code500,
+                message: message.message500
             }
         }
     }
 
-    async get_upload_error(data){
+    async get_upload_error(data) {
         try {
-            const {id} = data
+            const { id } = data
             const [Data] = await db.sequelize.query(`
                 
                 select * from uploaderrors where archiveId = ${id} order by id desc`)
 
-                return {
-                    status:message.code200,
-                    message:message.message200,
-                    apiData:Data
-                }
-        } catch (error) {
-            console.log('get_upload_error error:',error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code200,
+                message: message.message200,
+                apiData: Data
+            }
+        } catch (error) {
+            console.log('get_upload_error error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
             }
         }
     }

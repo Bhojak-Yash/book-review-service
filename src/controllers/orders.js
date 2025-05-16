@@ -93,72 +93,87 @@ class OrdersController {
     }
   }
 
-  static async distributer_purchase_orders(req,res) {
+  static async distributer_purchase_orders(req, res) {
     try {
-      const data ={...req.user,...req.query }
+      const data = { ...req.user, ...req.query }
       const ordersList = await ordersService.distributer_purchase_orders(data);
       return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
-      console.log('distributer_purchase_orders error:',error.message)
+      console.log('distributer_purchase_orders error:', error.message)
       res.json({
-        status:message.code500,
-        message:error.message
+        status: message.code500,
+        message: error.message
       })
     }
   }
 
-  static async distributer_sales_orders(req,res) {
+  static async distributer_sales_orders(req, res) {
     try {
-      const data ={...req.user,...req.query }
+      const data = { ...req.user, ...req.query }
       const ordersList = await ordersService.distributer_sales_orders(data);
       return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
-      console.log('distributer_sales_orders error:',error.message)
+      console.log('distributer_sales_orders error:', error.message)
       res.json({
-        status:message.code500,
-        message:error.message
+        status: message.code500,
+        message: error.message
       })
     }
   }
 
-  static async purchase_order_summary(req,res) {
+  static async distributer_so_card_data(req, res) {
     try {
-      const data ={...req.user,...req.query }
+      const data = { ...req.user, ...req.query }
+      const ordersList = await ordersService.distributer_so_card_data(data);
+      return res.status(ordersList?.status || 200).json(ordersList);
+    } catch (error) {
+      console.log('distributer_sales_orders error:', error.message)
+      res.json({
+        status: message.code500,
+        message: error.message
+      })
+    }
+  }
+
+
+  static async purchase_order_summary(req, res) {
+    try {
+      const data = { ...req.user, ...req.query }
       const ordersList = await ordersService.purchase_order_summary(data);
       return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
-      console.log('purchase_order_summary error:',error.message)
+      console.log('purchase_order_summary error:', error.message)
       res.json({
-        status:message.code500,
-        message:error.message
+        status: message.code500,
+        message: error.message
       })
     }
   }
 
-  static async confirm_payment(req,res) {
+  static async confirm_payment(req, res) {
     try {
-      const data ={...req.user,...req.query }
+      const data = { ...req.user, ...req.query }
       const ordersList = await ordersService.confirm_payment(data);
       return res.status(ordersList?.status || 200).json(ordersList);
     } catch (error) {
-      console.log('confirm_payment error:',error.message)
+      console.log('confirm_payment error:', error.message)
       res.json({
-        status:message.code500,
-        message:error.message
+        status: message.code500,
+        message: error.message
       })
     }
   }
 
-  static async getAddressDetails(req, res){
-    try{
+  static async getAddressDetails(req, res) {
+    try {
       const userIdFromToken = req.user?.id;
       const getAddress = await ordersService.getAddressDetails(userIdFromToken);
       return res.status(getAddress?.status || 200).json(getAddress);
-    }catch(error){
+    } catch (error) {
       console.log("Error in getAddressDetails Controller", error.message);
       res.json({
         status: message.code500,
-        message:error.message
+        message: error.message
       })
     }
   }
@@ -182,11 +197,25 @@ class OrdersController {
 
   static async calculate_order(req, res) {
     try {
-      
-
-      return res.status(result?.status || 200).json(result);
+    
     } catch (error) {
       console.log("Error in updateAddressDetails Controller", error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  static async remove_order_item(req, res) {
+    try {
+  const data = { ...req.user, ...req.body }
+      const result = await ordersService.remove_order_item(data);
+      return res.status(result?.status || 200).json(result);
+
+      // return res.status(result?.status || 200).json(result);
+    } catch (error) {
+      console.log("Error in remove_order_item Controller", error.message);
       res.status(500).json({
         success: false,
         message: error.message

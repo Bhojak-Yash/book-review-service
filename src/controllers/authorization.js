@@ -87,3 +87,15 @@ exports.authorizedBy_users = async (req,res) => {
     return res.status(500).json({status:500, message:error.message });
   }
 }
+
+exports.dis_details_card_data = async (req,res) => {
+  try {
+    const data = {...req.user,...req.query}
+    const auth = await AuthService.dis_details_card_data(data);
+
+    return res.status(auth?.status || 200).json(auth);
+  } catch (error) {
+    console.error('Error dis_details_card_data:', error);
+    return res.status(500).json({status:500, message:error.message });
+  }
+}

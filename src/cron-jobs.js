@@ -68,6 +68,7 @@ const sendSalesReport = async () => {
         const data = { start_date, end_date }
         const result = await salesReport.sales_report(data)
         const sendMail = await result?.map(async (item) => {
+            // console.log(item)
             await sendmail(item)
         })
     } catch (error) {
