@@ -2300,101 +2300,7 @@ class distributorDashboard {
             };
         }
     }
-    
-    // async getPatientsAndDoctors(tokenData, page = 1, limit = 10) {
-    //     try {
-    //         const ownerId = tokenData.id;
-
-    //         const totalPatientsAdded = await db.patients.count({
-    //             where: { retailerId: ownerId }
-    //         });
-
-    //         const totalDoctorsAdded = await db.doctors.count({
-    //             where: { retailerId: ownerId }
-    //         });
-
-    //         const headers = await db.retailerSalesHeader.findAll({
-    //             where: { retailerId: ownerId },
-    //             attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'createdAt'],
-    //             include: [
-    //                 {
-    //                     model: db.patients,
-    //                     as: 'patients',
-    //                     attributes: ['name', 'mobile']
-    //                 },
-    //                 {
-    //                     model: db.doctors,
-    //                     as: 'doctors',
-    //                     attributes: ['name', 'mobile', 'commission']
-    //                 }
-    //             ],
-    //             order: [['createdAt', 'DESC']],
-    //             raw: true
-    //         });
-
-    //         const seenPatients = new Map();
-    //         const seenDoctors = new Map();
-
-    //         for (const entry of headers) {
-    //             const patientId = entry.patientId;
-    //             const doctorId = entry.doctorId;
-
-    //             // Handle Patient
-    //             if (patientId && !seenPatients.has(patientId)) {
-    //                 seenPatients.set(patientId, {
-    //                     name: entry['patients.name'],
-    //                     type: 'Patient',
-    //                     mobile: entry['patients.mobile'],
-    //                     lastPurchase: entry.totalAmt,
-    //                     purchasedDate: entry.createdAt
-    //                 });
-    //             }
-
-    //             // Handle Doctor
-    //             if (doctorId && !seenDoctors.has(doctorId)) {
-    //                 const commission = parseFloat(entry['doctors.commission']) || 0;
-    //                 const commissionAmount = (entry.totalAmt * commission) / 100;
-
-    //                 seenDoctors.set(doctorId, {
-    //                     name: entry['doctors.name'],
-    //                     type: 'Doctor',
-    //                     mobile: entry['doctors.mobile'],
-    //                     lastPurchase: entry.totalAmt,
-    //                     purchasedDate: entry.createdAt,
-    //                     commissionPercentage: commission,
-    //                     commissionAmount: commissionAmount.toFixed(2)
-    //                 });
-    //             }
-    //         }
-
-    //         // Combine both patients and doctors
-    //         const allResults = [
-    //             ...Array.from(seenPatients.values()),
-    //             ...Array.from(seenDoctors.values())
-    //         ];
-
-    //         // Apply pagination to combined result
-    //         const paginatedResults = allResults.slice((page - 1) * limit, page * limit);
-
-    //         return {
-    //             status: 200,
-    //             message: "Patient and Doctor data fetched successfully.",
-    //             data: {
-    //                 totalPatientsAdded,
-    //                 totalDoctorsAdded,
-    //                 results: paginatedResults
-    //             }
-    //         };
-
-    //     } catch (error) {
-    //         console.error("Error in getPatientsAndDoctors:", error);
-    //         return {
-    //             status: 500,
-    //             message: "Internal Server Error"
-    //         };
-    //     }
-    // }
-    
+        
     async getPatientsAndDoctors(tokenData, page = 1, limit = 10) {
         try {
             const ownerId = tokenData.id;
@@ -2483,6 +2389,10 @@ class distributorDashboard {
                 }))
             ];
 
+            const totalRecords = allResults.length;
+            const totalPages = Math.ceil(totalRecords / limit);
+            const currentPage = parseInt(page);
+
             // Apply pagination
             const paginatedResults = allResults.slice((page - 1) * limit, page * limit);
 
@@ -2490,6 +2400,9 @@ class distributorDashboard {
                 status: 200,
                 message: "Patient and Doctor data fetched successfully.",
                 data: {
+                    totalRecords,
+                    totalPages,
+                    currentPage,
                     totalPatientsAdded,
                     totalDoctorsAdded,
                     results: paginatedResults
@@ -2504,8 +2417,6 @@ class distributorDashboard {
             };
         }
     }
-    
-    
 
 }
 module.exports = new distributorDashboard(db);
