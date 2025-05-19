@@ -26,3 +26,14 @@ exports.operationalMetrics = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+exports.stockMetrics = async (req, res) => {
+    try {
+        const { date, type } = req.query;
+        const stats = await salesReport.stockMetrics(req.user, date, type);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in stockMetrics Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};

@@ -245,10 +245,22 @@ db.orderitems.belongsTo(db.orders, {
   foreignKey: 'orderId',
   as: 'orders',
 });
-// db.orderitems.belongsTo(db.products, {
-//   foreignKey: 'PId',
-//   as: 'products',
-// });
+
+
+db.orderitems.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'products',
+});
+
+db.retailerSalesHeader.belongsTo(db.patients, {
+  foreignKey: 'patientId',
+  as: 'patients'
+});
+db.retailerSalesHeader.belongsTo(db.doctors, {
+  foreignKey: 'doctorId',
+  as: 'doctors'
+});
+
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);

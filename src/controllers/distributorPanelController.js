@@ -75,13 +75,35 @@ exports.topProductsToday = async (req, res) => {
     }
 };
 
-//payment Card stats
+//Payment Card stats
 exports.getPaymentRelatedStats = async (req, res) => {
     try {
         const stats = await distributorDashboard.getPaymentRelatedStats(req.user, req.query.date);
         return res.status(stats?.status || 200).json(stats);
     } catch (error) {
         console.log("Error in getPaymentRelatedStats Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+//Slow Moving Products
+exports.getSlowMovingMedicines = async (req, res) => {
+    try {
+        const stats = await distributorDashboard.getSlowMovingMedicines(req.user, req.query.page, req.query.limit);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in getSlowMovingMedicines Controller:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+//get Patients and Doctors
+exports.getPatientsAndDoctors = async (req, res) => {
+    try {
+        const stats = await distributorDashboard.getPatientsAndDoctors(req.user, req.query.page, req.query.limit);
+        return res.status(stats?.status || 200).json(stats);
+    } catch (error) {
+        console.log("Error in getPatientsAndDoctors Controller:", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };

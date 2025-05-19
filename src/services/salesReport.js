@@ -184,8 +184,8 @@ class DoctorsService {
                     const openingDate = new Date(salesData.salesOpening.confirmationDate);
                     const closingDate = new Date(salesData.salesClosing.confirmationDate);
 
-                    console.log('Opening Date:', openingDate);  // Log the opening date
-                    console.log('Closing Date:', closingDate);  // Log the closing date
+                    console.log('Opening Date:', openingDate);  
+                    console.log('Closing Date:', closingDate);  
 
                     const diffMs = closingDate - openingDate;
                     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
