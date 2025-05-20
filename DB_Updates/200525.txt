@@ -1,0 +1,2 @@
+CREATE UNIQUE  INDEX unique_module
+   ON crm_db.modulemappings (moduleConfigId, roleId);
