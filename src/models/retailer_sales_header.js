@@ -47,6 +47,12 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "paymentMode":{
             type:Sequelize.ENUM("Cash",'Online','Credit')
+        },
+        "orderStatus":{
+            type:Sequelize.ENUM("Created","Deleted")
+        },
+        "inv_url":{
+            type:Sequelize.STRING
         }
     },
 

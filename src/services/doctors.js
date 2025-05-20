@@ -19,7 +19,7 @@ class DoctorsService {
                 }
             }
             const check = await db.doctors.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id) }
+                where: { mobile: Number(mobile), retailerId: Number(id),userStatus:'Active' }
             })
             if (check) {
                 return {
@@ -54,7 +54,7 @@ class DoctorsService {
                 }
             }
             const check = await db.doctors.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id) }
+                where: { mobile: Number(mobile), retailerId: Number(id),userStatus:'Active' }
             })
             if (check) {
                 return {
@@ -88,6 +88,7 @@ class DoctorsService {
             }
             // console.log(data)
             let whereCondition = {};
+            
             if (search) {
                 whereCondition = {
                     [Op.or]: [
@@ -111,7 +112,7 @@ class DoctorsService {
                     [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
                 };
             }
-
+            whereCondition.userStatus='Active'
             const { fn, col, literal } = db.Sequelize;
 
             const { count, rows: doctors } = await db.doctors.findAndCountAll({
@@ -195,6 +196,31 @@ class DoctorsService {
            }
         } catch (error) {
             console.log('doctor_details service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+    async doctor_delete(data){
+        try {
+            const {id,doctorId} = data
+            if(!doctorId){
+                return {
+                    status:message.code400,
+                    message:'doctor id is required'
+                }
+            }
+            const updateDoctor = await db.doctors.update({userStatus:"Inactive"},{where:{
+                id:Number(doctorId),
+                retailerId:Number(id)
+            }})
+            return {
+                status:message.code200,
+                message:'Doctor deleted successfully.'
+            }
+        } catch (error) {
+            console.log('doctor_delete service error:',error.message)
             return {
                 status:message.code500,
                 message:error.message
