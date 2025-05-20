@@ -124,7 +124,8 @@ exports.createModuleMappings = async (req, res) => {
 
 exports.getRoleModuleMappings = async (req, res) => {
     try {
-        const result = await empManagement_Service.getRoleModuleMappings();
+        const { roleId } = req.params;
+        const result = await empManagement_Service.getRoleModuleMappings(roleId);
         return res.status(201).json(result);
     } catch (error) {
         console.error("getRoleModuleMappings Error:", error.message);

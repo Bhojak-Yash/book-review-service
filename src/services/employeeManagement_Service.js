@@ -392,8 +392,8 @@ class DistributorService {
             });
 
             return {
-                status: 200,
-                message: "Success",
+                // status: 200,
+                // message: "Success",
                 data: moduleTree
             };
         } catch (error) {
@@ -519,6 +519,16 @@ class DistributorService {
             const { userName, phone, email, roleId, entityId } = data;
             const employeeOf = userIdFromToken.id;
 
+            const existingEmail = await db.users.findOne({
+                where: { username: email }
+            });
+            if (existingEmail) {
+                return {
+                    status: 400,
+                    message: "Email already exists"
+                }
+            }
+
             if (!userName || !phone || !email || !roleId || !entityId) {
                 return {
                     status: message.code400,
@@ -636,10 +646,13 @@ class DistributorService {
     //     }
     // }
 
-    async getRoleModuleMappings() {
+    async getRoleModuleMappings(roleId) {
         try {
+            const whereCondition = roleId ? { id: roleId } : {};
+
             // Fetch all roles with their associated module mappings and modules
             const roles = await db.roles.findAll({
+                where: whereCondition,
                 attributes: ['id', 'roleName'],
                 include: [{
                     model: db.modulemappings,

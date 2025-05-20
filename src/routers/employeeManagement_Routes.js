@@ -12,7 +12,7 @@ router.post('/module-config/create', empManagement.createModule);
 router.get('/module-config/all', empManagement.getModuleHierarchy);
 router.post('/create-employee', verifyToken, empManagement.create_employee);
 router.post('/createModuleMappings', verifyToken, empManagement.createModuleMappings);
-router.get('/getRoleModuleMappings', verifyToken, empManagement.getRoleModuleMappings);
+router.get('/getRoleModuleMappings/:roleId?', verifyToken, empManagement.getRoleModuleMappings);
 router.get('/getAllEmployees', verifyToken, empManagement.getAllEmployees);
 
 router.put('/employees/:id',verifyToken, empManagement.updateEmployee);
