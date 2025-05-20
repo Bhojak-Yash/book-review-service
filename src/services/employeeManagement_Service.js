@@ -348,14 +348,42 @@ class DistributorService {
             const modules = await db.moduleconfigs.findAll({ raw: true });
 
             // Organize modules into a nested structure
+            const moduleMappings = await db.modulemappings.findAll({
+                include: [{
+                    model: db.moduleconfigs,
+                    attributes: ['moduleConfigId'],
+                }],
+                raw: true
+            });
+
+            const mappingByModuleId = {};
+            moduleMappings.forEach(mapping => {
+                const modId = mapping['moduleconfig.moduleConfigId'] || mapping.moduleConfigId;
+                mappingByModuleId[modId] = {
+                    roleId: mapping.roleId,
+                    moduleMappingId: mapping.moduleMappingId,
+                    icon: mapping.icon || null,
+                    url: mapping.url || null,
+                    accessLevel: mapping.accessLevel || null
+                };
+            });
+
             const moduleTree = [];
 
             // Process Main Modules
             modules.forEach(module => {
                 if (module.menuType === 'Main') {
+                    const mapInfo = mappingByModuleId[module.moduleConfigId];
                     moduleTree.push({
                         id: module.moduleConfigId,
                         name: module.moduleName,
+                        moduleMapping: mapInfo ? {
+                            roleId: mapInfo.roleId,
+                            moduleMappingId: mapInfo.moduleMappingId,
+                            icon: mapInfo.icon,
+                            url: mapInfo.url,
+                            accessLevel: mapInfo.accessLevel
+                        } : {},
                         subModules: []
                     });
                 }
@@ -366,9 +394,17 @@ class DistributorService {
                 if (module.menuType === 'Sub') {
                     const mainModule = moduleTree.find(m => m.id === module.parentMenuId);
                     if (mainModule) {
+                        const mapInfo = mappingByModuleId[module.moduleConfigId];
                         mainModule.subModules.push({
                             id: module.moduleConfigId,
                             name: module.moduleName,
+                            moduleMapping: mapInfo ? {
+                                roleId: mapInfo.roleId,
+                                moduleMappingId: mapInfo.moduleMappingId,
+                                // icon: mapInfo.icon,
+                                // url: mapInfo.url,
+                                accessLevel: mapInfo.accessLevel
+                            } : {},
                             components: []
                         });
                     }
@@ -381,9 +417,17 @@ class DistributorService {
                     moduleTree.forEach(mainModule => {
                         mainModule.subModules.forEach(subModule => {
                             if (subModule.id === module.parentMenuId) {
+                                const mapInfo = mappingByModuleId[module.moduleConfigId];
                                 subModule.components.push({
                                     id: module.moduleConfigId,
-                                    name: module.moduleName
+                                    name: module.moduleName,
+                                    moduleMapping: mapInfo ? {
+                                        roleId: mapInfo.roleId,
+                                        moduleMappingId: mapInfo.moduleMappingId,
+                                        // icon: mapInfo.icon,
+                                        // url: mapInfo.url,
+                                        accessLevel: mapInfo.accessLevel
+                                    } : {}
                                 });
                             }
                         });
