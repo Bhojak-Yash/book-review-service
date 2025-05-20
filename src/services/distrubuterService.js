@@ -189,6 +189,27 @@ class DistributorService {
             //     ]
             // }
             // console.log(whereCondition,'[[[[[[[[[',id)
+            if(!search){
+                const sss= await db.manufacturers.findAll({
+                    attributes: ['companyName', 'manufacturerId'],
+                    where:{ "manufacturerId": { [db.Op.ne]: null }},
+                    order: db.sequelize.random(),
+                    limit:5
+                })
+                 const finalResult = sss?.map((item) => {
+                return {
+                    "companyName": item?.companyName,
+                    "manufacturerId": item.manufacturerId,
+                    "type": 'Manufacturer'
+                }
+            })
+
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: finalResult
+            };
+            }
 
             const result = await db.users.findAll({
                 attributes: ['id', 'userType'],
@@ -211,7 +232,7 @@ class DistributorService {
                         where: search ? { companyName: { [db.Op.like]: `%${search}%` } } : {}
                     }
                 ],
-                where: whereCondition
+                where: whereCondition,
             });
 
             const finalResult = result?.map((item) => {
@@ -509,13 +530,13 @@ class DistributorService {
 
     async po_page_data(data) {
         try {
-            const { id ,startDate,endDate} = data;
+            const { id, startDate, endDate } = data;
             const userId = Number(id);
             let whereCondition = { orderFrom: userId }
-            let whereauth =  { authorizedBy: userId, status: "Approved" }
+            let whereauth = { authorizedBy: userId, status: "Approved" }
             let wherePending = { authorizedBy: userId, status: "Pending" }
 
-             if (startDate && endDate) {
+            if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
 
@@ -552,7 +573,7 @@ class DistributorService {
                         "retailers.companyType",
                         [db.sequelize.fn("COUNT", db.sequelize.col("authorizations.authorizedId")), "count"],
                     ],
-                    where:whereauth,
+                    where: whereauth,
                     include: [
                         {
                             model: db.retailers,
@@ -596,16 +617,16 @@ class DistributorService {
 
     async so_page_data(data) {
         try {
-             const { startDate,endDate} = data;
+            const { startDate, endDate } = data;
             const id = Number(data.id)
             let whereCondition = { orderTo: id }
-            let whereauth =  {
-                    authorizedBy: id,
-                    status: "Approved"
-                }
+            let whereauth = {
+                authorizedBy: id,
+                status: "Approved"
+            }
             // let wherePending = { authorizedBy: userId, status: "Pending" }
 
-             if (startDate && endDate) {
+            if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
 
@@ -676,8 +697,8 @@ class DistributorService {
         } catch (error) {
             console.log('so_page_data service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
@@ -1708,7 +1729,7 @@ class DistributorService {
     async delete_document(data) {
         try {
             const { id, documentId } = data
-            console.log(id,documentId)
+            console.log(id, documentId)
             await db.documents.update({ isDeleted: true }, { where: { documentId: Number(documentId), userId: Number(id) } })
             return {
                 status: message.code200,

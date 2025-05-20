@@ -54,8 +54,9 @@ class PatientService {
                     message: 'Invalid input'
                 }
             }
+            console.log(id,mobile)
             const check = await db.patients.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id),userStatus:'Active' }
+                where: { mobile: Number(mobile), retailerId: Number(id) }
             })
             if (check) {
                 return {
@@ -283,6 +284,24 @@ class PatientService {
             }
         } catch (error) {
             console.log('patient_delete service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+    async patient_update(data,userData){
+        try {
+            const Data = data.data
+            console.log(data,userData)
+          const aa=  await db.patients.update(Data,{where:{id:Number(data?.patientId)}})
+          console.log(aa)  
+          return {
+                status:message.code200,
+                message:'Patient updated successfully'
+            }
+        } catch (error) {
+            console.log('patient_update service error:',error.message)
             return {
                 status:message.code500,
                 message:error.message

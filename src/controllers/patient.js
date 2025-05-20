@@ -82,3 +82,19 @@ exports.patient_delete = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.patient_update = async (req,res) => {
+  try {
+      // const data = {...req.body,...req.user}
+      const Data = await PatientService.patient_update(req.body,req.user);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error patient_update:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};
