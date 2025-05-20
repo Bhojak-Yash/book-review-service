@@ -34,7 +34,10 @@ class DistributorService {
             });
 
             if (existingRole) {
-                throw new Error("Role already exists for this owner.");
+                return{
+                    status: 400,
+                    message: "Role already exists for this owner."
+                }
             }
 
             const newRole = await db.roles.create({
@@ -46,7 +49,9 @@ class DistributorService {
                 ownerId: userIdFromToken,
             });
 
-            return { status: "success", message: "Role created successfully", data: newRole };
+            return { 
+                status: 200, 
+                message: "Role created successfully", data: newRole };
         } catch (error) {
             console.error("Error creating role:", error.message);
             throw new Error(error.message);
@@ -706,111 +711,112 @@ class DistributorService {
         }
     }
     
-
-    //.................................................................
     async getRoleModuleMappings(roleId) {
         try {
-            const whereCondition = roleId ? { id: roleId } : {};
-
-            // Fetch the role and its mappings
-            const roles = await db.roles.findAll({
-                where: whereCondition,
-                attributes: ['id', 'roleName'],
-                include: [{
-                    model: db.modulemappings,
-                    attributes: ['accessLevel', 'moduleMappingId'],
-                    include: [{
-                        model: db.moduleconfigs,
-                        attributes: ['moduleConfigId', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url']
-                    }]
-                }]
+            // Step 1: Get all module configs
+            const moduleConfigs = await db.moduleconfigs.findAll({
+                attributes: ['moduleConfigId', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url'],
+                raw: true
             });
 
-            const data = [];
+            const moduleMap = {};
+            moduleConfigs.forEach(config => {
+                moduleMap[config.moduleConfigId] = {
+                    ...config,
+                    accessLevel: null,
+                    moduleMappingId: null
+                };
+            });
 
-            for (const role of roles) {
-                const roleId = role.id;
-                const roleName = role.roleName;
-
-                // Flatten and index mappings by moduleConfigId
-                const moduleMap = {};
-                role.modulemappings.forEach(mapping => {
-                    if (mapping.moduleconfig) {
-                        moduleMap[mapping.moduleconfig.moduleConfigId] = {
-                            moduleConfigId: mapping.moduleconfig.moduleConfigId,
-                            moduleName: mapping.moduleconfig.moduleName,
-                            icon: mapping.icon || null,
-                            url: mapping.url || null,
-                            accessLevel: mapping.accessLevel || 'None',
-                            menuType: mapping.moduleconfig.menuType,
-                            parentMenuId: mapping.moduleconfig.parentMenuId
-                        };
-                    }
+            let roleName = null;
+            if (roleId) {
+                const role = await db.roles.findOne({
+                    where: {id: roleId },
+                    attributes: ['roleName'],
+                    raw: true
                 });
 
-                // Organize into Main > Sub > Component
-                const moduleTree = [];
+                roleName = role?.roleName || null;
 
-                Object.values(moduleMap).forEach(module => {
-                    if (module.menuType === 'Main') {
-                        moduleTree.push({
+                const mappings = await db.modulemappings.findAll({
+                    where: { roleId },
+                    include: [{
+                        model: db.moduleconfigs,
+                        attributes: []
+                    }],
+                    attributes: ['moduleMappingId', 'accessLevel', 'moduleConfigId'],
+                    raw: true
+                });
+
+                mappings.forEach(mapping => {
+                    if (moduleMap[mapping.moduleConfigId]) {
+                        moduleMap[mapping.moduleConfigId].accessLevel = mapping.accessLevel;
+                        moduleMap[mapping.moduleConfigId].moduleMappingId = mapping.moduleMappingId;
+                    }
+                });
+            }
+
+            const moduleTree = [];
+
+            Object.values(moduleMap).forEach(module => {
+                if (module.menuType === 'Main') {
+                    moduleTree.push({
+                        moduleConfigId: module.moduleConfigId,
+                        moduleMappingId: module.moduleMappingId,
+                        moduleName: module.moduleName,
+                        icon: module.icon,
+                        url: module.url,
+                        accessLevel: module.accessLevel,
+                        subModules: []
+                    });
+                }
+            });
+
+            Object.values(moduleMap).forEach(module => {
+                if (module.menuType === 'Sub') {
+                    const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
+                    if (main) {
+                        main.subModules.push({
                             moduleConfigId: module.moduleConfigId,
+                            moduleMappingId: module.moduleMappingId,
                             moduleName: module.moduleName,
                             icon: module.icon,
                             url: module.url,
                             accessLevel: module.accessLevel,
-                            subModules: []
+                            components: []
                         });
                     }
-                });
+                }
+            });
 
-                Object.values(moduleMap).forEach(module => {
-                    if (module.menuType === 'Sub') {
-                        const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
-                        if (main) {
-                            main.subModules.push({
-                                moduleConfigId: module.moduleConfigId,
-                                moduleName: module.moduleName,
-                                icon: module.icon,
-                                url: module.url,
-                                accessLevel: module.accessLevel,
-                                components: []
-                            });
-                        }
-                    }
-                });
-
-                Object.values(moduleMap).forEach(module => {
-                    if (module.menuType === 'Component') {
-                        moduleTree.forEach(main => {
-                            main.subModules.forEach(sub => {
-                                if (sub.moduleConfigId === module.parentMenuId) {
-                                    sub.components.push({
-                                        moduleConfigId: module.moduleConfigId,
-                                        moduleName: module.moduleName,
-                                        icon: module.icon,
-                                        url: module.url,
-                                        accessLevel: module.accessLevel
-                                    });
-                                }
-                            });
+            Object.values(moduleMap).forEach(module => {
+                if (module.menuType === 'Component') {
+                    moduleTree.forEach(main => {
+                        main.subModules.forEach(sub => {
+                            if (sub.moduleConfigId === module.parentMenuId) {
+                                sub.components.push({
+                                    moduleConfigId: module.moduleConfigId,
+                                    moduleMappingId: module.moduleMappingId,
+                                    moduleName: module.moduleName,
+                                    icon: module.icon,
+                                    url: module.url,
+                                    accessLevel: module.accessLevel
+                                });
+                            }
                         });
-                    }
-                });
-
-                data.push({
-                    roleId,
-                    roleName,
-                    modules: moduleTree
-                });
-            }
+                    });
+                }
+            });
 
             return {
                 status: 200,
-                message: "Role-module mappings retrieved successfully.",
-                data
+                message: "Modules retrieved" + (roleId ? " with role mappings." : " with null access levels."),
+                data: [{
+                    roleId: roleId || null,
+                    roleName: roleName || null,
+                    modules: moduleTree
+                }]
             };
-
         } catch (error) {
             console.error("Error retrieving role-module mappings:", error);
             return {
@@ -820,43 +826,192 @@ class DistributorService {
             };
         }
     }
-    //.................................................................
     // async getRoleModuleMappings(roleId) {
     //     try {
-    //         const whereCondition = roleId ? { id: roleId } : {};
+    //         if (!roleId) {
+    //             // Case: No roleId passed, show all modules with accessLevel and moduleMappingId as null
+    //             const moduleConfigs = await db.moduleconfigs.findAll({
+    //                 attributes: ['moduleConfigId', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url']
+    //             });
 
-    //         // Fetch all roles with their associated module mappings and modules
+    //             const moduleMap = {};
+    //             moduleConfigs.forEach(config => {
+    //                 moduleMap[config.moduleConfigId] = {
+    //                     moduleConfigId: config.moduleConfigId,
+    //                     moduleMappingId: null,
+    //                     moduleName: config.moduleName,
+    //                     icon: config.icon || null,
+    //                     url: config.url || null,
+    //                     accessLevel: null,
+    //                     menuType: config.menuType,
+    //                     parentMenuId: config.parentMenuId
+    //                 };
+    //             });
+
+    //             const moduleTree = [];
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Main') {
+    //                     moduleTree.push({
+    //                         moduleConfigId: module.moduleConfigId,
+    //                         moduleMappingId: module.moduleMappingId,
+    //                         moduleName: module.moduleName,
+    //                         icon: module.icon,
+    //                         url: module.url,
+    //                         accessLevel: module.accessLevel,
+    //                         subModules: []
+    //                     });
+    //                 }
+    //             });
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Sub') {
+    //                     const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
+    //                     if (main) {
+    //                         main.subModules.push({
+    //                             moduleConfigId: module.moduleConfigId,
+    //                             moduleMappingId: module.moduleMappingId,
+    //                             moduleName: module.moduleName,
+    //                             icon: module.icon,
+    //                             url: module.url,
+    //                             accessLevel: module.accessLevel,
+    //                             components: []
+    //                         });
+    //                     }
+    //                 }
+    //             });
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Component') {
+    //                     moduleTree.forEach(main => {
+    //                         main.subModules.forEach(sub => {
+    //                             if (sub.moduleConfigId === module.parentMenuId) {
+    //                                 sub.components.push({
+    //                                     moduleConfigId: module.moduleConfigId,
+    //                                     moduleMappingId: module.moduleMappingId,
+    //                                     moduleName: module.moduleName,
+    //                                     icon: module.icon,
+    //                                     url: module.url,
+    //                                     accessLevel: module.accessLevel,
+    //                                 });
+    //                             }
+    //                         });
+    //                     });
+    //                 }
+    //             });
+
+    //             return {
+    //                 status: 200,
+    //                 message: "All modules retrieved with null access levels.",
+    //                 data: [{
+    //                     roleId: null,
+    //                     roleName: null,
+    //                     modules: moduleTree
+    //                 }]
+    //             };
+    //         }
+
+    //         // Case: roleId is provided
     //         const roles = await db.roles.findAll({
-    //             where: whereCondition,
+    //             where: { id: roleId },
     //             attributes: ['id', 'roleName'],
     //             include: [{
     //                 model: db.modulemappings,
-    //                 attributes: ['accessLevel'],
+    //                 attributes: ['accessLevel', 'moduleMappingId'],
     //                 include: [{
     //                     model: db.moduleconfigs,
-    //                     attributes: ['moduleConfigId', 'moduleName', 'icon', 'url']
+    //                     attributes: ['moduleConfigId', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url']
     //                 }]
     //             }]
     //         });
 
-    //         // Transform the data into the desired format
-    //         const roleModuleMappings = roles.map(role => ({
-    //             roleId: role.id,
-    //             roleName: role.roleName,
-    //             modules: role.modulemappings.map(mapping => ({
-    //                 moduleConfigId: mapping.moduleconfig.moduleConfigId,
-    //                 moduleName: mapping.moduleconfig.moduleName,
-    //                 icon: mapping.moduleconfig.icon,
-    //                 url: mapping.moduleconfig.url,
-    //                 accessLevel: mapping.accessLevel || 'none' // Default to 'none' if accessLevel is null
-    //             }))
-    //         }));
+    //         const data = [];
+
+    //         for (const role of roles) {
+    //             const roleId = role.id;
+    //             const roleName = role.roleName;
+
+    //             const moduleMap = {};
+    //             role.modulemappings.forEach(mapping => {
+    //                 if (mapping.moduleconfig) {
+    //                     moduleMap[mapping.moduleconfig.moduleConfigId] = {
+    //                         moduleConfigId: mapping.moduleconfig.moduleConfigId,
+    //                         moduleMappingId: mapping.moduleMappingId || null,
+    //                         moduleName: mapping.moduleconfig.moduleName,
+    //                         icon: mapping.moduleconfig.icon || null,
+    //                         url: mapping.moduleconfig.url || null,
+    //                         accessLevel: mapping.accessLevel || 'None',
+    //                         menuType: mapping.moduleconfig.menuType,
+    //                         parentMenuId: mapping.moduleconfig.parentMenuId
+    //                     };
+    //                 }
+    //             });
+
+    //             const moduleTree = [];
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Main') {
+    //                     moduleTree.push({
+    //                         moduleConfigId: module.moduleConfigId,
+    //                         moduleMappingId: module.moduleMappingId,
+    //                         moduleName: module.moduleName,
+    //                         icon: module.icon,
+    //                         url: module.url,
+    //                         accessLevel: module.accessLevel,
+    //                         subModules: []
+    //                     });
+    //                 }
+    //             });
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Sub') {
+    //                     const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
+    //                     if (main) {
+    //                         main.subModules.push({
+    //                             moduleConfigId: module.moduleConfigId,
+    //                             moduleMappingId: module.moduleMappingId,
+    //                             moduleName: module.moduleName,
+    //                             icon: module.icon,
+    //                             url: module.url,
+    //                             accessLevel: module.accessLevel,
+    //                             components: []
+    //                         });
+    //                     }
+    //                 }
+    //             });
+
+    //             Object.values(moduleMap).forEach(module => {
+    //                 if (module.menuType === 'Component') {
+    //                     moduleTree.forEach(main => {
+    //                         main.subModules.forEach(sub => {
+    //                             if (sub.moduleConfigId === module.parentMenuId) {
+    //                                 sub.components.push({
+    //                                     moduleConfigId: module.moduleConfigId,
+    //                                     moduleMappingId: module.moduleMappingId,
+    //                                     moduleName: module.moduleName,
+    //                                     icon: module.icon,
+    //                                     url: module.url,
+    //                                     accessLevel: module.accessLevel,
+    //                                 });
+    //                             }
+    //                         });
+    //                     });
+    //                 }
+    //             });
+
+    //             data.push({
+    //                 roleId,
+    //                 roleName,
+    //                 modules: moduleTree
+    //             });
+    //         }
 
     //         return {
     //             status: 200,
     //             message: "Role-module mappings retrieved successfully.",
-    //             data: roleModuleMappings
+    //             data
     //         };
+
     //     } catch (error) {
     //         console.error("Error retrieving role-module mappings:", error);
     //         return {
