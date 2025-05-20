@@ -638,40 +638,217 @@ class DistributorService {
         }
     }
 
-    async createModuleMappings(modules) {
+    // async createModuleMappings(modules) {
+    //     const transaction = await db.modulemappings.sequelize.transaction();
+    //     try {
+    //         // Perform bulk insert
+    //         await db.modulemappings.bulkCreate(modules, { transaction });
+
+    //         await transaction.commit();
+    //         return { status: message.code200, message: 'Module mappings inserted successfully.' };
+    //     } catch (error) {
+    //         await transaction.rollback();
+    //         throw error;
+    //     }
+    // }
+    async create_UpdateModuleMappings(modules) {
         const transaction = await db.modulemappings.sequelize.transaction();
         try {
-            // Perform bulk insert
-            await db.modulemappings.bulkCreate(modules, { transaction });
+            for (const module of modules) {               
+                if (module.moduleMappingId) {
+                    // Update existing mapping
+                    await db.modulemappings.update(
+                        {
+                            roleId: module.roleId,
+                            moduleConfigId: module.moduleConfigId,
+                            accessLevel: module.accessLevel
+                        },
+                        {
+                            where: { moduleMappingId: module.moduleMappingId },
+                            transaction
+                        }
+                    );
+                } else {
+                    const existing = await db.modulemappings.findOne({
+                        where: {
+                            roleId: module.roleId,
+                            moduleConfigId: module.moduleConfigId
+                        },
+                        transaction
+                    });
+
+                    if (existing) {
+                        return {
+                            status : 400,
+                            message : `Module mapping with moduleConfigId ${module.moduleConfigId} and roleId ${module.roleId} already exists.`
+                        };
+                    }
+                    // Create new mapping
+                    await db.modulemappings.create(
+                        {
+                            roleId: module.roleId,
+                            moduleConfigId: module.moduleConfigId,
+                            accessLevel: module.accessLevel
+                        },
+                        { transaction }
+                    );
+                }
+            }
 
             await transaction.commit();
-            return { status: message.code200, message: 'Module mappings inserted successfully.' };
+            return {
+                status: message.code200,
+                message: 'Module mappings inserted/updated successfully.'
+            };
         } catch (error) {
             await transaction.rollback();
             throw error;
         }
     }
+    
 
-    // async getRoleModuleMappings() {
+    //.................................................................
+    async getRoleModuleMappings(roleId) {
+        try {
+            const whereCondition = roleId ? { id: roleId } : {};
+
+            // Fetch the role and its mappings
+            const roles = await db.roles.findAll({
+                where: whereCondition,
+                attributes: ['id', 'roleName'],
+                include: [{
+                    model: db.modulemappings,
+                    attributes: ['accessLevel', 'moduleMappingId'],
+                    include: [{
+                        model: db.moduleconfigs,
+                        attributes: ['moduleConfigId', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url']
+                    }]
+                }]
+            });
+
+            const data = [];
+
+            for (const role of roles) {
+                const roleId = role.id;
+                const roleName = role.roleName;
+
+                // Flatten and index mappings by moduleConfigId
+                const moduleMap = {};
+                role.modulemappings.forEach(mapping => {
+                    if (mapping.moduleconfig) {
+                        moduleMap[mapping.moduleconfig.moduleConfigId] = {
+                            moduleConfigId: mapping.moduleconfig.moduleConfigId,
+                            moduleName: mapping.moduleconfig.moduleName,
+                            icon: mapping.icon || null,
+                            url: mapping.url || null,
+                            accessLevel: mapping.accessLevel || 'None',
+                            menuType: mapping.moduleconfig.menuType,
+                            parentMenuId: mapping.moduleconfig.parentMenuId
+                        };
+                    }
+                });
+
+                // Organize into Main > Sub > Component
+                const moduleTree = [];
+
+                Object.values(moduleMap).forEach(module => {
+                    if (module.menuType === 'Main') {
+                        moduleTree.push({
+                            moduleConfigId: module.moduleConfigId,
+                            moduleName: module.moduleName,
+                            icon: module.icon,
+                            url: module.url,
+                            accessLevel: module.accessLevel,
+                            subModules: []
+                        });
+                    }
+                });
+
+                Object.values(moduleMap).forEach(module => {
+                    if (module.menuType === 'Sub') {
+                        const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
+                        if (main) {
+                            main.subModules.push({
+                                moduleConfigId: module.moduleConfigId,
+                                moduleName: module.moduleName,
+                                icon: module.icon,
+                                url: module.url,
+                                accessLevel: module.accessLevel,
+                                components: []
+                            });
+                        }
+                    }
+                });
+
+                Object.values(moduleMap).forEach(module => {
+                    if (module.menuType === 'Component') {
+                        moduleTree.forEach(main => {
+                            main.subModules.forEach(sub => {
+                                if (sub.moduleConfigId === module.parentMenuId) {
+                                    sub.components.push({
+                                        moduleConfigId: module.moduleConfigId,
+                                        moduleName: module.moduleName,
+                                        icon: module.icon,
+                                        url: module.url,
+                                        accessLevel: module.accessLevel
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+
+                data.push({
+                    roleId,
+                    roleName,
+                    modules: moduleTree
+                });
+            }
+
+            return {
+                status: 200,
+                message: "Role-module mappings retrieved successfully.",
+                data
+            };
+
+        } catch (error) {
+            console.error("Error retrieving role-module mappings:", error);
+            return {
+                status: 500,
+                message: "An error occurred while retrieving role-module mappings.",
+                error: error.message
+            };
+        }
+    }
+    //.................................................................
+    // async getRoleModuleMappings(roleId) {
     //     try {
-    //         // Fetch all roles
+    //         const whereCondition = roleId ? { id: roleId } : {};
+
+    //         // Fetch all roles with their associated module mappings and modules
     //         const roles = await db.roles.findAll({
-    //             attributes: ['id', 'roleName']
+    //             where: whereCondition,
+    //             attributes: ['id', 'roleName'],
+    //             include: [{
+    //                 model: db.modulemappings,
+    //                 attributes: ['accessLevel'],
+    //                 include: [{
+    //                     model: db.moduleconfigs,
+    //                     attributes: ['moduleConfigId', 'moduleName', 'icon', 'url']
+    //                 }]
+    //             }]
     //         });
 
-    //         // Fetch all modules
-    //         const modules = await db.moduleconfigs.findAll({
-    //             attributes: ['moduleConfigId', 'moduleName']
-    //         });
-
-    //         // Initialize the role-module mapping array
+    //         // Transform the data into the desired format
     //         const roleModuleMappings = roles.map(role => ({
     //             roleId: role.id,
     //             roleName: role.roleName,
-    //             modules: modules.map(module => ({
-    //                 moduleConfigId: module.moduleConfigId,
-    //                 moduleName: module.moduleName,
-    //                 accessLevel: 'none' // Default access level
+    //             modules: role.modulemappings.map(mapping => ({
+    //                 moduleConfigId: mapping.moduleconfig.moduleConfigId,
+    //                 moduleName: mapping.moduleconfig.moduleName,
+    //                 icon: mapping.moduleconfig.icon,
+    //                 url: mapping.moduleconfig.url,
+    //                 accessLevel: mapping.accessLevel || 'none' // Default to 'none' if accessLevel is null
     //             }))
     //         }));
 
@@ -689,52 +866,6 @@ class DistributorService {
     //         };
     //     }
     // }
-
-    async getRoleModuleMappings(roleId) {
-        try {
-            const whereCondition = roleId ? { id: roleId } : {};
-
-            // Fetch all roles with their associated module mappings and modules
-            const roles = await db.roles.findAll({
-                where: whereCondition,
-                attributes: ['id', 'roleName'],
-                include: [{
-                    model: db.modulemappings,
-                    attributes: ['accessLevel'],
-                    include: [{
-                        model: db.moduleconfigs,
-                        attributes: ['moduleConfigId', 'moduleName', 'icon', 'url']
-                    }]
-                }]
-            });
-
-            // Transform the data into the desired format
-            const roleModuleMappings = roles.map(role => ({
-                roleId: role.id,
-                roleName: role.roleName,
-                modules: role.modulemappings.map(mapping => ({
-                    moduleConfigId: mapping.moduleconfig.moduleConfigId,
-                    moduleName: mapping.moduleconfig.moduleName,
-                    icon: mapping.moduleconfig.icon,
-                    url: mapping.moduleconfig.url,
-                    accessLevel: mapping.accessLevel || 'none' // Default to 'none' if accessLevel is null
-                }))
-            }));
-
-            return {
-                status: 200,
-                message: "Role-module mappings retrieved successfully.",
-                data: roleModuleMappings
-            };
-        } catch (error) {
-            console.error("Error retrieving role-module mappings:", error);
-            return {
-                status: 500,
-                message: "An error occurred while retrieving role-module mappings.",
-                error: error.message
-            };
-        }
-    }
     
     async getAllEmployees(employeeOf, page = 1, limit = 10, search = '') {
         try {
