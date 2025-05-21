@@ -8,7 +8,7 @@ dotenv.config()
 
 exports.generateToken = (user) => {
   // console.log(user)
-  const payload = { id: user.id, userName: user.userName,userType:user.userType,data:user?.data }; 
+  const payload = { id: user.id, userName: user.userName,userType:user.userType,data:user?.data,empOfType:user?.empOfType }; 
   const secretKey = process.env.JWTKEY;
   const options = { expiresIn: '30d' }; 
 

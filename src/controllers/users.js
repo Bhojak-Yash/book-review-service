@@ -207,7 +207,7 @@ exports.login = async (req, res) => {
                 message: 'Invalid input'
             });
         }
-
+        let empOfType = null
         const checkUser = await db.users.findOne({
             where: { userName },
             include: [
@@ -238,7 +238,7 @@ exports.login = async (req, res) => {
             const managerUser = await db.users.findOne({
                 where: { id: employeeOf }
             });
-
+            empOfType = managerUser?.dataValues?.userType
             if (!managerUser || managerUser.userType !== type) {
                 return res.json({
                     status: message.code400,
@@ -256,7 +256,7 @@ exports.login = async (req, res) => {
         }
 
         const data = await getData(checkUser.userType, checkUser.id);
-        const tokenPayload = { ...checkUser.dataValues, data: data?.dataValues };
+        const tokenPayload = { ...checkUser.dataValues,empOfType:empOfType, data: data?.dataValues };
 
         const token = await generateToken(tokenPayload);
 

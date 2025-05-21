@@ -1205,19 +1205,19 @@ class OrdersService {
           {
             model: db.distributors,
             as: "disuser",
-            attributes: ["distributorId", "companyName", "PAN", "GST", 'distributorCode', 'FSSAI', 'wholeSaleDrugLicence', 'IFSC', 'AccHolderName', 'accountNumber'],
+            attributes: ["distributorId", "companyName", "PAN", "GST", 'distributorCode', 'FSSAI', 'wholeSaleDrugLicence', 'IFSC', 'AccHolderName', 'accountNumber','profilePic'],
             required: false,
           },
           {
             model: db.retailers,
             as: "reuser",
-            attributes: ["retailerId", "firmName", "PAN", "GST", 'retailerCode', 'FSSAI', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber'],
+            attributes: ["retailerId", "firmName", "PAN", "GST", 'retailerCode', 'FSSAI', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber','profilePic'],
             required: false,
           },
           {
             model: db.manufacturers,
             as: "manufacturer",
-            attributes: ["manufacturerId", "companyName", "PAN", "GST", 'manufacturerCode', 'fssaiLicense', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber'],
+            attributes: ["manufacturerId", "companyName", "PAN", "GST", 'manufacturerCode', 'fssaiLicense', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber','logo'],
             required: false,
           },
           {
@@ -1251,6 +1251,7 @@ class OrdersService {
         accountNumber: user?.reuser?.[0]?.accountNumber || user?.disuser?.[0]?.accountNumber || user?.manufacturer?.[0]?.accountNumber || null,
         AccHolderName: user?.reuser?.[0]?.AccHolderName || user?.disuser?.[0]?.AccHolderName || user?.manufacturer?.[0]?.AccHolderName || null,
         IFSC: user?.reuser?.[0]?.IFSC || user?.disuser?.[0]?.IFSC || user?.manufacturer?.[0]?.IFSC || null,
+        profilePic: user?.reuser?.[0]?.profilePic || user?.disuser?.[0]?.profilePic || user?.manufacturer?.[0]?.logo || null,
         address: user?.address || null,
         // stateCode:user?.address?.states?.stateCode || null,
       });
