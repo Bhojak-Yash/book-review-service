@@ -116,7 +116,8 @@ class RetailerSalesService {
                 "CGST": data?.order?.CGST,
                 "balance": data?.order?.balance,
                 "retailerId":Number(user.id),
-                "paymentMode":'Cash'
+                "paymentMode":data?.order?.paymentMode || "Cash",
+                "orderStatus":"Created"
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
@@ -164,6 +165,7 @@ class RetailerSalesService {
             let whereCondition = {retailerId:Number(id)};
             if (search) {
                 whereCondition = {
+                    retailerId:Number(id),
                     [Op.or]: [
                         { id: { [Op.like]: `%${search}%` } },
                         { '$patient.name$': { [Op.like]: `%${search}%` } },
@@ -174,6 +176,7 @@ class RetailerSalesService {
             if (unpaid == true || unpaid == 'true') {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
+            whereCondition.orderStatus={[Op.not]:"Deleted"}
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -185,9 +188,9 @@ class RetailerSalesService {
                     [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
                 };
             }
-            // console.log(whereCondition)
+            console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date','paymentMode'],
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date','paymentMode','orderStatus','inv_url'],
                 include: [
                     {
                         model: db.patients,
@@ -218,7 +221,8 @@ class RetailerSalesService {
                     "balance": item?.balance || 0,
                     "status": item?.balance > 0 ? 'Unpaid' : 'Paid',
                     "paymentMode":item?.paymentMode,
-                    "orderStatus":'Completed'
+                    "orderStatus":'Completed',
+                    "invUrl":item?.inv_url
                 }
             })
             return {
@@ -264,6 +268,54 @@ class RetailerSalesService {
             return {
                 status:message.code200,
                 message:error.message
+            }
+        }
+    }
+
+    async delete_order(data){
+        try {
+            const {id,orderId} = data 
+            if(!orderId){
+                return {
+                    status:message.code400,
+                    message:'order id is required'
+                }
+            }
+
+            await db.retailerSalesHeader.update({orderStatus:"Deleted"},{where:{
+                id:Number(orderId),
+                retailerId:Number(id)
+            }})
+            return {
+                status:message.code200,
+                message:message.message200
+            }
+        } catch (error) {
+            console.log('delete_order service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+    async update_sales_order(data){
+        try {
+            const {id,orderId,invUrl} = data
+            if(!orderId || !invUrl){
+                return {
+                    status:message.code400,
+                    message:'Invalid Input'
+                }
+            }
+            await db.retailerSalesHeader.update({inv_url:invUrl},{where:{id:Number(orderId),retailerId:Number(id)}})
+            return {
+                status:message.code200,
+                message:message.message200
+            }
+        } catch (error) {
+            console.log('update_sales_order service error:',error.message)
+            return {
+                status:message.code500,message:error.message
             }
         }
     }

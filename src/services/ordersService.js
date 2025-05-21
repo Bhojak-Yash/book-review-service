@@ -39,6 +39,15 @@ class OrdersService {
       } else {
         orderby = data.id
       }
+      const checkAddress = await db.address.findOne({where:{userId:Number(orderby)}})
+      console.log('address hai')
+      if(!checkAddress){
+        console.log('address nhi hai')
+        return {
+          status:message.code400,
+          message:'Users address is required.'
+        }
+      }
       transaction = await db.sequelize.transaction();
       console.log(orderData.orderItems);
 

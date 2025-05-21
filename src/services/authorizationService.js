@@ -114,20 +114,18 @@ class AuthService {
                     [db.Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
                 };
             }
+            // if (search) {
+            //     whereClause[db.Op.in] = [
+            //         { "$distributers.companyName$": search },
+            //         { "$retailers.firmName$": search }
+            //     ]
+            // }
             if (search) {
-                whereClause[db.Op.in] = [
-                    { "$distributers.companyName$": search },
-                    { "$retailers.firmName$": search }
-                ]
+                whereClause[Op.or] = [
+                    db.sequelize.literal(`distributers.companyName LIKE '%${search}%'`),
+                    db.sequelize.literal(`retailers.firmName LIKE '%${search}%'`)
+                ];
             }
-            // if (start_date && end_date) {
-            //     whereClause.createdAt = {
-            //       [Op.between]: [
-            //         new Date(start_date),
-            //         new Date(end_date),
-            //       ],
-            //     };
-            //   }
             if (Page > 1) {
                 skip = (Page - 1) * Limit
             }
@@ -148,83 +146,85 @@ class AuthService {
                     {
                         model: db.retailers,
                         as: 'retailers',
+                        required: false
                     },
                     {
-                        model:db.address,
-                        as:'address',
-                        attributes:['city','State'],
-                        where:{
-                            addressType:"Business"
+                        model: db.address,
+                        as: 'address',
+                        attributes: ['city', 'State'],
+                        where: {
+                            addressType: "Business"
                         },
-                        required:false
+                        required: false
                     }
                 ],
                 where: whereClause,
+                subQuery: false, 
                 order: [["id", "DESC"]],
                 offset: skip,
                 limit: Limit
             })
-            const returnData = rows?.map((rows)=>{
+            const returnData = rows?.map((rows) => {
                 return {
-                "id": rows?.id,
-                "authorizedBy": rows?.authorizedBy,
-                "authorizedId": rows?.authorizedId,
-                "status": rows?.status,
-                "poStatus": rows?.poStatus,
-                "creditCycle": rows?.icreditCycled,
-                "createdAt": rows?.createdAt,
-                "updatedAt": rows?.updatedAt,
-                "distributers":rows?.distributers ? 
-                {
-                "distributorId": rows?.distributers?.distributorId,
-                "distributorCode": rows?.distributers?.distributorCode,
-                "companyName": rows?.distributers?.companyName,
-                "ownerName": rows?.distributers?.ownerName,
-                "address": rows?.distributers?.address,
-                "phone": rows?.distributers?.phone,
-                "profilePic": rows?.distributers?.profilePic,
-                "email": rows?.distributers?.email,
-                "licence": rows?.distributers?.licence,
-                "status": rows?.distributers?.status,
-                "empMin": rows?.distributers?.empMin,
-                "empMax": rows?.distributers?.empMax,
-                "companyType": rows?.distributers?.companyType,
-                "PAN": rows?.distributers?.PAN,
-                "GST":rows?.distributers?.GST,
-                "CIN": rows?.distributers?.CIN,
-                "FSSAI": rows?.distributers?.FSSAI,
-                "wholeSaleDrugLicence": rows?.distributers?.wholeSaleDrugLicence,
-                "type": rows?.distributers?.type,
-                "createdAt": rows?.distributers?.createdAt,
-                "updatedAt": rows?.distributers?.updatedAt,
-                "city":rows?.address[0]?.city || null,
-                "State":rows?.address[0]?.State || null,
-            }:{
-                 "distributorId": rows?.retailers?.retailerId,
-                "distributorCode": rows?.retailers?.retailerCode,
-                "companyName": rows?.retailers?.firmName,
-                "ownerName": rows?.retailers?.ownerName,
-                "address": rows?.retailers?.address,
-                "phone": rows?.retailers?.phone,
-                "profilePic": rows?.retailers?.profilePic,
-                "email": rows?.retailers?.email,
-                "licence": rows?.retailers?.drugLicense,
-                "status": rows?.retailers?.status,
-                "empMin": rows?.retailers?.empMin,
-                "empMax": rows?.retailers?.empMax,
-                "companyType": rows?.retailers?.companyType,
-                "PAN": rows?.retailers?.PAN,
-                "GST":rows?.retailers?.GST,
-                "CIN": rows?.retailers?.CIN,
-                "FSSAI": rows?.retailers?.FSSAI,
-                "wholeSaleDrugLicence": rows?.retailers?.wholeSaleDrugLicence,
-                "type": rows?.retailers?.type,
-                "createdAt": rows?.retailers?.createdAt,
-                "updatedAt": rows?.retailers?.updatedAt,
-                "city":rows?.address[0]?.city || null,
-                "State":rows?.address[0]?.State || null,
-            }
-            }
+                    "id": rows?.id,
+                    "authorizedBy": rows?.authorizedBy,
+                    "authorizedId": rows?.authorizedId,
+                    "status": rows?.status,
+                    "poStatus": rows?.poStatus,
+                    "creditCycle": rows?.icreditCycled,
+                    "createdAt": rows?.createdAt,
+                    "updatedAt": rows?.updatedAt,
+                    "distributers": rows?.distributers ?
+                        {
+                            "distributorId": rows?.distributers?.distributorId,
+                            "distributorCode": rows?.distributers?.distributorCode,
+                            "companyName": rows?.distributers?.companyName,
+                            "ownerName": rows?.distributers?.ownerName,
+                            "address": rows?.distributers?.address,
+                            "phone": rows?.distributers?.phone,
+                            "profilePic": rows?.distributers?.profilePic,
+                            "email": rows?.distributers?.email,
+                            "licence": rows?.distributers?.licence,
+                            "status": rows?.distributers?.status,
+                            "empMin": rows?.distributers?.empMin,
+                            "empMax": rows?.distributers?.empMax,
+                            "companyType": rows?.distributers?.companyType,
+                            "PAN": rows?.distributers?.PAN,
+                            "GST": rows?.distributers?.GST,
+                            "CIN": rows?.distributers?.CIN,
+                            "FSSAI": rows?.distributers?.FSSAI,
+                            "wholeSaleDrugLicence": rows?.distributers?.wholeSaleDrugLicence,
+                            "type": rows?.distributers?.type,
+                            "createdAt": rows?.distributers?.createdAt,
+                            "updatedAt": rows?.distributers?.updatedAt,
+                            "city": rows?.address[0]?.city || null,
+                            "State": rows?.address[0]?.State || null,
+                        } : {
+                            "distributorId": rows?.retailers?.retailerId,
+                            "distributorCode": rows?.retailers?.retailerCode,
+                            "companyName": rows?.retailers?.firmName,
+                            "ownerName": rows?.retailers?.ownerName,
+                            "address": rows?.retailers?.address,
+                            "phone": rows?.retailers?.phone,
+                            "profilePic": rows?.retailers?.profilePic,
+                            "email": rows?.retailers?.email,
+                            "licence": rows?.retailers?.drugLicense,
+                            "status": rows?.retailers?.status,
+                            "empMin": rows?.retailers?.empMin,
+                            "empMax": rows?.retailers?.empMax,
+                            "companyType": rows?.retailers?.companyType,
+                            "PAN": rows?.retailers?.PAN,
+                            "GST": rows?.retailers?.GST,
+                            "CIN": rows?.retailers?.CIN,
+                            "FSSAI": rows?.retailers?.FSSAI,
+                            "wholeSaleDrugLicence": rows?.retailers?.wholeSaleDrugLicence,
+                            "type": rows?.retailers?.type,
+                            "createdAt": rows?.retailers?.createdAt,
+                            "updatedAt": rows?.retailers?.updatedAt,
+                            "city": rows?.address[0]?.city || null,
+                            "State": rows?.address[0]?.State || null,
+                        }
+                }
             })
             return {
                 status: message.code200,
@@ -233,7 +233,7 @@ class AuthService {
                 totalPage: Math.ceil(Number(count) / Limit),
                 totalItems: count,
                 apiData: returnData,
-                
+
             }
         } catch (error) {
             console.log("auth_request_list errr:", error.message)

@@ -66,3 +66,35 @@ exports.make_doctors_payment = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.delete_order = async (req,res) => {
+  try {
+      const data = {...req.query,...req.user}
+      const Data = await RetailerSalesService.delete_order(data);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error delete_order:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};
+
+exports.update_sales_order = async (req,res) => {
+  try {
+      const data = {...req.body,...req.user}
+      const Data = await RetailerSalesService.update_sales_order(data);
+  
+      // if (!distributor) {
+        return res.status(Data?.status || 200).json(Data);
+      // }
+  
+      // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+    } catch (error) {
+      console.error("Error update_sales_order:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};

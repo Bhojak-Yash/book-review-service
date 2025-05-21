@@ -19,7 +19,7 @@ class DoctorsService {
                 }
             }
             const check = await db.doctors.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id) }
+                where: { mobile: Number(mobile), retailerId: Number(id), userStatus: 'Active' }
             })
             if (check) {
                 return {
@@ -54,7 +54,7 @@ class DoctorsService {
                 }
             }
             const check = await db.doctors.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id) }
+                where: { mobile: Number(mobile), retailerId: Number(id), userStatus: 'Active' }
             })
             if (check) {
                 return {
@@ -77,7 +77,7 @@ class DoctorsService {
         }
     }
 
-    async doctors_list(data){
+    async doctors_list(data) {
         try {
             const { id, page, limit, startDate, endDate, search, unpaid } = data
             const Limit = Number(limit) || 10
@@ -88,6 +88,7 @@ class DoctorsService {
             }
             // console.log(data)
             let whereCondition = {};
+
             if (search) {
                 whereCondition = {
                     [Op.or]: [
@@ -111,7 +112,7 @@ class DoctorsService {
                     [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
                 };
             }
-
+            whereCondition.userStatus = 'Active'
             const { fn, col, literal } = db.Sequelize;
 
             const { count, rows: doctors } = await db.doctors.findAndCountAll({
@@ -131,73 +132,119 @@ class DoctorsService {
                         model: db.retailerSalesHeader,
                         as: 'retailerSalesHeaders',
                         attributes: [],
-                        where:{retailerId:Number(id)}
+                        where: { retailerId: Number(id) },
+                        required: false
                     },
                 ],
-                where:whereCondition,
+                where: whereCondition,
                 group: ['doctors.id'],
             });
-            const finalResult = await doctors?.map((item)=>{
-                return  {
+            const finalResult = await doctors?.map((item) => {
+                return {
                     "id": item?.id,
                     "name": item?.name,
                     "createdAt": item?.createdAt,
                     "mobile": item?.mobile,
-                    "RGNo":item?.RGNo || null,
+                    "RGNo": item?.RGNo || null,
                     "commission": item?.commission,
                     "orderCount": item?.dataValues?.orderCount,
                     "totalAmount": item?.dataValues?.totalAmount,
-                    "userStatus" :item?.dataValues?.userStatus,
-                    "totalCommission":(Number(item?.dataValues?.totalAmount)*Number(item?.commission)/100)
+                    "userStatus": item?.dataValues?.userStatus,
+                    "totalCommission": (Number(item?.dataValues?.totalAmount) * Number(item?.commission) / 100)
                 }
             })
             return {
-                status:message.code200,
-                message:message.message200,
-                currentPage:Page,
-                totalPage:Math.ceil(count?.length/Limit),
-                totalItems:count.length,
-                apiData:finalResult
+                status: message.code200,
+                message: message.message200,
+                currentPage: Page,
+                totalPage: Math.ceil(count?.length / Limit),
+                totalItems: count.length,
+                apiData: finalResult
             }
         } catch (error) {
-            console.log('doctors_list service error:',error.message)
+            console.log('doctors_list service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
 
-    async doctor_details(data){
+    async doctor_details(data) {
         try {
             const { id, doctorId } = data
-            if(!doctorId){
+            if (!doctorId) {
                 return {
-                    status:message.code400,
-                    message:'Input invalid'
+                    status: message.code400,
+                    message: 'Input invalid'
                 }
             }
             // console.log(doctorId,id)
-           const doctorDetails = await db.doctors.findOne({
-            where:{id:Number(doctorId),retailerId:Number(id)},
-            include:[
-                {
-                    model:db.doctorPayments,
-                    as:"doctorPayments"
-                }
-            ]
-           })
+            const doctorDetails = await db.doctors.findOne({
+                where: { id: Number(doctorId), retailerId: Number(id) },
+                include: [
+                    {
+                        model: db.doctorPayments,
+                        as: "doctorPayments"
+                    }
+                ]
+            })
 
-           return {
-            status:message.code200,
-            message:message.message200,
-            apiData:doctorDetails
-           }
-        } catch (error) {
-            console.log('doctor_details service error:',error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code200,
+                message: message.message200,
+                apiData: doctorDetails
+            }
+        } catch (error) {
+            console.log('doctor_details service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+    async doctor_delete(data) {
+        try {
+            const { id, doctorId } = data
+            if (!doctorId) {
+                return {
+                    status: message.code400,
+                    message: 'doctor id is required'
+                }
+            }
+            const updateDoctor = await db.doctors.update({ userStatus: "Inactive" }, {
+                where: {
+                    id: Number(doctorId),
+                    retailerId: Number(id)
+                }
+            })
+            return {
+                status: message.code200,
+                message: 'Doctor deleted successfully.'
+            }
+        } catch (error) {
+            console.log('doctor_delete service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
+            }
+        }
+    }
+    async doctor_update(data,userData) {
+        try {
+            const Data = data.data
+            // console.log(data, userData)
+            const aa = await db.doctors.update(Data, { where: { id: Number(data?.doctorId) } })
+            // console.log(aa)
+            return {
+                status: message.code200,
+                message: 'Doctor updated successfully'
+            }
+        } catch (error) {
+            console.log('doctor_update service error:', error.message)
+            return {
+                status: message.code500,
+                message: error.message
             }
         }
     }

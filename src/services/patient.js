@@ -20,7 +20,7 @@ class PatientService {
                 }
             }
             const check = await db.patients.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id) }
+                where: { mobile: Number(mobile), retailerId: Number(id),userStatus:'Active' }
             })
             if (check) {
                 return {
@@ -54,6 +54,7 @@ class PatientService {
                     message: 'Invalid input'
                 }
             }
+            console.log(id,mobile)
             const check = await db.patients.findOne({
                 where: { mobile: Number(mobile), retailerId: Number(id) }
             })
@@ -101,6 +102,7 @@ class PatientService {
             if (unpaid == true || unpaid == 'true') {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
+            whereCondition.userStatus='Active'
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -257,6 +259,52 @@ class PatientService {
             return {
                 status: message.code500,
                 message: error.message
+            }
+        }
+    }
+
+    async patient_delete(data){
+        try {
+            const{id,patientId} = data
+            if(!patientId){
+                return {
+                    status:message.code400,
+                    message:'Patient id is required'
+                }
+            }
+
+            await db.patients.update({userStatus:'Inactive'},{where:{
+                id:Number(patientId),
+                retailerId:Number(id)
+            }})
+
+            return {
+                status:message.code200,
+                message:message.message200
+            }
+        } catch (error) {
+            console.log('patient_delete service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+        }
+    }
+    async patient_update(data,userData){
+        try {
+            const Data = data.data
+            console.log(data,userData)
+          const aa=  await db.patients.update(Data,{where:{id:Number(data?.patientId)}})
+          console.log(aa)  
+          return {
+                status:message.code200,
+                message:'Patient updated successfully'
+            }
+        } catch (error) {
+            console.log('patient_update service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
             }
         }
     }

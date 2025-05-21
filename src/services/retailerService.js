@@ -150,11 +150,34 @@ class RetailerService {
     async get_distributors_list(data) {
         try {
             const { search } = data;
-            if (search.length < 3) {
+            if (!search) {
+                 const sss= await db.distributors.findAll({
+                    attributes: ['companyName', 'distributorId','type'],
+                    where:{ "distributorId": { [db.Op.ne]: null }},
+                    include:[
+                        {
+                            model:db.address,
+                            as:'addresses',
+                            required:false,
+                            attributes: ['addLine1', 'addLine2', 'city', 'state'],
+                        }
+                    ],
+                    order: db.sequelize.random(),
+                    limit:5
+                })
+                 const finalResult = sss?.map((item) => {
                 return {
-                    status: message.code400,
-                    message: "Invalid Imput",
+                    "userName": item?.companyName,
+                    "id": item.distributorId,
+                    "userType": item.type,
+                    "address": item.addresses[0] || {}
                 }
+            })
+            return {
+                status: message.code200,
+                message: message.message200,
+                apiData: finalResult
+            }
             }
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
