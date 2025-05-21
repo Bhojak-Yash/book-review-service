@@ -261,6 +261,11 @@ db.retailerSalesHeader.belongsTo(db.doctors, {
   as: 'doctors'
 });
 
+db.users.hasOne(db.employees, { foreignKey: 'employeeId', sourceKey: 'id' });
+db.employees.belongsTo(db.users, { foreignKey: 'employeeId', targetKey: 'id' });
+
+
+
 
 // console.log(db.address.associations);
 // console.log(db.distributors.associations);
