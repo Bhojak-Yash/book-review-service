@@ -657,8 +657,9 @@ class DistributorService {
     //     }
     // }
     async create_UpdateModuleMappings(modules) {
-        const transaction = await db.modulemappings.sequelize.transaction();
+        let transaction; 
         try {
+            transaction = await db.modulemappings.sequelize.transaction();
             for (const module of modules) {               
                 if (module.moduleMappingId) {
                     // Update existing mapping
@@ -706,7 +707,7 @@ class DistributorService {
                 message: 'Module mappings inserted/updated successfully.'
             };
         } catch (error) {
-            await transaction.rollback();
+            if (transaction) await transaction.rollback();
             throw error;
         }
     }
