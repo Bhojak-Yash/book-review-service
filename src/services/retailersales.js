@@ -153,6 +153,7 @@ class RetailerSalesService {
                 status: message.code200,
                 message: message.message200,
                 billNumber:billNumber,invNo:`INV/${order?.id}`,
+                orderId:order?.id,
                 data:user.data
             }
         } catch (error) {
