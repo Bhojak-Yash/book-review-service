@@ -103,7 +103,7 @@ exports.create_employee = async (req, res) => {
     }
 };
 
-exports.createModuleMappings = async (req, res) => {
+exports.create_UpdateModuleMappings = async (req, res) => {
     try {
         const { modules } = req.body;
 
@@ -112,7 +112,7 @@ exports.createModuleMappings = async (req, res) => {
         }
 
         // Call the service function with the modules array
-        const result = await empManagement_Service.createModuleMappings(modules);
+        const result = await empManagement_Service.create_UpdateModuleMappings(modules);
         res.status(201).json(result);
     } catch (error) {
         res.status(500).json({
