@@ -634,12 +634,10 @@ class expiryService {
             
             // Optional search filter
             if (search) {
-              andConditions.push({
-                [db.Op.or]: [
+              whereClause[db.Op.or]= [
                   { returnId: { [db.Op.like]: `%${search}%` } },
                   { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
                 ]
-              });
             }
             
             // Optional date range filter

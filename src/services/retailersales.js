@@ -101,8 +101,9 @@ class RetailerSalesService {
     async create_sales_order(data, user) {
         let transaction;
         try {
+            // console.log(user, ';;;;;;;;')
             transaction = await db.sequelize.transaction();
-            const doctor = await db.doctors.findOne({where:{id:Number(data?.order?.doctorId)}})
+            const doctor = await db.doctors.findOne({ where: { id: Number(data?.order?.doctorId) } })
             const orderDetails = {
                 "date": data?.order?.date,
                 "patientId": data?.order?.patientId,
@@ -115,10 +116,10 @@ class RetailerSalesService {
                 "SGST": data?.order?.SGST,
                 "CGST": data?.order?.CGST,
                 "balance": data?.order?.balance,
-                "retailerId":Number(user.id),
-                "paymentMode":data?.order?.paymentMode || "Cash",
-                "orderStatus":"Created",
-                "inv_url":data?.order?.inv_url
+                "retailerId": Number(user.id),
+                "paymentMode": data?.order?.paymentMode || "Cash",
+                "orderStatus": "Created",
+                "inv_url": data?.order?.inv_url
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
@@ -136,12 +137,23 @@ class RetailerSalesService {
             })
             // console.log(orderItmes,order.items)
             const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
-            const doctorCommission = Number((Number(data?.order?.totalAmt)*Number(doctor?.commission)/100).toFixed(2))
-            const updateBalane = await db.doctors.update({balance:db.sequelize.literal(`COALESCE(balance, 0) + ${doctorCommission}`)},{where:{id:Number(data?.order?.doctorId)},transaction})
+            const doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
+            const updateBalane = await db.doctors.update({ balance: db.sequelize.literal(`COALESCE(balance, 0) + ${doctorCommission}`) }, { where: { id: Number(data?.order?.doctorId) }, transaction })
+            function generateBillNumber(firmName, id) {
+                const firstLetter = firmName.trim().charAt(0).toUpperCase();
+                const date = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+                return `${firstLetter}/${date}/${id}`;
+            }
+            const billNumber = generateBillNumber(user?.data?.firmName, order?.id);
+            console.log(billNumber)
+            await db.retailerSalesHeader.update({billNumber:billNumber,invNo:`INV/${order?.id}`},{where:{id:Number(order?.id)},transaction})
+
             await transaction.commit();
             return {
                 status: message.code200,
                 message: message.message200,
+                billNumber:billNumber,invNo:`INV/${order?.id}`,
+                data:user.data
             }
         } catch (error) {
             if (transaction) await transaction.rollback();
@@ -163,10 +175,10 @@ class RetailerSalesService {
                 skip = (Page - 1) * Limit
             }
             // console.log(data)
-            let whereCondition = {retailerId:Number(id)};
+            let whereCondition = { retailerId: Number(id) };
             if (search) {
                 whereCondition = {
-                    retailerId:Number(id),
+                    retailerId: Number(id),
                     [Op.or]: [
                         { id: { [Op.like]: `%${search}%` } },
                         { '$patient.name$': { [Op.like]: `%${search}%` } },
@@ -177,7 +189,7 @@ class RetailerSalesService {
             if (unpaid == true || unpaid == 'true') {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
-            whereCondition.orderStatus={[Op.not]:"Deleted"}
+            whereCondition.orderStatus = { [Op.not]: "Deleted" }
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -191,7 +203,7 @@ class RetailerSalesService {
             }
             console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date','paymentMode','orderStatus','inv_url'],
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode', 'orderStatus', 'inv_url'],
                 include: [
                     {
                         model: db.patients,
@@ -221,9 +233,9 @@ class RetailerSalesService {
                     "commission": Math.round(Number(item?.totalAmt) * Number(item?.doctor?.commission) / 100),
                     "balance": item?.balance || 0,
                     "status": item?.balance > 0 ? 'Unpaid' : 'Paid',
-                    "paymentMode":item?.paymentMode,
-                    "orderStatus":'Completed',
-                    "invUrl":item?.inv_url
+                    "paymentMode": item?.paymentMode,
+                    "orderStatus": 'Completed',
+                    "invUrl": item?.inv_url
                 }
             })
             return {
@@ -247,76 +259,78 @@ class RetailerSalesService {
         let transaction;
         try {
             transaction = await db.sequelize.transaction();
-            const {id,doctorId,amount,mode,imageURL} = data
+            const { id, doctorId, amount, mode, imageURL } = data
             const payment = await db.doctorPayments.create({
-                doctorId:Number(doctorId),
-                retailerId:Number(id),
-                amount:Number(amount),
-                mode:mode,
-                imageURL:imageURL,
-                status:"Pending"
-            },transaction)
-            const updateBalane = await db.doctors.update({balance:db.sequelize.literal(`COALESCE(balance, 0) - ${amount}`)},{where:{id:Number(doctorId)},transaction})
+                doctorId: Number(doctorId),
+                retailerId: Number(id),
+                amount: Number(amount),
+                mode: mode,
+                imageURL: imageURL,
+                status: "Pending"
+            }, transaction)
+            const updateBalane = await db.doctors.update({ balance: db.sequelize.literal(`COALESCE(balance, 0) - ${amount}`) }, { where: { id: Number(doctorId) }, transaction })
             await transaction.commit();
             return {
-                status:message.code200,
-                message:message.message200,
-                apiData:payment
+                status: message.code200,
+                message: message.message200,
+                apiData: payment
             }
         } catch (error) {
-            console.log('make_doctors_payment service error:',error.message)
+            console.log('make_doctors_payment service error:', error.message)
             if (transaction) await transaction.rollback();
             return {
-                status:message.code200,
-                message:error.message
+                status: message.code200,
+                message: error.message
             }
         }
     }
 
-    async delete_order(data){
+    async delete_order(data) {
         try {
-            const {id,orderId} = data 
-            if(!orderId){
+            const { id, orderId } = data
+            if (!orderId) {
                 return {
-                    status:message.code400,
-                    message:'order id is required'
+                    status: message.code400,
+                    message: 'order id is required'
                 }
             }
 
-            await db.retailerSalesHeader.update({orderStatus:"Deleted"},{where:{
-                id:Number(orderId),
-                retailerId:Number(id)
-            }})
+            await db.retailerSalesHeader.update({ orderStatus: "Deleted" }, {
+                where: {
+                    id: Number(orderId),
+                    retailerId: Number(id)
+                }
+            })
             return {
-                status:message.code200,
-                message:message.message200
+                status: message.code200,
+                message: message.message200
             }
         } catch (error) {
-            console.log('delete_order service error:',error.message)
+            console.log('delete_order service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
-    async update_sales_order(data){
+    async update_sales_order(data) {
         try {
-            const {id,orderId,invUrl} = data
-            if(!orderId || !invUrl){
+            const { id, orderId, invUrl } = data
+            if (!orderId || !invUrl) {
                 return {
-                    status:message.code400,
-                    message:'Invalid Input'
+                    status: message.code400,
+                    message: 'Invalid Input'
                 }
             }
-            await db.retailerSalesHeader.update({inv_url:invUrl},{where:{id:Number(orderId),retailerId:Number(id)}})
+            await db.retailerSalesHeader.update({ inv_url: invUrl }, { where: { id: Number(orderId), retailerId: Number(id) } })
             return {
-                status:message.code200,
-                message:message.message200
+                status: message.code200,
+                message: message.message200
             }
         } catch (error) {
-            console.log('update_sales_order service error:',error.message)
+            console.log('update_sales_order service error:', error.message)
             return {
-                status:message.code500,message:error.message
+                status: message.code500, message: error.message
             }
         }
     }
