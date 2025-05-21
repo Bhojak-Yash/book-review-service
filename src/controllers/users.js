@@ -135,68 +135,156 @@ exports.createUsers = async (req, res) => {
 };
 
 
-exports.login = async(req,res)=>{
+// exports.login = async(req,res)=>{
+//     try {
+//         const {userName,password,type} = req.body
+//         // console.log(req.body)
+//         if(!userName || !password || !type){
+//            return res.json({
+//                 status:message.code400,
+//                 message:'Invalid input'
+//             })
+//         }
+//         // let checkUser;
+//         // if(type){
+//             // console.log(';oooooooooo')
+//         let checkUser = await Users.findOne({where:{userName:userName,userType:type}})
+//         // console.log(checkUser)
+//         // }
+//         // else{
+//         //     // console.log('--------------------')
+//         //     checkUser = await Users.findOne({where:{userName:userName}})
+//         // }
+//         if(checkUser){
+//             console.log(checkUser)
+//             const match = await bcrypt.compare(password, checkUser.dataValues.password);
+//             if(match){
+//                 const data = await getData(checkUser.dataValues.userType,checkUser.dataValues.id)
+//                 const tokenPayload={...checkUser.dataValues,"data":data?.dataValues}
+//                 // console.log(tokenPayload)
+//                 const token = await generateToken(tokenPayload)
+//                 const loginlogs = await Logs.create({
+//                     userId:checkUser.dataValues.id,
+//                     token:token
+//                 })
+//                 // console.log(checkUser)
+//                 checkUser.dataValues.loginId=loginlogs.id
+//                 res.json({
+//                     status:message.code200,
+//                     message:message.message200,
+//                     apiToken:token,
+//                     loginId:loginlogs.id,
+//                     apiData:checkUser.dataValues,
+//                     data:data?.dataValues || null
+//                 })
+//             }else{
+//                 res.json({
+//                     status:message.code400,
+//                     message:"wrong credentials"
+//                 })
+//             }
+//         }else{
+//             res.json({
+//                 status:message.code400,
+//                 message:"wrong credentials"
+//             })
+//         }
+//     } catch (error) {
+//         console.log('login error:',error.message)
+//         res.json({
+//             status:message.code500,
+//             message:message.message500
+//         })
+//     }
+// }
+exports.login = async (req, res) => {
     try {
-        const {userName,password,type} = req.body
-        // console.log(req.body)
-        if(!userName || !password || !type){
-           return res.json({
-                status:message.code400,
-                message:'Invalid input'
-            })
+        const { userName, password, type } = req.body;
+
+        if (!userName || !password || !type) {
+            return res.json({
+                status: message.code400,
+                message: 'Invalid input'
+            });
         }
-        // let checkUser;
-        // if(type){
-            // console.log(';oooooooooo')
-        let checkUser = await Users.findOne({where:{userName:userName,userType:type}})
-        // console.log(checkUser)
-        // }
-        // else{
-        //     // console.log('--------------------')
-        //     checkUser = await Users.findOne({where:{userName:userName}})
-        // }
-        if(checkUser){
-            console.log(checkUser)
-            const match = await bcrypt.compare(password, checkUser.dataValues.password);
-            if(match){
-                const data = await getData(checkUser.dataValues.userType,checkUser.dataValues.id)
-                const tokenPayload={...checkUser.dataValues,"data":data?.dataValues}
-                // console.log(tokenPayload)
-                const token = await generateToken(tokenPayload)
-                const loginlogs = await Logs.create({
-                    userId:checkUser.dataValues.id,
-                    token:token
-                })
-                // console.log(checkUser)
-                checkUser.dataValues.loginId=loginlogs.id
-                res.json({
-                    status:message.code200,
-                    message:message.message200,
-                    apiToken:token,
-                    loginId:loginlogs.id,
-                    apiData:checkUser.dataValues,
-                    data:data?.dataValues || null
-                })
-            }else{
-                res.json({
-                    status:message.code400,
-                    message:"wrong credentials"
-                })
+
+        const checkUser = await db.users.findOne({
+            where: { userName },
+            include: [
+                {
+                    model: db.employees,
+                    required: false
+                }
+            ]
+        });
+
+        if (!checkUser) {
+            return res.json({
+                status: message.code400,
+                message: "Wrong credentials"
+            });
+        }
+
+        if (checkUser.userType === 'Employee') {
+            const employeeOf = checkUser.employee?.employeeOf;
+
+            if (!employeeOf) {
+                return res.json({
+                    status: message.code400,
+                    message: "employeeOf not found"
+                });
             }
-        }else{
-            res.json({
-                status:message.code400,
-                message:"wrong credentials"
-            })
+
+            const managerUser = await db.users.findOne({
+                where: { id: employeeOf }
+            });
+
+            if (!managerUser || managerUser.userType !== type) {
+                return res.json({
+                    status: message.code400,
+                    message: `Access denied. Manager userType is not '${type}'`
+                });
+            }
         }
+
+        const match = await bcrypt.compare(password, checkUser.password);
+        if (!match) {
+            return res.json({
+                status: message.code400,
+                message: "Wrong credentials"
+            });
+        }
+
+        const data = await getData(checkUser.userType, checkUser.id);
+        const tokenPayload = { ...checkUser.dataValues, data: data?.dataValues };
+
+        const token = await generateToken(tokenPayload);
+
+        const loginlogs = await Logs.create({
+            userId: checkUser.id,
+            token
+        });
+
+        checkUser.dataValues.loginId = loginlogs.id;
+
+        return res.json({
+            status: message.code200,
+            message: message.message200,
+            apiToken: token,
+            loginId: loginlogs.id,
+            apiData: checkUser.dataValues,
+            data: data?.dataValues || null
+        });
+
     } catch (error) {
-        console.log('login error:',error.message)
+        console.log('login error:', error.message);
         res.json({
-            status:message.code500,
-            message:message.message500
-        })
+            status: message.code500,
+            message: message.message500
+        });
     }
-}
+};
+
 
 exports.changePassword = async(req,res) => {
     try {
