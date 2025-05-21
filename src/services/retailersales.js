@@ -117,7 +117,8 @@ class RetailerSalesService {
                 "balance": data?.order?.balance,
                 "retailerId":Number(user.id),
                 "paymentMode":data?.order?.paymentMode || "Cash",
-                "orderStatus":"Created"
+                "orderStatus":"Created",
+                "inv_url":data?.order?.inv_url
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {

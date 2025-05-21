@@ -626,11 +626,11 @@ class expiryService {
             const whereClause = {returnTo: userId };
 
             // Required condition: returnTo or returnFrom must match userId
-            // const baseUserCondition = {
+            const baseUserCondition = {
                 
-            // };
+            };
             
-            // const andConditions = [baseUserCondition];
+            const andConditions = [baseUserCondition];
             
             // Optional search filter
             if (search) {
