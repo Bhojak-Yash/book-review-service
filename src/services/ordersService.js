@@ -552,7 +552,10 @@ class OrdersService {
 
   async distributer_purchase_orders(data) {
     try {
-      const id = Number(data.id);
+      let id = Number(data?.id);
+      if(data?.userType === "Employee"){
+        id = data?.data?.employeeOf
+      }
       const Page = Number(data.page) || 1;
       const Limit = Number(data.limit) || 10;
       let skip = 0;
@@ -689,7 +692,11 @@ class OrdersService {
 
   async distributer_sales_orders(data) {
     try {
-      const id = Number(data.id);
+      let id = Number(data.id);
+      if(data?.userType === "Employee"){
+        id = data.data.employeeOf
+      }
+      console.log(id);
       const Page = Number(data.page) || 1;
       const Limit = Number(data.limit) || 10;
       let skip = (Page - 1) * Limit;
@@ -1428,8 +1435,13 @@ class OrdersService {
   }
 
 
-  async getAddressDetails(userId) {
+  async getAddressDetails(data) {
     try {
+      let userId = data?.id
+      if(data?.userType === "Employee"){
+        userId = data?.data?.employeeOf
+      }
+      console.log(userId);
       const addresses = await db.address.findAll({
         where: {
           userId: userId,

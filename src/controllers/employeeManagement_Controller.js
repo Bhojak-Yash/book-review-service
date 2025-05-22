@@ -135,12 +135,12 @@ exports.getRoleModuleMappings = async (req, res) => {
 
 exports.getAllEmployees = async (req, res) => {
     try {
-        const userIdFromToken = req.user.id;
+        const data = req?.user;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const search = req.query.search || '';
 
-        const result = await empManagement_Service.getAllEmployees(userIdFromToken, page, limit, search);
+        const result = await empManagement_Service.getAllEmployees(data, page, limit, search);
         return res.status(201).json(result);
     } catch (error) {
         console.error("getAllEmployees Error:", error.message);
@@ -187,8 +187,8 @@ exports.deleteEmployee = async (req, res) => {
 
 exports.getEmployeeStats = async (req, res) => {
     try {
-        const userIdFromToken = req.user.id;
-        const result = await empManagement_Service.getEmployeeStats(userIdFromToken);
+        const data = req?.user;
+        const result = await empManagement_Service.getEmployeeStats(data);
         return res.status(200).json(result);
     } catch (error) {
         console.error("getEmployeeStats Error:", error.message);

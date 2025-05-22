@@ -116,7 +116,7 @@ exports.getManufacturerStockSummary = async (req, res) => {
 };
 exports.getdistributorStockSummary = async (req, res) => {
   try {
-    const data = req.query;
+    const data = {...req.query, ...req.user};
     const stockDetails = await StocksService.getdistributorStockSummary(data);
 
     if (!stockDetails || stockDetails.length === 0) {

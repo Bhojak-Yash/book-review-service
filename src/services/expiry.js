@@ -614,7 +614,11 @@ class expiryService {
 
     async expiry_return_list(data) {
         try {
-            let { id, page, limit, search, startDate, endDate } = data
+            let { page, limit, search, startDate, endDate } = data
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
             // console.log(data)
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
@@ -949,7 +953,11 @@ class expiryService {
 
     async expiry_list_card_data(data) {
         try {
-            const { id, startDate, endDate } = data
+            const {startDate, endDate } = data
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
             const userId = Number(id)
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf

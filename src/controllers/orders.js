@@ -166,8 +166,8 @@ class OrdersController {
 
   static async getAddressDetails(req, res) {
     try {
-      const userIdFromToken = req.user?.id;
-      const getAddress = await ordersService.getAddressDetails(userIdFromToken);
+      const data = req?.user;
+      const getAddress = await ordersService.getAddressDetails(data);
       return res.status(getAddress?.status || 200).json(getAddress);
     } catch (error) {
       console.log("Error in getAddressDetails Controller", error.message);

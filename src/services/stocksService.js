@@ -480,7 +480,12 @@ class StocksService {
   }
   async getdistributorStockSummary(data) {
     try {
-      const { distributorId } = data
+      let distributorId = data.distributorId
+      console.log(data);
+      if(data?.userType === "Employee"){
+        distributorId = data?.data?.employeeOf
+      }
+      console.log(distributorId);
       const aboutToEmpty = Number(process.env.aboutToEmpty)
       const nearToExpDate = Number(process.env.lowStockDays)
     //   const authRecords = await db.authorizations.findAll({
