@@ -145,14 +145,16 @@ class RetailerSalesService {
                 return `${firstLetter}/${date}/${id}`;
             }
             const billNumber = generateBillNumber(user?.data?.firmName, order?.id);
-            console.log(billNumber)
+            // console.log(billNumber)
             await db.retailerSalesHeader.update({billNumber:billNumber,invNo:`INV/${order?.id}`},{where:{id:Number(order?.id)},transaction})
-
+            await db.doctors.update({name:data?.order?.doctorName,RGNo:data?.order?.doctorRGNo},{where:{id:Number(data?.order?.doctorId)},transaction})
+            await db.patients.update({name:data?.order?.patientName,address:data?.order?.patientAddress},{where:{id:Number(data?.order?.patientId)},transaction})
             await transaction.commit();
             return {
                 status: message.code200,
                 message: message.message200,
                 billNumber:billNumber,invNo:`INV/${order?.id}`,
+                orderId:order?.id,
                 data:user.data
             }
         } catch (error) {
