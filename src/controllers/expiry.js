@@ -153,7 +153,7 @@ exports.returned_list = async (req, res) => {
       const data ={...req.query,...req.user}
       const returned_list = await expiryService.returned_list(data);
   
-      return res.status(returned_list?.status || 200).json(crreturned_listeditNote);
+      return res.status(returned_list?.status || 200).json(returned_list);
       
       } catch (error) {
       console.error("Error fetching returned_list:", error);

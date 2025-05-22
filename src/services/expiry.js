@@ -758,14 +758,14 @@ class expiryService {
                 include: [
                     {
                         model: db.distributors,
-                        as: 'returnFromUser',
+                        as: 'returnToUser',
                         attributes: ['companyName', 'distributorId'],
                         required: false,
                     },
                     {
-                        model: db.retailers,
-                        as: 'returnByUser',
-                        attributes: ['retailerId', 'firmName'],
+                        model: db.manufacturers,
+                        as: 'returnToMan',
+                        attributes: ['manufacturerId', 'companyName'],
                         required: false
                     }
                 ],
@@ -783,7 +783,7 @@ class expiryService {
                     "returnTotal": item.returnTotal,
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
-                    "returnFromUser": item?.returnFromUser?.companyName || item?.returnByUser?.firmName,
+                    "returnFromUser": item?.returnToUser?.companyName || item?.returnToMan?.firmName,
                 }
             })
 
