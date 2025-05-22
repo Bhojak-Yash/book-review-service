@@ -218,6 +218,8 @@ db.manufacturers.hasMany(db.returnHeader, {
 });
 db.products.belongsTo(db.manufacturers,{ foreignKey: "manufacturerId", as: "manufacturer" })
 db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnFrom", as: "returnFromUser" })
+db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnTo", as: "returnToUser" })
+db.returnHeader.belongsTo(db.manufacturers,{foreignKey: "returnTo", as: "returnToMan" })
 db.returnHeader.hasMany(db.returnDetails,{foreignKey: "returnId", as: "returnDetails" })
 db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
 db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
