@@ -13,7 +13,7 @@ class PatientService {
         try {
             const { mobile, name } = data
             const { id } = user
-            if (!mobile || !name) {
+            if (!mobile) {
                 return {
                     status: message.code400,
                     message: 'Invalid input'
