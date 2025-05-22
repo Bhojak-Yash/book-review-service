@@ -1023,8 +1023,14 @@ class DistributorService {
     //     }
     // }
     
-    async getAllEmployees(employeeOf, page = 1, limit = 10, search = '') {
+    async getAllEmployees(data, page = 1, limit = 10, search = '') {
         try {
+            let employeeOf = data?.id;
+            console.log(data);
+            if (data?.userType === "Employee"){
+                employeeOf = data?.data?.employeeOf
+            }
+            console.log(employeeOf);
             const offset = (page - 1) * limit;
 
             const whereClause = {
@@ -1206,9 +1212,12 @@ class DistributorService {
         }
     }
 
-    async getEmployeeStats(userIdFromToken) {
+    async getEmployeeStats(data) {
         try {
-            const employeeOf = userIdFromToken;
+            let employeeOf = data?.id;
+            if(data?.userType === "Employee"){
+                employeeOf = data?.data?.employeeOf
+            }
 
             const totalEmployees = await db.employees.count({
                 where: {

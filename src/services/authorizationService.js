@@ -90,8 +90,12 @@ class AuthService {
             const Page = Number(data.page) || 1;
             const Limit = Number(data.limit) || 10;
             let skip = 0
+            let id = Number(data?.id)
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
             let whereClause = {
-                authorizedBy: Number(data.id),
+                authorizedBy: id,
                 status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] },
             }
             if (data.status) {
@@ -541,7 +545,11 @@ class AuthService {
 
     async auth_page_card_data_distributor(data) {
         try {
-            const { id, start_date, end_date } = data;
+            const { start_date, end_date } = data;
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
             let whereClause = {
                 authorizedBy: Number(id),
                 status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] }

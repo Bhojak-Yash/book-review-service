@@ -751,7 +751,11 @@ class ManufacturerService {
 
   async po_page_card_data(data) {
     try {
-      const { id, userType,start_date,end_date } = data;
+      const { userType,start_date,end_date } = data;
+      let id = data?.id;
+      if(data?.userType === "Employee"){
+        id = data?.data?.employeeOf
+      }
       const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
       let whereOrderCount ={orderTo: Number(checkId) };
       let wherePending={

@@ -1362,7 +1362,11 @@ class DistributorService {
     // }
     async get_distributor_stocks(data) {
         try {
-            const { id, entityId, page, limit, expStatus, search, stockStatus } = data;
+            const {entityId, page, limit, expStatus, search, stockStatus } = data;
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
 
             const Page = Number(page) || 1;
             const Limit = Number(limit) || 10;
