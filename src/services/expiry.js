@@ -582,6 +582,7 @@ class expiryService {
             const insertData = [];
 
             items?.forEach((item, index) => {
+                console.log("Index", index, "SId:", item.SId, "  PId:", item.PId, "   BoxQty: ", item.BoxQty, "  Stock: ", item.Stock);
                 if (!item.SId || !item.PId || !item.BoxQty || !item.Stock) {
                     throw new Error(`Missing required fields in items at index ${index}`);
                 }
