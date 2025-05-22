@@ -169,8 +169,13 @@ class DoctorsService {
 
             let result = {};
 
+            let ownerId = tokenData.id;
+            if (tokenData?.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
+            }
+
             if (type === 'Sales') {
-                const salesData = await salesOpening(tokenData.id, startOfDay, endOfDay);
+                const salesData = await salesOpening(ownerId, startOfDay, endOfDay);
 
                 // Log sales data to check the response
                 console.log('Sales Data:', salesData);
@@ -201,7 +206,7 @@ class DoctorsService {
                 };
             }
             else if (type === 'Purchase') {
-                const purchaseData = await purchaseOpening(tokenData.id, startOfDay, endOfDay);
+                const purchaseData = await purchaseOpening(ownerId, startOfDay, endOfDay);
 
                 // Log purchase data to check the response
                 console.log('Purchase Data:', purchaseData);
@@ -265,8 +270,13 @@ class DoctorsService {
             const endOfDay = new Date(date.setHours(23, 59, 59, 999));
             endOfDay.setMinutes(endOfDay.getMinutes() + 330);
 
+            let ownerId = tokenData.id;
+            if (tokenData?.userType === 'Employee') {
+                ownerId = tokenData.data.employeeOf;
+            }
+
             // Fetching sales data from stocksReport
-            const salesData = await stocksReport(tokenData.id, startOfDay, endOfDay);
+            const salesData = await stocksReport(ownerId, startOfDay, endOfDay);
             const stockAdded = await StockAdded(tokenData, startOfDay, endOfDay);
             const stockSold = await StockSold(tokenData, startOfDay, endOfDay);
 

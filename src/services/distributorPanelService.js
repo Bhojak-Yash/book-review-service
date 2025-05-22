@@ -151,15 +151,17 @@ class distributorDashboard {
     async distProductInfo(tokenData) {
         try {
             let ownerId = tokenData.id;
+            let checkUserType = tokenData.id;
             // console.log(tokenData, "..............................................");
             if (tokenData?.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
+                checkUserType = tokenData.empOfType;
             }
             if (!db.stocks) {
                 throw new Error('Stocks model is not loaded correctly');
             }
 
-            if(tokenData?.userType === "Retailer"){
+            if (checkUserType === "Retailer"){
 
                 const endDate = new Date();
                 const startDate = new Date();
@@ -362,13 +364,15 @@ class distributorDashboard {
     async stockRunningLow(tokenData) {
         try {
             let ownerId = tokenData.id;
+            let checkUserType = tokenData.userType;
 
-            if (tokenData.userType === 'Employee') {
+            if (tokenData?.userType === 'Employee') {
+                checkUserType = tokenData.empOfType;
                 ownerId = tokenData.data.employeeOf;
             }
 
             let stockModel;
-            if (tokenData.userType === 'Manufacturer') {
+            if (checkUserType === 'Manufacturer') {
                 stockModel = db.manufacturerStocks
             } else {
                 stockModel = db.stocks
@@ -454,8 +458,10 @@ class distributorDashboard {
     async topProducts(tokenData, filterType) {
         try {
             let ownerId = tokenData.id;
-
-            if (tokenData.userType === 'Employee') {
+            let checkUserType = tokenData.userType;
+            
+            if (tokenData?.userType === 'Employee') {
+                checkUserType = tokenData.empOfType;
                 ownerId = tokenData.data.employeeOf;
             }
             
@@ -464,7 +470,7 @@ class distributorDashboard {
                 throw new Error('Invalid filter type. Use "Revenue" or "Quantity".');
             }
 
-            if (tokenData.userType === "Retailer") {
+            if (checkUserType === "Retailer") {
                 const ownerId = tokenData.id;
 
                 // Get total orders placed by this retailer
@@ -521,7 +527,7 @@ class distributorDashboard {
                 };
             }
             
-            else if (tokenData.userType === "Manufacturer" || tokenData.userType === "Distributor"){
+            else if (checkUserType === "Manufacturer" || checkUserType === "Distributor"){
 
                 // Define columns and calculation based on filterType
                 const valueColumn = filterType === 'Revenue'
@@ -886,7 +892,12 @@ class distributorDashboard {
             endOfDay.setMinutes(endOfDay.getMinutes() + 330);
             // console.log("toeknData : ", tokenData);
 
-            if (tokenData.userType === "Manufacturer" || tokenData.userType === "Distributor") {
+            let checkUserType = tokenData.userType;
+            if (tokenData?.userType === 'Employee') {
+                checkUserType = tokenData.empOfType;
+            }
+
+            if (checkUserType === "Manufacturer" || checkUserType === "Distributor") {
                 const [
                     topProductsResult,
                     topCitiesResult,
@@ -916,7 +927,7 @@ class distributorDashboard {
                         expirySoon: countExpiringSoon.expiringSoonCount || 0
                     }
                 };
-            } else if (tokenData.userType === "Retailer") {
+            } else if (checkUserType === "Retailer") {
                 const [
                     topProductsResult,
                     paymentsCollectedResult,
@@ -1292,11 +1303,13 @@ class distributorDashboard {
         }
         async getExpiringMedicinesSoon(tokenData) {
             try {
-                const userType = tokenData.userType;
+                // const userType = tokenData.userType;
                 let organisationId = tokenData.id;
-
-                if (userType === 'Employee') {
+                
+                let checkUserType = tokenData.userType;
+                if (tokenData?.userType === 'Employee') {
                     organisationId = tokenData.data.employeeOf;
+                    checkUserType = tokenData.empOfType;
                 }
 
                 // Convert to local time (IST) and format as 'YYYY-MM-DD HH:mm:ss'
@@ -1315,9 +1328,9 @@ class distributorDashboard {
                 const endDateStr = formatDateTime(ninetyDaysLater);
 
                 let stockModel;
-                if (userType === 'Manufacturer') {
+                if (checkUserType === 'Manufacturer') {
                     stockModel = db.manufacturerStocks;
-                } else if (userType === 'Distributor' || userType === 'Retailer') {
+                } else if (checkUserType === 'Distributor' || checkUserType === 'Retailer') {
                     stockModel = db.stocks;
                 } else {
                     return {
@@ -1352,11 +1365,13 @@ class distributorDashboard {
         }
         async getNewPatientRegistered(tokenData, startOfDay, endOfDay) {
             try {
-                const userType = tokenData.userType;
+                // const userType = tokenData.userType;
                 let organisationId = tokenData.id;
 
-                if (userType === 'Employee') {
+                let checkUserType = tokenData.userType;
+                if (tokenData?.userType === 'Employee') {
                     organisationId = tokenData.data.employeeOf;
+                    checkUserType = tokenData.empOfType;
                 }
 
                 const countPatientsRegistered = await db.patients.count({
@@ -1447,7 +1462,13 @@ class distributorDashboard {
             const endOfDay = new Date(date.setHours(23, 59, 59, 999));
             endOfDay.setMinutes(endOfDay.getMinutes() + 330);
 
-            if (tokenData?.userType === "Manufacturer" || tokenData?.userType === "Distributor") {
+            
+            let checkUserType = tokenData.userType;
+            if (tokenData?.userType === 'Employee') {
+                checkUserType = tokenData.empOfType; 
+            }
+
+            if (checkUserType === "Manufacturer" || checkUserType === "Distributor") {
                 const [
                     paymentCollected,
                     soReceivedToday,
@@ -1481,7 +1502,7 @@ class distributorDashboard {
                         ...userSpecificMetric
                     }
                 }
-            } else if (tokenData?.userType === "Retailer"){
+            } else if (checkUserType === "Retailer"){
                 const [
                     paymentCollected,
                     totalSalesToday,
@@ -1934,9 +1955,13 @@ class distributorDashboard {
                 if (tokenData?.userType === 'Employee') {
                     ownerId = tokenData.data.employeeOf;
                 }
+                let checkUserType = tokenData.userType;
+                if (tokenData?.userType === 'Employee') {
+                    checkUserType = tokenData.empOfType;
+                }
 
                 //Manufacturer Black Box
-                if (tokenData?.userType === 'Manufacturer') {
+                if (checkUserType === 'Manufacturer') {
                     const count = await db.returnHeader.count({
                         where: {
                             returnTo: ownerId,
@@ -1953,7 +1978,7 @@ class distributorDashboard {
                 }
 
                 //Distributor Black Box
-                if (tokenData?.userType === 'Distributor') {
+                if (checkUserType === 'Distributor') {
                     const count = await db.orders.count({
                         where: {
                             orderFrom: ownerId,
@@ -1970,7 +1995,7 @@ class distributorDashboard {
                 }
 
                 //Retailers Black box
-                if (tokenData?.userType === 'Retailer') {
+                if (checkUserType === 'Retailer') {
                     const count = await db.returnHeader.count({
                         where: {
                             returnFrom: ownerId,
@@ -1986,13 +2011,13 @@ class distributorDashboard {
                 }
 
                 return {
-                    type: tokenData?.userType || 'Unknown',
+                    type: checkUserType || 'Unknown',
                     message: 'No metrics for this userType',
                 };
             } catch (error) {
                 console.error('❌ Error in blackBox:', error.message);
                 return {
-                    type: tokenData?.userType || 'Unknown',
+                    type: checkUserType || 'Unknown',
                     error: 'Internal Server Error',
                 };
             }

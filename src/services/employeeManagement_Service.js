@@ -578,7 +578,7 @@ class DistributorService {
                 }
             }
 
-            if (!userName || !phone || !email || !roleId || !entityId) {
+            if (!userName || !phone || !email || !roleId ) {
                 return {
                     status: message.code400,
                     message: "All fields are required",
