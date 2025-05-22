@@ -137,8 +137,13 @@ class UsersCartService {
 
     async getUserCart(data) {
         try {
-            const { id, userType, manufacturerId } = data
-            console.log(data)
+            const { userType, manufacturerId } = data
+            let id = data?.id
+            // console.log(id)
+            if(data?.userType === "Employee" ){
+                id = data?.data?.employeeOf
+            }
+            // console.log(id)
             // const userData = awa
             let distributor;
             let manufacturer;
