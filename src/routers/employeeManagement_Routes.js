@@ -21,6 +21,8 @@ router.delete('/delete_employees/:id', verifyToken, empManagement.deleteEmployee
 router.get("/getEmployeeStats", verifyToken, empManagement.getEmployeeStats);
 router.get('/employees/:id', verifyToken, empManagement.getEmployeeById);
 
+router.get('/getFullAccessModuleMappings/:roleId?', verifyToken, empManagement.getFullAccessModuleMappings);
+
 
 
 
