@@ -112,7 +112,11 @@ class StocksService {
   }
 
   async getStockDetailsByManufacturer(data) {
-    const { manufacturerId, entityId, page, limit, expStatus, search, stockStatus } = data;
+    const { entityId, page, limit, expStatus, search, stockStatus } = data;
+    let manufacturerId = data?.manufacturerId
+    if(data?.userType === "Employee"){
+      manufacturerId = data?.data?.employeeOf
+    }
     // console.log(data)
     let Page = page || 1;
     let Limit = limit || 10;
@@ -431,7 +435,11 @@ class StocksService {
 
   async getManufacturerStockSummary(data) {
     try {
-      const { manufacturerId } = data
+      let manufacturerId = data.manufacturerId
+      console.log(data);
+      if (data?.userType === "Employee") {
+        manufacturerId = data?.data?.employeeOf
+      }
       const aboutToEmpty = Number(process.env.aboutToEmpty)
       const nearToExpDate = Number(process.env.lowStockDays)
       let whereCondition = { manufacturerId: Number(manufacturerId) };
