@@ -1,3 +1,8 @@
 ALTER TABLE `crm_db`.`retailer_sales_header` 
 ADD COLUMN `invNo` VARCHAR(45) NULL AFTER `orderStatus`,
 CHANGE COLUMN `paymentMode` `paymentMode` ENUM('Cash', 'Online', 'Credit', 'Card') NULL DEFAULT NULL ;
+
+
+
+ALTER TABLE `crm_db`.`products` 
+ADD UNIQUE INDEX `PName_UNIQUE` (`PName` ASC) VISIBLE;
