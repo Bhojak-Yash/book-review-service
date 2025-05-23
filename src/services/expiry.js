@@ -659,7 +659,7 @@ class expiryService {
 
             console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
-                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate'],
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate','reason'],
                 where: whereClause,
                 include: [
                     {
@@ -690,6 +690,7 @@ class expiryService {
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
                     "returnFromUser": item?.returnFromUser?.companyName || item?.returnByUser?.firmName,
+                    "reason":item?.reason
                 }
             })
 
@@ -754,7 +755,7 @@ class expiryService {
 
             console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
-                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate'],
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate','reason'],
                 where: whereClause,
                 include: [
                     {
@@ -785,6 +786,7 @@ class expiryService {
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
                     "returnFromUser": item?.returnToUser?.companyName || item?.returnToMan?.companyName,
+                    "reason":item?.reason
                 }
             })
 
