@@ -125,7 +125,8 @@ exports.create_UpdateModuleMappings = async (req, res) => {
 exports.getRoleModuleMappings = async (req, res) => {
     try {
         const { roleId } = req.params;
-        const result = await empManagement_Service.getRoleModuleMappings(roleId);
+        const data = req.user;
+        const result = await empManagement_Service.getRoleModuleMappings(roleId, data);
         return res.status(201).json(result);
     } catch (error) {
         console.error("getRoleModuleMappings Error:", error.message);
@@ -209,5 +210,17 @@ exports.getEmployeeById = async (req, res) => {
     } catch (error) {
         console.error("getEmployeeById Error:", error.message);
         return res.status(500).json({ status: 500, message: "Internal Server Error" });
+    }
+};
+
+exports.getFullAccessModuleMappings = async (req, res) => {
+    try {
+        const { roleId } = req.params;
+        const data = req?.user;
+        const result = await empManagement_Service.getFullAccessModuleMappings(roleId, data);
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error("getFullAccessModuleMappings Error:", error.message);
+        return res.status(500).json({ status: message.code500, message: error.message });
     }
 };
