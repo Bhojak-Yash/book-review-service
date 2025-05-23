@@ -632,7 +632,8 @@ class RetailerService {
                         as: "documnets",
                         attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
                         where: {
-                            userId: Number(id)
+                            userId: Number(id),
+                            isDeleted:{[db.Op.not]:true}
                         },
                         required: false,
                     },
