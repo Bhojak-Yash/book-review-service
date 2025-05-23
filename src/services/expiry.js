@@ -784,7 +784,7 @@ class expiryService {
                     "returnTotal": item.returnTotal,
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
-                    "returnFromUser": item?.returnToUser?.companyName || item?.returnToMan?.firmName,
+                    "returnFromUser": item?.returnToUser?.companyName || item?.returnToMan?.companyName,
                 }
             })
 
