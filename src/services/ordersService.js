@@ -639,7 +639,7 @@ class OrdersService {
         where: whereClause,
         offset: skip,
         limit: Limit,
-        order: [["orderDate", "DESC"]]
+        order: [["id", "DESC"]]
       });
       // "ENUM('Pending', 'Confirmed', 'Rejected', 'Ready to ship', 'Ready to pickup', 'Dispatched', 'Received', 'Paid', 'Partially paid', 'Canceled')"
       const updatesResult = orders?.map((order) => {
