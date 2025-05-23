@@ -1530,6 +1530,7 @@ class DistributorService {
                     purchasedFromCode: stock?.manufacturer?.manufacturerCode || stock?.distributor?.distributorCode || null,
                     stockStatus: stock?.Stock == 0 ? "Out of stock" : Number(stock?.Stock) < Number(aboutToEmpty) ? 'About to empty' : 'Up to date',
                     expiryStatus: expiryStatus(stock.ExpDate, lowStockDays) || null,
+                    locked:stock?.locked || false,
                     product: {
                         PId: stock?.product?.PId,
                         PCode: stock?.product?.PCode,
