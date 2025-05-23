@@ -43,7 +43,7 @@ exports.updateProduct = async (req, res) => {
 exports.getAllProductsByManufacturerId = async (req, res) => {
   // console.log(req.params);
   try {
-    const data = {...req.params,...req.query}
+    const data = {...req.params,...req.query, ...req.user}
     const Product = await ProductsService.getAllProductsByManufacturerId(data);
 
     // if (!distributor) {
@@ -114,7 +114,7 @@ exports.product_page_data = async (req, res) => {
     // if (!distributor) {
       return res.status(Product?.status || 200).json(Product);
     // }
-
+    
     // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
   } catch (error) {
     console.error("Error fetching product_page_data:", error.message);

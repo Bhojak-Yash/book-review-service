@@ -146,7 +146,11 @@ class ProductsService {
 
         try {
             // console.log(data,';p;p;p;');
-            const { manufacturerId, page, limit, locked, search } = data;
+            const { page, limit, locked, search } = data;
+            let manufacturerId = data.manufacturerId
+            if(data?.userType === "Employee"){
+                manufacturerId = data?.data?.employeeOf
+            }
             let Page = Number(page) || 1;
             let Limit = Number(limit) || 10;
             let skip = 0;
