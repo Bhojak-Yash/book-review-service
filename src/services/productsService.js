@@ -151,6 +151,7 @@ class ProductsService {
             if(data?.userType === "Employee"){
                 manufacturerId = data?.data?.employeeOf
             }
+            console.log(manufacturerId);
             let Page = Number(page) || 1;
             let Limit = Number(limit) || 10;
             let skip = 0;

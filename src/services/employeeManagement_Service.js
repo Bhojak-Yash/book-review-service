@@ -1346,12 +1346,20 @@ class DistributorService {
             let roleName = null;
             if (roleId) {
                 const role = await db.roles.findOne({
-                    where: { id: roleId },
+                    where: { id: Number(roleId) },
                     attributes: ['roleName'],
-                    raw: true
+                    // raw: true
                 });
 
-                roleName = role?.roleName || null;
+                if(!role){
+                    return{
+                        status:400,
+                        message: "Role not found"
+                    }
+                }
+
+                roleName = role?.roleName;
+                console.log(roleName, role,roleId);
 
                 const mappings = await db.modulemappings.findAll({
                     where: {
