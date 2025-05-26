@@ -1146,6 +1146,93 @@ class expiryService {
         }
     }
 
+    async cn_request_page_card_data(data){
+        try {
+            const {startDate, endDate } = data
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            const userId = Number(id)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            let wherereturn = {
+                returnTo: Number(userId),
+            }
+            let wherecn = {
+                organisationId: Number(userId)
+            }
+            let wherecnv = {
+                returnTo: Number(userId)
+            }
+            if (startDate && endDate) {
+                const formattedStartDate = startDate.split("-").reverse().join("-") + " 00:00:00";
+                const formattedEndDate = endDate.split("-").reverse().join("-") + " 23:59:59";
+                wherereturn.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecn.createdAt = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecnv.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+            }
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const [Returns] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("COUNT", db.Sequelize.col("returnId")), "totalReturnRaised"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN 1 ELSE 0 END")), "confirmedCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN 1 ELSE 0 END")), "pendingCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Rejected' THEN 1 ELSE 0 END")), "rejectedCount"]
+                ],
+                where: wherereturn
+            });
+            // const [creditnote] = await db.stocks.findAll({
+            //     attributes: [
+            //         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN ExpDate < CURDATE() THEN 1 ELSE 0 END")), "ExpiredCount"],
+            //         [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN ExpDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ${daysforexpiry} DAY) THEN 1 ELSE 0 END`)), "ExpiringSoonCount"]
+            //     ],
+            //     where: wherecn
+            // });
+            const [cnvalues] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("SUM", db.Sequelize.col("returnTotal")), "totalReturnTotal"], // Total returnTotal (all statuses)
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN returnTotal ELSE 0 END")), "pendingReturnTotal"], // Sum of returnTotal for Pending
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN cNAmt ELSE 0 END")), "confirmedCNAmt"] // Sum of cNAmt for Confirmed
+                ],
+                where: wherecnv
+            });
+            return {
+                status: message.code200,
+                message: message.message200,
+                Returns: {
+                    totalReturnRaised: String(Returns?.dataValues?.totalReturnRaised ?? 0),
+                    confirmedCount: String(Returns?.dataValues?.confirmedCount ?? 0),
+                    pendingCount: String(Returns?.dataValues?.pendingCount ?? 0),
+                    rejectedCount:String(Returns?.dataValues?.rejectedCount ?? 0)
+                },
+                // creditnote: {
+                //     ExpiredCount: String(creditnote?.dataValues?.ExpiredCount ?? 0),
+                //     ExpiringSoonCount: String(creditnote?.dataValues?.ExpiringSoonCount ?? 0)
+                // },
+                cnvalues: {
+                    totalReturnTotal: String(cnvalues?.dataValues?.totalReturnTotal ?? 0),
+                    pendingReturnTotal: String(cnvalues?.dataValues?.pendingReturnTotal ?? 0),
+                    confirmedCNAmt: String(cnvalues?.dataValues?.confirmedCNAmt ?? 0)
+                }
+            };
+
+        } catch (error) {
+            console.log('cn_request_page_card_data service error:',error.messagae)
+            return {
+                status:message.code500,
+                message:error.messagae
+            }
+        }
+    }
+
 }
 
 

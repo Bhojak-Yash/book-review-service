@@ -160,3 +160,16 @@ exports.returned_list = async (req, res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 }
+
+exports.cn_request_page_card_data = async (req, res) => {
+  try {
+      const data ={...req.query,...req.user}
+      const returned_list = await expiryService.cn_request_page_card_data(data);
+  
+      return res.status(returned_list?.status || 200).json(returned_list);
+      
+      } catch (error) {
+      console.error("Error fetching retcn_request_page_card_dataurned_list:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+}
