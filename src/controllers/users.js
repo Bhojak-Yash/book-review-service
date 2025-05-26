@@ -275,7 +275,7 @@ exports.login = async (req, res) => {
 
         return res.json({
             status: message.code200,
-            message: message.message200,
+            message: "Login Successful",
             apiToken: token,
             loginId: loginlogs.id,
             apiData: checkUser.dataValues,

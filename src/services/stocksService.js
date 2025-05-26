@@ -82,6 +82,7 @@ class StocksService {
   }
 
   async updateStock(SId, organisationId, stockData) {
+    
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
     const existingStock = await tableName.findOne({

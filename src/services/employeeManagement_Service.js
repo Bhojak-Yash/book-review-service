@@ -562,12 +562,19 @@ class DistributorService {
     //     }
     // }
 
-    async create_employee(userIdFromToken, data) {
+    async create_employee(userToken, data) {
         let transaction;
         try {
             const { userName, phone, email, roleId, entityId } = data;
-            const employeeOf = userIdFromToken.id;
-
+            let employeeOf = userToken?.id;
+            console.log(employeeOf);
+            
+            if(userToken?.userType === "Employee"){
+                console.log("Inside: ", userToken.userType);
+                employeeOf = userToken?.data?.employeeOf
+            }
+            console.log(employeeOf);
+            
             const existingEmail = await db.users.findOne({
                 where: { username: email }
             });
@@ -1107,8 +1114,14 @@ class DistributorService {
         }
     }
 
-    async updateEmployee(employeeId, data, userIdFromToken){
+    async updateEmployee(employeeId, data, userToken){
         try {
+            let id = userToken?.id
+            console.log(id);
+            if(userToken?.userType === "Employee"){
+                id = userToken?.data?.employeeOf
+            }
+            console.log(id);
             
             const updates = {};
             if (data.employeeName) {
@@ -1123,11 +1136,11 @@ class DistributorService {
             if (data.status) updates.employeeStatus = data.status;
 
             const [updatedCount] = await db.employees.update(updates, {
-                where: { employeeId, employeeOf: userIdFromToken },
+                where: { employeeId, employeeOf: id },
             });
 
             const employee = await db.employees.findOne({
-                where: { employeeId, employeeOf: userIdFromToken },
+                where: { employeeId, employeeOf: id },
                 attributes: ['employeeId'],
                 raw: true
             });

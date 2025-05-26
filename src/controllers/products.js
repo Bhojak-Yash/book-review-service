@@ -25,7 +25,7 @@ exports.addProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const data = req.body
+    const data = {...req.body, ...req.user}
     const Product = await ProductsService.updateProduct(data);
 
     // if (!distributor) {
