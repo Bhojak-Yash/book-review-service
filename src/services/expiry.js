@@ -568,6 +568,13 @@ class expiryService {
                     message: 'Invalid input'
                 }
             }
+            const check = await db.returnHeader.findOne({attributes: ['returnId', 'returnDate']},{where:{"returnFrom":Number(userId),returnTo:Number(returnTo),"returnStatus":'pending'}})
+            if(check){
+                return {
+                    status:message.code400,
+                    message:"You have already raised a return which is still pending."
+                }
+            }
             const header = await db.returnHeader.create({
                 "returnDate": new Date(),
                 "returnTotal": Number(returnTotal),
@@ -583,7 +590,7 @@ class expiryService {
 
             items?.forEach((item, index) => {
                 console.log("Index", index, "SId:", item.SId, "  PId:", item.PId, "   BoxQty: ", item.BoxQty, "  Stock: ", item.Stock);
-                if (!item.SId || !item.PId || !item.BoxQty || !item.Stock) {
+                if (!item.SId || !item.PId  || !item.Stock) {
                     throw new Error(`Missing required fields in items at index ${index}`);
                 }
 
@@ -591,7 +598,7 @@ class expiryService {
                     "returnId": header.returnId,
                     "SId": Number(item.SId),
                     "PId": Number(item.PId),
-                    "BoxQty": Number(item.BoxQty),
+                    "BoxQty": Number(item.BoxQty) || 0,
                     "quantity": Number(item.Stock)
                 });
             });
