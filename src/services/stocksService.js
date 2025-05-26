@@ -114,10 +114,11 @@ class StocksService {
   async getStockDetailsByManufacturer(data) {
     const { entityId, page, limit, expStatus, search, stockStatus } = data;
     let manufacturerId = data?.manufacturerId
+    console.log(manufacturerId);
     if(data?.userType === "Employee"){
       manufacturerId = data?.data?.employeeOf
     }
-    // console.log(data)
+    console.log(data)
     let Page = page || 1;
     let Limit = limit || 10;
     const lowStockDays = Number(process.env.lowStockDays)

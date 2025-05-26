@@ -267,13 +267,20 @@ exports.login = async (req, res) => {
 
         checkUser.dataValues.loginId = loginlogs.id;
 
+        const moduleMappingResponse = await getFullAccessInLogin(checkUser?.employee?.roleId, {
+            userType: checkUser.userType,
+            empOfType: empOfType,
+            userId: checkUser.id
+        });
+
         return res.json({
             status: message.code200,
             message: message.message200,
             apiToken: token,
             loginId: loginlogs.id,
             apiData: checkUser.dataValues,
-            data: data?.dataValues || null
+            data: data?.dataValues || null,
+            moduleMapping: moduleMappingResponse.data[0]
         });
 
     } catch (error) {
@@ -396,4 +403,127 @@ async function sendTemporaryPasswordEmail(userName, tempPassword) {
     await transporter.sendMail(mailOptions);
 }
 
+async function getFullAccessInLogin(roleId, data) {
+    try {
+        let userType = data?.userType;
+        if (userType === "Employee") {
+            userType = data.empOfType;
+        }
 
+        console.log("Resolved userType:", userType);
+
+        const moduleConfigs = await db.moduleconfigs.findAll({
+            attributes: ['moduleConfigId', 'category', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url', 'moduleCategory'],
+            raw: true
+        });
+
+        const filteredConfigs = moduleConfigs.filter(config => config.category === userType);
+
+        const moduleMap = {};
+        filteredConfigs.forEach(config => {
+            moduleMap[config.moduleConfigId] = {
+                ...config,
+                accessLevel: null,
+                moduleMappingId: null
+            };
+        });
+
+        let roleName = null;
+        if (roleId) {
+            const role = await db.roles.findOne({
+                where: { id: roleId },
+                attributes: ['roleName'],
+                raw: true
+            });
+
+            roleName = role?.roleName || null;
+            console.log(roleName);
+
+            const mappings = await db.modulemappings.findAll({
+                where: {
+                    roleId,
+                    accessLevel: 'Full'
+                },
+                attributes: ['moduleMappingId', 'accessLevel', 'moduleConfigId'],
+                raw: true
+            });
+
+            mappings.forEach(mapping => {
+                if (moduleMap[mapping.moduleConfigId]) {
+                    moduleMap[mapping.moduleConfigId].accessLevel = mapping.accessLevel;
+                    moduleMap[mapping.moduleConfigId].moduleMappingId = mapping.moduleMappingId;
+                }
+            });
+        }
+
+        const moduleTree = [];
+        const fullAccessModules = Object.values(moduleMap).filter(m => m.accessLevel === 'Full');
+
+        fullAccessModules.forEach(module => {
+            if (module.menuType === 'Main') {
+                moduleTree.push({
+                    moduleConfigId: module.moduleConfigId,
+                    moduleMappingId: module.moduleMappingId,
+                    moduleName: module.moduleName,
+                    icon: module.icon,
+                    url: module.url,
+                    accessLevel: module.accessLevel,
+                    subModules: []
+                });
+            }
+        });
+
+        fullAccessModules.forEach(module => {
+            if (module.menuType === 'Sub') {
+                const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
+                if (main) {
+                    main.subModules.push({
+                        moduleConfigId: module.moduleConfigId,
+                        moduleMappingId: module.moduleMappingId,
+                        moduleName: module.moduleName,
+                        icon: module.icon,
+                        url: module.url,
+                        accessLevel: module.accessLevel,
+                        components: []
+                    });
+                }
+            }
+        });
+
+        fullAccessModules.forEach(module => {
+            if (module.menuType === 'Component') {
+                moduleTree.forEach(main => {
+                    main.subModules.forEach(sub => {
+                        if (sub.moduleConfigId === module.parentMenuId) {
+                            sub.components.push({
+                                moduleConfigId: module.moduleConfigId,
+                                moduleMappingId: module.moduleMappingId,
+                                moduleName: module.moduleName,
+                                icon: module.icon,
+                                url: module.url,
+                                accessLevel: module.accessLevel
+                            });
+                        }
+                    });
+                });
+            }
+        });
+
+        return {
+            status: 200,
+            message: "Modules retrieved" + (roleId ? " with role mappings." : " with null access levels."),
+            data: [{
+                roleId: roleId || null,
+                roleName: roleName || null,
+                modules: moduleTree
+            }]
+        };
+    } catch (error) {
+        console.error("Error retrieving role-module mappings:", error);
+        return {
+            status: 500,
+            message: "An error occurred while retrieving role-module mappings.",
+            error: error.message
+        };
+    }
+}

@@ -66,7 +66,7 @@ exports.updateStock = async (req, res) => {
 
 // Get Stock Details by Manufacturer
 exports.getStockDetailsByManufacturer = async (req, res) => {
-  const data = {...req.query, ...req.user};
+  const data = {...req.query,...req.user};
 
 
   try {
