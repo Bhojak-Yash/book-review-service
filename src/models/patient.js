@@ -69,6 +69,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "userStatus":{
             type:Sequelize.ENUM("Active",'Inactive')
+        },
+        "city":{
+            type:Sequelize.STRING
         }
     },
 

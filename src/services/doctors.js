@@ -101,6 +101,7 @@ class DoctorsService {
             if (unpaid == true || unpaid == 'true') {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
+            whereCondition.retailerId=Number(id)
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -136,6 +137,7 @@ class DoctorsService {
                         required: false
                     },
                 ],
+                order:[["id","desc"]],
                 where: whereCondition,
                 group: ['doctors.id'],
             });

@@ -311,7 +311,9 @@ class expiryService {
         try {
             let { id, manufacturerId, page, limit, search, expStatus } = data
             // console.log(data)
+            let checkUserType = data?.userType
             if (data?.userType === 'Employee') {
+                checkUserType = data?.data?.empOfType
                 id = data.data.employeeOf
             }
             const returnTodata = await db.users.findOne({ where: { id: Number(manufacturerId) } })
@@ -557,6 +559,7 @@ class expiryService {
         let transaction;
         try {
             transaction = await db.sequelize.transaction();
+
             const { returnTo, items, returnTotal, id } = data
             let userId = Number(id)
             if (data?.userType === 'Employee') {
@@ -568,7 +571,16 @@ class expiryService {
                     message: 'Invalid input'
                 }
             }
-            const check = await db.returnHeader.findOne({ attributes: ['returnId', 'returnDate'] }, { where: { "returnFrom": Number(userId), returnTo: Number(returnTo), "returnStatus": 'pending' } })
+            const check = await db.returnHeader.findOne({
+                attributes: ['returnId', 'returnDate', 'returnTo', 'returnFrom'],
+                where: {
+                    returnFrom: Number(userId),
+                    returnTo: Number(returnTo),
+                    returnStatus: 'pending'
+                }
+            });
+
+            // console.log(data, check, returnTo, userId)
             if (check) {
                 return {
                     status: message.code400,
@@ -599,7 +611,8 @@ class expiryService {
                     "SId": Number(item.SId),
                     "PId": Number(item.PId),
                     "BoxQty": Number(item.BoxQty) || 0,
-                    "quantity": Number(item.Stock)
+                    "quantity": Number(item.Stock),
+                    "price": Number(item?.price) || 0
                 });
             });
             await db.returnDetails.bulkCreate(insertData, { transaction })
@@ -780,7 +793,7 @@ class expiryService {
                     {
                         model: db.returnDetails,
                         as: "returnDetails",
-                        attributes: ['PId','quantity', 'id']
+                        attributes: ['PId', 'quantity', 'id']
                     },
                     {
                         model: db.creditNotes,
@@ -808,8 +821,8 @@ class expiryService {
                     "reason": item?.reason,
                     "url": item?.creditnote[0]?.url || null,
                     // "returnDetails": item?.returnDetails,
-                    "SKU":uniquePIds,
-                    "stocks":totalQuantity
+                    "SKU": uniquePIds,
+                    "stocks": totalQuantity
                 }
             })
 
@@ -835,6 +848,7 @@ class expiryService {
         try {
             transaction = await db.sequelize.transaction();
             const { status, returnId, returnAmt, items, reason, cnUrl, returnFrom, returnTo } = data
+            // console.log(items)
             const Reason = reason || ""
             if (!status || !returnId) {
                 return {
@@ -849,17 +863,29 @@ class expiryService {
                         message: 'Invalid input'
                     }
                 }
-                const caseQuery = items.map(item => `WHEN id = ${item.id} THEN ${item.quantity}`).join(' ');
+                // const caseQuery = items.map(item => `WHEN id = ${item.id} THEN ${item.quantity}`).join(' ');
 
+                // const ids = items.map(item => item.id).join(',');
+
+                // await db.sequelize.query(`
+                //       UPDATE return_details 
+                //       SET quantity = CASE ${caseQuery} END
+                //       WHERE id IN (${ids});
+                //       `,
+                //     { transaction }
+                // );
+                const quantityCaseQuery = items.map(item => `WHEN id = ${item.id} THEN ${item.quantity}`).join(' ');
+                const priceCaseQuery = items.map(item => `WHEN id = ${item.id} THEN ${item.price}`).join(' ');
                 const ids = items.map(item => item.id).join(',');
 
                 await db.sequelize.query(`
-                      UPDATE return_details 
-                      SET quantity = CASE ${caseQuery} END
-                      WHERE id IN (${ids});
-                      `,
-                    { transaction }
-                );
+  UPDATE return_details 
+  SET 
+    quantity = CASE ${quantityCaseQuery} END,
+    price = CASE ${priceCaseQuery} END
+  WHERE id IN (${ids});
+`, { transaction });
+
                 const SIds = items.map(item => item.SId)
                 await db.stocks.update(
                     { Stock: 0 },
@@ -920,7 +946,7 @@ class expiryService {
                     {
                         model: db.returnDetails,
                         as: "returnDetails",
-                        attributes: ['PId', 'SId', 'BoxQty', 'Stock', 'quantity', 'id'],
+                        attributes: ['PId', 'SId', 'BoxQty', 'Stock', 'quantity', 'id', 'price'],
                         include: [
                             {
                                 model: db.products,
@@ -959,7 +985,28 @@ class expiryService {
                 "returnTo": Data.returnTo,
                 "returnStatus": Data.returnStatus,
                 "returnFromUser": Data?.returnFromUser?.companyName || Data?.returnByUser?.firmName || null,
-                "returnDetails": Data.returnDetails,
+                "returnDetails": Data.returnDetails?.map((item) => {
+                    return {
+                        "PId": item.PId,
+                        "SId": item?.SId,
+                        "BoxQty": item?.BoxQty || 0,
+                        "Stock": item?.Stock || 0,
+                        "quantity": item?.quantity || 0,
+                        "id": item?.id || null,
+                        "products": {
+                            "PId": item?.products?.PId,
+                            "PName": item?.products?.PName || "",
+                            "SaltComposition": item?.products?.SaltComposition || ''
+                        },
+                        "stocks": {
+                            "BatchNo": item?.stocks?.BatchNo || null,
+                            "ExpDate": item?.stocks?.ExpDate || null,
+                            "MRP": item?.stocks?.MRP || 0,
+                            "PTS": item?.price || item?.stocks?.PTS || 0,
+                            "Scheme": item?.stocks?.Scheme || null
+                        }
+                    }
+                }),
                 "creditnote": Data?.creditnote
             }
 
