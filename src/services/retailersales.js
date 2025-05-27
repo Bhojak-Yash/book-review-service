@@ -42,7 +42,7 @@ class RetailerSalesService {
                     {
                         model: db.products,
                         as: "product",
-                        attributes: ['PId', 'PName', 'SaltComposition', 'manufacturerId', 'Package', 'HSN'],
+                        attributes: ['PId', 'PName', 'ProductForm', 'Quantity', 'SaltComposition', 'manufacturerId', 'Package', 'HSN'],
                         where: {
                             PName: likeConditions
                         },
@@ -135,6 +135,21 @@ class RetailerSalesService {
                     "amount": item?.amount
                 }
             })
+            const stockQtyCaseQuery = data.items.map(item =>
+                `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN Stock - ${item.qty}`
+            ).join(' ');
+
+            // Get unique combinations of PId and SId to build the WHERE clause
+            const whereConditions = data.items.map(item => `(${item.PId}, ${item.SId})`).join(',');
+
+            await db.sequelize.query(`
+    UPDATE stocks 
+    SET Stock = CASE 
+        ${stockQtyCaseQuery}
+    END
+    WHERE (PId, SId) IN (${whereConditions});
+`, { transaction });
+
             // console.log(orderItmes,order.items)
             const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
             const doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
@@ -146,16 +161,16 @@ class RetailerSalesService {
             }
             const billNumber = generateBillNumber(user?.data?.firmName, order?.id);
             // console.log(billNumber)
-            await db.retailerSalesHeader.update({billNumber:billNumber,invNo:`INV/${order?.id}`},{where:{id:Number(order?.id)},transaction})
-            await db.doctors.update({name:data?.order?.doctorName,RGNo:data?.order?.doctorRGNo},{where:{id:Number(data?.order?.doctorId)},transaction})
-            await db.patients.update({name:data?.order?.patientName,address:data?.order?.patientAddress},{where:{id:Number(data?.order?.patientId)},transaction})
+            await db.retailerSalesHeader.update({ billNumber: billNumber, invNo: `INV/${order?.id}` }, { where: { id: Number(order?.id) }, transaction })
+            await db.doctors.update({ name: data?.order?.doctorName, RGNo: data?.order?.doctorRGNo }, { where: { id: Number(data?.order?.doctorId) }, transaction })
+            await db.patients.update({ name: data?.order?.patientName, address: data?.order?.patientAddress }, { where: { id: Number(data?.order?.patientId) }, transaction })
             await transaction.commit();
             return {
                 status: message.code200,
                 message: message.message200,
-                billNumber:billNumber,invNo:`INV/${order?.id}`,
-                orderId:order?.id,
-                data:user.data
+                billNumber: billNumber, invNo: `INV/${order?.id}`,
+                orderId: order?.id,
+                data: user.data
             }
         } catch (error) {
             if (transaction) await transaction.rollback();

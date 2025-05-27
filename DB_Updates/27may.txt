@@ -1,0 +1,6 @@
+ALTER TABLE `crm_db`.`return_details` 
+ADD COLUMN `price` BIGINT NULL AFTER `updatedAt`;
+
+
+ALTER TABLE `crm_db`.`patients` 
+ADD COLUMN `city` VARCHAR(255) NULL AFTER `userStatus`;

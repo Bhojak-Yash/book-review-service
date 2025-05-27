@@ -25,6 +25,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         quantity: {
           type: Sequelize.BIGINT, 
+        },
+        price:{
+          type:Sequelize.BIGINT
         }
       },
       {

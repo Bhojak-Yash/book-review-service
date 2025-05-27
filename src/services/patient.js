@@ -103,6 +103,7 @@ class PatientService {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
             whereCondition.userStatus='Active'
+            whereCondition.retailerId=Number(id)
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -137,6 +138,7 @@ class PatientService {
                         required:false
                     },
                 ],
+                order:[["id","desc"]],
                 where: whereCondition,
                 group: ['patients.id'],
             });
