@@ -38,10 +38,12 @@ exports.getStockDetails = async (req, res) => {
 
 // Add Stock
 exports.addStock = async (req, res) => {
-  const { organisationId, ...stocksData } = req.body;
+  const { ...stocksData } = req.body;
+  const data = req?.user;
+  let organisationId = stocksData.organisationId;
 
   try {
-    const newStock = await StocksService.addStock(organisationId, stocksData);
+    const newStock = await StocksService.addStock(organisationId, stocksData, data);
 
     return res.status(201).json({status:201, message: 'Stock added successfully.', product: newStock });
   } catch (error) {
@@ -52,10 +54,15 @@ exports.addStock = async (req, res) => {
 
 // Update Stock
 exports.updateStock = async (req, res) => {
-  const { SId, organisationId, ...stockData } = req.body;
+  // const { SId, organisationId, ...stockData } = req.body;
+  const { ...stockData } = req.body;
+  const data = req?.user;
+
+  let SId = stockData.SId;
+  let organisationId = stockData.organisationId;
 
   try {
-    const updatedStock = await StocksService.updateStock(SId, organisationId, stockData);
+    const updatedStock = await StocksService.updateStock(SId, organisationId, stockData, data);
 
     return res.status(200).json({status:200, message: 'Stock updated successfully.' });
   } catch (error) {

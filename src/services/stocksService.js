@@ -15,7 +15,18 @@ class StocksService {
     });
   }
 
-  async addStock(organisationId, stocksData) {
+  async addStock(organisationId, stocksData, data) {
+    
+    console.log("pehle", organisationId);
+
+    if (data?.userType === "Employee") {
+      organisationId = data?.data?.employeeOf
+      stocksData.organisationId = data?.data?.employeeOf
+      console.log("Inside employee", stocksData.organisationId);
+    }
+    console.log("baad me", organisationId);
+    console.log(stocksData);
+
     console.log(stocksData,'gfhjkl',organisationId)
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
@@ -81,7 +92,17 @@ class StocksService {
     }
   }
 
-  async updateStock(SId, organisationId, stockData) {
+  async updateStock(SId, organisationId, stockData, data) {
+      
+    console.log("pehle", organisationId);
+
+    if (data?.userType === "Employee") {
+      organisationId = data?.data?.employeeOf
+      stockData.organisationId = data?.data?.employeeOf
+      console.log("Inside employee", stockData.organisationId);
+    }
+    console.log("baad me", organisationId);
+    console.log(stockData);
     
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;

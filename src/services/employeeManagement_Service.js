@@ -20,8 +20,15 @@ class DistributorService {
         this.db = db;
     }
     
-    async create_role(data, userIdFromToken){
+    async create_role(data, userToken){
         try {
+            let id = userToken?.id;
+            console.log(id);
+            if (userToken?.userType === "Employee"){
+                id = userToken?.data?.employeeOf
+            }
+            console.log(id);
+
             if (!data.roleName) {
                 throw new Error("roleName is required");
             }
@@ -30,7 +37,7 @@ class DistributorService {
 
 
             const existingRole = await db.roles.findOne({
-                where: { roleCode: roleCode, ownerId: userIdFromToken }
+                where: { roleCode: roleCode, ownerId: id }
             });
 
             if (existingRole) {
@@ -46,7 +53,7 @@ class DistributorService {
                 description: data.description || null,
                 // priority: data.priority || 1, 
                 status: data.status || "Active",
-                ownerId: userIdFromToken,
+                ownerId: id,
             });
 
             return { 
@@ -60,6 +67,13 @@ class DistributorService {
 
     async get_roles(data) {
         try {
+            let id = data?.id
+            console.log(id);
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            console.log(id);
+
             const { page = 1, limit, roleName } = data;
             const Limit = Number(limit) || 10;
             const Page = Number(page) || 1;
@@ -68,6 +82,7 @@ class DistributorService {
             // Filter roles with deletedAt: null (i.e., not soft deleted)
             let whereCondition = {
                 deletedAt: null,
+                ownerId: id
             };
 
             // Filter by roleName if provided
