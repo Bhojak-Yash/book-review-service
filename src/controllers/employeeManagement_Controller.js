@@ -9,7 +9,7 @@ const modulemappings = require('../models/modulemappings');
 
 exports.create_role = async (req, res) => {
     try {
-        const userIdFromToken = req.user.id;
+        const userIdFromToken = req?.user;
         const data = req.body;
 
         const distributor = await empManagement_Service.create_role(data, userIdFromToken);
@@ -23,7 +23,7 @@ exports.create_role = async (req, res) => {
 
 exports.get_roles = async (req, res) => {
     try {
-        const data = req.query;
+        const data = {...req.query, ...req.user};
 
         const roles = await empManagement_Service.get_roles(data);
 

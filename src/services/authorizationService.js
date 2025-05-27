@@ -11,7 +11,12 @@ class AuthService {
 
     async distributer_auth_request(data) {
         try {
-            const { authorizedBy, authorizedId } = data
+            const { authorizedBy } = data
+            let authorizedId = data?.id;
+            if(data?.userType === "Employee"){
+                authorizedId = data?.data?.employeeOf
+            }
+
             const check = await db.authorizations.findOne({
                 where: {
                     authorizedBy: Number(authorizedBy),
