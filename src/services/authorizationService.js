@@ -442,7 +442,13 @@ class AuthService {
 
     async auth_distributer_summary(data) {
         try {
-            const { id, start_date, end_date } = data;
+            const { start_date, end_date } = data;
+            let id = data?.id
+            console.log(id);
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            console.log(id);
             let whereClause = { authorizedBy: Number(id) };
 
             // Date range filter
@@ -661,7 +667,12 @@ class AuthService {
 
     async stop_po(data) {
         try {
-            const { id, userId } = data
+            const { userId } = data
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            console.log(userId, id);
             if (!userId) {
                 return {
                     status: message.code400,
@@ -687,7 +698,12 @@ class AuthService {
 
     async update_auth_request(data) {
         try {
-            const { id, userId, status } = data
+            const { userId, status } = data
+            let id = data?.id
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            console.log(id);
             if (!id || !userId || !status) {
                 return {
                     status: message.code400,

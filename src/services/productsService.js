@@ -57,7 +57,13 @@ class ProductsService {
 
     async updateProduct(data) {
         try {
-            const { PId, manufacturerId, ...productData } = data;
+            const { PId, ...productData } = data;
+            let manufacturerId = data?.manufacturerId
+            console.log(manufacturerId);
+            if(data?.userType === "Employee"){
+                manufacturerId = data?.data?.employeeOf
+            }
+            console.log(manufacturerId);
             // Check if the product exists
             const existingProduct = await Products.findOne({
                 where: {

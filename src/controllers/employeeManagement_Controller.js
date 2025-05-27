@@ -93,7 +93,7 @@ exports.getModuleHierarchy = async (req, res) => {
 
 exports.create_employee = async (req, res) => {
     try {
-        const userIdFromToken = req.user;
+        const userIdFromToken = req?.user;
         const data = req.body;
         const result = await empManagement_Service.create_employee(userIdFromToken, data);
         return res.status(201).json(result);
@@ -151,7 +151,7 @@ exports.getAllEmployees = async (req, res) => {
 
 exports.updateEmployee = async (req, res) => {
     const employeeId = req.params.id;
-    const userIdFromToken = req.user?.id;
+    const userIdFromToken = req.user;
 
     if (!userIdFromToken) {
         return res.status(401).json({ status: 401, message: "Unauthorized" });
