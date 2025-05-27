@@ -56,6 +56,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "invNo":{
             type:Sequelize.STRING
+        },
+        "doctorCommission":{
+            type:Sequelize.BIGINT
         }
     },
 

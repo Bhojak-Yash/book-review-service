@@ -104,6 +104,7 @@ class RetailerSalesService {
             // console.log(user, ';;;;;;;;')
             transaction = await db.sequelize.transaction();
             const doctor = await db.doctors.findOne({ where: { id: Number(data?.order?.doctorId) } })
+            const doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
             const orderDetails = {
                 "date": data?.order?.date,
                 "patientId": data?.order?.patientId,
@@ -119,7 +120,8 @@ class RetailerSalesService {
                 "retailerId": Number(user.id),
                 "paymentMode": data?.order?.paymentMode || "Cash",
                 "orderStatus": "Created",
-                "inv_url": data?.order?.inv_url
+                "inv_url": data?.order?.inv_url,
+                "doctorCommission":Number(doctorCommission)
             }
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
@@ -152,7 +154,6 @@ class RetailerSalesService {
 
             // console.log(orderItmes,order.items)
             const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
-            const doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
             const updateBalane = await db.doctors.update({ balance: db.sequelize.literal(`COALESCE(balance, 0) + ${doctorCommission}`) }, { where: { id: Number(data?.order?.doctorId) }, transaction })
             function generateBillNumber(firmName, id) {
                 const firstLetter = firmName.trim().charAt(0).toUpperCase();

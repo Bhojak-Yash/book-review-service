@@ -1,4 +1,4 @@
-const { where } = require('sequelize');
+const { where, NUMBER } = require('sequelize');
 const message = require('../helpers/message');
 const db = require('../models/db');
 const StocksService = require('./stocksService');
@@ -49,7 +49,7 @@ class OrdersService {
         }
       }
       transaction = await db.sequelize.transaction();
-      console.log(orderData.orderItems);
+      // console.log(orderData.orderItems);
 
       // double check cart item prices
       var mismatched = this.calculate_price(orderData.orderItems, orderData.orderData);
@@ -60,7 +60,23 @@ class OrdersService {
           message: 'Mismatch in between the price of the items.'
         };
       }
-
+      const checkCN = await db.creditNotes.findOne({where:{id:Number(orderData.orderData.cnId),issuedTo:Number(orderby),issuedBy:Number(orderData.orderData.orderTo),isSettled:false}})
+      let cnValue = 0 
+      orderData.orderData.cnId=null
+      if(checkCN){
+        let balance = Number(orderData.orderData.balance) || 0
+        cnValue = Number(checkCN?.dataValues?.balance) || 0
+        if(balance>cnValue){
+          let amtdiff = balance - cnValue
+          orderData.orderData.balance = amtdiff
+        }else{
+          orderData.orderData.balance=0
+        }
+        orderData.orderData.cnId=checkCN?.dataValues?.id
+        await db.creditNotes.update({isSettled:true},{where:{id:Number(checkCN?.dataValues?.id)}})
+      }
+      // console.log(checkCN,';;;;;;;;;;',orderData.orderData.orderTo,checkCN?.dataValues?.id,checkCN?.dataValues?.balance,cnValue)
+      
       const newOrder = await db.orders.create({
         ...orderData.orderData,
         orderFrom: Number(orderby)
@@ -324,9 +340,11 @@ class OrdersService {
         //   description: `Your purchase order has been confirmed for orderId ${orderId}.`
         // })
       }
-      // if(updates.orderStatus === "Rejected"){
-
-      // }
+      if(updates.orderStatus === "Rejected"){
+        if(order?.cnId){
+          await db.creditNotes.update({isSettled:false},{where:{id:Number(order?.cnId)}})
+        }
+      }
 
       if (updates.orderStatus === 'Dispatched') {
         // if (orderItems && orderItems.length > 0) {
@@ -428,7 +446,6 @@ class OrdersService {
           });
         }
       }
-
 
       if (updates?.orderStatus === "Inward") {
         // console.log('inwarddddddddd')

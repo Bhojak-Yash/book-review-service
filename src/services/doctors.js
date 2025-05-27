@@ -125,14 +125,14 @@ class DoctorsService {
                     'commission',
                     'RGNo',
                     "userStatus",
-                    [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
-                    [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'totalAmount'],
+                    // [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
+                    // [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'doctorCommission'],
                 ],
                 include: [
                     {
                         model: db.retailerSalesHeader,
                         as: 'retailerSalesHeaders',
-                        attributes: [],
+                        attributes: ['doctorCommission','id','totalAmt'],
                         where: { retailerId: Number(id) },
                         required: false
                     },
@@ -140,6 +140,8 @@ class DoctorsService {
                 order:[["id","desc"]],
                 where: whereCondition,
                 group: ['doctors.id'],
+                offset:skip,
+                limit:Limit,
             });
             const finalResult = await doctors?.map((item) => {
                 return {
@@ -149,10 +151,14 @@ class DoctorsService {
                     "mobile": item?.mobile,
                     "RGNo": item?.RGNo || null,
                     "commission": item?.commission,
-                    "orderCount": item?.dataValues?.orderCount,
-                    "totalAmount": item?.dataValues?.totalAmount,
+                    "orderCount": item?.retailerSalesHeaders?.length || 0,
+                    "totalAmount":item?.retailerSalesHeaders?.reduce((total, item) => {
+                        return total + (item.totalAmt || 0);
+                    }, 0),
                     "userStatus": item?.dataValues?.userStatus,
-                    "totalCommission": (Number(item?.dataValues?.totalAmount) * Number(item?.commission) / 100)
+                    "totalCommission":  item?.retailerSalesHeaders?.reduce((total, item) => {
+                        return total + (item.doctorCommission || 0);
+                    }, 0)
                 }
             })
             return {

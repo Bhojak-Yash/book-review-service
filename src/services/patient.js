@@ -20,7 +20,7 @@ class PatientService {
                 }
             }
             const check = await db.patients.findOne({
-                where: { mobile: Number(mobile), retailerId: Number(id),userStatus:'Active' }
+                where: { mobile: Number(mobile), retailerId: Number(id), userStatus: 'Active' }
             })
             if (check) {
                 return {
@@ -54,7 +54,7 @@ class PatientService {
                     message: 'Invalid input'
                 }
             }
-            console.log(id,mobile)
+            console.log(id, mobile)
             const check = await db.patients.findOne({
                 where: { mobile: Number(mobile), retailerId: Number(id) }
             })
@@ -102,8 +102,8 @@ class PatientService {
             if (unpaid == true || unpaid == 'true') {
                 whereCondition.balance = { [Op.gt]: 0 }
             }
-            whereCondition.userStatus='Active'
-            whereCondition.retailerId=Number(id)
+            whereCondition.userStatus = 'Active'
+            whereCondition.retailerId = Number(id)
             if (startDate && endDate) {
                 const startDateParts = data.startDate.split('-');
                 const endDateParts = data.endDate.split('-');
@@ -126,29 +126,53 @@ class PatientService {
                     'mobile',
                     'discount',
                     'userStatus',
-                    [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
-                    [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'totalAmount'],
+                    // [fn('COUNT', col('retailerSalesHeaders.id')), 'orderCount'],
+                    // [fn('SUM', col('retailerSalesHeaders.totalAmt')), 'totalAmount'],
                 ],
                 include: [
                     {
                         model: db.retailerSalesHeader,
                         as: 'retailerSalesHeaders',
-                        attributes: [],
+                        attributes: ['id', 'totalAmt'],
                         where: { retailerId: Number(id) },
-                        required:false
+                        required: false
                     },
                 ],
-                order:[["id","desc"]],
+                order: [["id", "desc"]],
                 where: whereCondition,
                 group: ['patients.id'],
+                offset: skip,
+                limit: Limit,
             });
+
+            const returnData = patients?.map((patients) => {
+                return {
+                    "id": patients?.id || null,
+                    "name": patients?.name || "",
+                    "createdAt": patients?.createdAt || null,
+                    "mobile": patients?.mobile || null,
+                    "discount": patients?.discount || null,
+                    "userStatus": patients?.userStatus || 0,
+                    "orderCount": patients?.retailerSalesHeaders?.length || 0,
+                    "totalAmount": patients?.retailerSalesHeaders?.reduce((total, item) => {
+                        return total + (item.totalAmt || 0);
+                    }, 0),
+                    // "retailerSalesHeaders": [
+                    //     {
+                    //         "id": 29,
+                    //         "totalAmt": 1500
+                    //     }
+                    // ]
+                }
+            })
             return {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
                 totalPage: Math.ceil(count?.length / Limit),
                 totalItems: count.length,
-                apiData: patients
+                apiData: returnData,
+                
             }
         } catch (error) {
             console.log('patients_list service error:', error.message)
@@ -162,10 +186,10 @@ class PatientService {
     async patient_orders(data) {
         try {
             const { id, patientId, startDate, endDate, page, limit } = data
-            if(!patientId){
+            if (!patientId) {
                 return {
-                    status:message.code400,
-                    message:'Input invalid'
+                    status: message.code400,
+                    message: 'Input invalid'
                 }
             }
             const Limit = Number(limit) || 10
@@ -175,7 +199,7 @@ class PatientService {
                 skip = (Page - 1) * Limit
             }
             // console.log(data)
-            let whereCondition = {retailerId:Number(id),patientId:Number(patientId)};
+            let whereCondition = { retailerId: Number(id), patientId: Number(patientId) };
             // if (search) {
             //     whereCondition = {
             //         [Op.or]: [
@@ -199,23 +223,23 @@ class PatientService {
             }
 
             const patientDetails = await db.patients.findOne({
-                where: { id: Number(patientId),retailerId:Number(id) },
+                where: { id: Number(patientId), retailerId: Number(id) },
                 // don’t set `attributes: [...]` explicitly, so Sequelize SELECTs all columns
                 attributes: {
-                  include: [
-                    [
-                      // subquery to sum balances for this patient
-                      db.sequelize.literal(`(
+                    include: [
+                        [
+                            // subquery to sum balances for this patient
+                            db.sequelize.literal(`(
                         SELECT COALESCE(SUM(balance), 0)
                         FROM retailer_sales_header
                         WHERE retailer_sales_header.patientId = ${Number(patientId)}
                       )`),
-                      'totalBalance'
+                            'totalBalance'
+                        ]
                     ]
-                  ]
                 }
-              });
-              
+            });
+
 
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
                 attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode'],
@@ -265,48 +289,50 @@ class PatientService {
         }
     }
 
-    async patient_delete(data){
+    async patient_delete(data) {
         try {
-            const{id,patientId} = data
-            if(!patientId){
+            const { id, patientId } = data
+            if (!patientId) {
                 return {
-                    status:message.code400,
-                    message:'Patient id is required'
+                    status: message.code400,
+                    message: 'Patient id is required'
                 }
             }
 
-            await db.patients.update({userStatus:'Inactive'},{where:{
-                id:Number(patientId),
-                retailerId:Number(id)
-            }})
+            await db.patients.update({ userStatus: 'Inactive' }, {
+                where: {
+                    id: Number(patientId),
+                    retailerId: Number(id)
+                }
+            })
 
             return {
-                status:message.code200,
-                message:message.message200
+                status: message.code200,
+                message: message.message200
             }
         } catch (error) {
-            console.log('patient_delete service error:',error.message)
+            console.log('patient_delete service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }
-    async patient_update(data,userData){
+    async patient_update(data, userData) {
         try {
             const Data = data.data
-            console.log(data,userData)
-          const aa=  await db.patients.update(Data,{where:{id:Number(data?.patientId)}})
-          console.log(aa)  
-          return {
-                status:message.code200,
-                message:'Patient updated successfully'
+            console.log(data, userData)
+            const aa = await db.patients.update(Data, { where: { id: Number(data?.patientId) } })
+            console.log(aa)
+            return {
+                status: message.code200,
+                message: 'Patient updated successfully'
             }
         } catch (error) {
-            console.log('patient_update service error:',error.message)
+            console.log('patient_update service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
         }
     }

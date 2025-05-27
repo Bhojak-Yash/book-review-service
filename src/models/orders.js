@@ -121,6 +121,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         referralCode:{
           type:Sequelize.STRING
+        },
+        cnId:{
+          type:Sequelize.INTEGER
         }
       },
       {
