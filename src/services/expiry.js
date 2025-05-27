@@ -326,7 +326,7 @@ class expiryService {
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             let whereCondition = {
                 organisationId: checkId,
-                purchasedFrom:Number(manufacturerId),
+                purchasedFrom: Number(manufacturerId),
                 Stock: {
                     [db.Op.gt]: 0
                 },
@@ -335,22 +335,22 @@ class expiryService {
                     { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
                 ]
             };
-            if (expStatus === "Expired"){
+            if (expStatus === "Expired") {
                 whereCondition = {
                     organisationId: checkId,
-                    purchasedFrom:Number(manufacturerId),
+                    purchasedFrom: Number(manufacturerId),
                     Stock: {
                         [db.Op.gt]: 0
                     },
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: today } },
-                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }                        
+                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
                     ]
                 };
-            } else if (expStatus === "NearToExpiry"){
+            } else if (expStatus === "NearToExpiry") {
                 whereCondition = {
                     organisationId: checkId,
-                    purchasedFrom:Number(manufacturerId),
+                    purchasedFrom: Number(manufacturerId),
                     Stock: {
                         [db.Op.gt]: 0
                     },
@@ -568,6 +568,13 @@ class expiryService {
                     message: 'Invalid input'
                 }
             }
+            const check = await db.returnHeader.findOne({ attributes: ['returnId', 'returnDate'] }, { where: { "returnFrom": Number(userId), returnTo: Number(returnTo), "returnStatus": 'pending' } })
+            if (check) {
+                return {
+                    status: message.code400,
+                    message: "You have already raised a return which is still pending."
+                }
+            }
             const header = await db.returnHeader.create({
                 "returnDate": new Date(),
                 "returnTotal": Number(returnTotal),
@@ -583,7 +590,7 @@ class expiryService {
 
             items?.forEach((item, index) => {
                 console.log("Index", index, "SId:", item.SId, "  PId:", item.PId, "   BoxQty: ", item.BoxQty, "  Stock: ", item.Stock);
-                if (!item.SId || !item.PId || !item.BoxQty || !item.Stock) {
+                if (!item.SId || !item.PId || !item.Stock) {
                     throw new Error(`Missing required fields in items at index ${index}`);
                 }
 
@@ -591,7 +598,7 @@ class expiryService {
                     "returnId": header.returnId,
                     "SId": Number(item.SId),
                     "PId": Number(item.PId),
-                    "BoxQty": Number(item.BoxQty),
+                    "BoxQty": Number(item.BoxQty) || 0,
                     "quantity": Number(item.Stock)
                 });
             });
@@ -617,7 +624,7 @@ class expiryService {
         try {
             let { page, limit, search, startDate, endDate } = data
             let id = data?.id
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             // console.log(data)
@@ -628,38 +635,38 @@ class expiryService {
             const Limit = Number(data.limit) || 10;
             let skip = (Page - 1) * Limit;
             const userId = Number(id)
-            const whereClause = {returnTo: userId };
+            const whereClause = { returnTo: userId };
 
             // Required condition: returnTo or returnFrom must match userId
             const baseUserCondition = {
-                
+
             };
-            
+
             const andConditions = [baseUserCondition];
-            
+
             // Optional search filter
             if (search) {
-              whereClause[db.Op.or]= [
-                  { returnId: { [db.Op.like]: `%${search}%` } },
-                  { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+                whereClause[db.Op.or] = [
+                    { returnId: { [db.Op.like]: `%${search}%` } },
+                    { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
                 ]
             }
-            
+
             // Optional date range filter
             if (startDate && endDate) {
-              andConditions.push({
-                returnDate: {
-                  [db.Op.between]: [startDate, endDate]
-                }
-              });
+                andConditions.push({
+                    returnDate: {
+                        [db.Op.between]: [startDate, endDate]
+                    }
+                });
             }
-            
+
             // Assign final AND clause to whereClause
             // whereClause[db.Op.and] = andConditions;            
 
             console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
-                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate','reason'],
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate', 'reason'],
                 where: whereClause,
                 include: [
                     {
@@ -675,7 +682,7 @@ class expiryService {
                         required: false
                     }
                 ],
-                order:[['returnId','desc']],
+                order: [['returnId', 'desc']],
                 offset: skip,
                 limit: Limit,
             });
@@ -690,7 +697,7 @@ class expiryService {
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
                     "returnFromUser": item?.returnFromUser?.companyName || item?.returnByUser?.firmName,
-                    "reason":item?.reason
+                    "reason": item?.reason
                 }
             })
 
@@ -722,40 +729,40 @@ class expiryService {
             const Limit = Number(data.limit) || 10;
             let skip = (Page - 1) * Limit;
             const userId = Number(id)
-            const whereClause = {returnFrom: userId };
+            const whereClause = { returnFrom: userId };
 
             // Required condition: returnTo or returnFrom must match userId
             // const baseUserCondition = {
-                
+
             // };
-            
+
             // const andConditions = [baseUserCondition];
-            
+
             // Optional search filter
             if (search) {
-              andConditions.push({
-                [db.Op.or]: [
-                  { returnId: { [db.Op.like]: `%${search}%` } },
-                  { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
-                ]
-              });
+                andConditions.push({
+                    [db.Op.or]: [
+                        { returnId: { [db.Op.like]: `%${search}%` } },
+                        { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+                    ]
+                });
             }
-            
+
             // Optional date range filter
             if (startDate && endDate) {
-              andConditions.push({
-                returnDate: {
-                  [db.Op.between]: [startDate, endDate]
-                }
-              });
+                andConditions.push({
+                    returnDate: {
+                        [db.Op.between]: [startDate, endDate]
+                    }
+                });
             }
-            
+
             // Assign final AND clause to whereClause
             // whereClause[db.Op.and] = andConditions;            
 
             console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
-                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate','reason'],
+                attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate', 'reason'],
                 where: whereClause,
                 include: [
                     {
@@ -769,14 +776,26 @@ class expiryService {
                         as: 'returnToMan',
                         attributes: ['manufacturerId', 'companyName'],
                         required: false
+                    },
+                    {
+                        model: db.returnDetails,
+                        as: "returnDetails",
+                        attributes: ['PId','quantity', 'id']
+                    },
+                    {
+                        model: db.creditNotes,
+                        as: "creditnote",
+                        attributes: ['id', 'createdAt', 'url']
                     }
                 ],
-                order:[['returnId','desc']],
+                order: [['returnId', 'desc']],
                 offset: skip,
                 limit: Limit,
             });
 
             const result = await Data?.map((item) => {
+                const totalQuantity = item?.returnDetails?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+                const uniquePIds = new Set(item?.returnDetails?.map(item => item.PId)).size || 0;
                 return {
                     "returnId": item.returnId,
                     "returnFrom": item.returnFrom,
@@ -786,7 +805,11 @@ class expiryService {
                     "returnStatus": item.returnStatus,
                     "returnDate": item.returnDate,
                     "returnFromUser": item?.returnToUser?.companyName || item?.returnToMan?.companyName,
-                    "reason":item?.reason
+                    "reason": item?.reason,
+                    "url": item?.creditnote[0]?.url || null,
+                    // "returnDetails": item?.returnDetails,
+                    "SKU":uniquePIds,
+                    "stocks":totalQuantity
                 }
             })
 
@@ -956,9 +979,9 @@ class expiryService {
 
     async expiry_list_card_data(data) {
         try {
-            const {startDate, endDate } = data
+            const { startDate, endDate } = data
             let id = data?.id
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             const userId = Number(id)
@@ -1142,6 +1165,93 @@ class expiryService {
             return {
                 status: message.code500,
                 message: error.message
+            }
+        }
+    }
+
+    async cn_request_page_card_data(data) {
+        try {
+            const { startDate, endDate } = data
+            let id = data?.id
+            if (data?.userType === "Employee") {
+                id = data?.data?.employeeOf
+            }
+            const userId = Number(id)
+            if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            let wherereturn = {
+                returnTo: Number(userId),
+            }
+            let wherecn = {
+                organisationId: Number(userId)
+            }
+            let wherecnv = {
+                returnTo: Number(userId)
+            }
+            if (startDate && endDate) {
+                const formattedStartDate = startDate.split("-").reverse().join("-") + " 00:00:00";
+                const formattedEndDate = endDate.split("-").reverse().join("-") + " 23:59:59";
+                wherereturn.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecn.createdAt = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+                wherecnv.returnDate = {
+                    [db.Op.between]: [formattedStartDate, formattedEndDate]
+                };
+            }
+            const daysforexpiry = Number(process.env.lowStockDays)
+            const [Returns] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("COUNT", db.Sequelize.col("returnId")), "totalReturnRaised"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN 1 ELSE 0 END")), "confirmedCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN 1 ELSE 0 END")), "pendingCount"],
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Rejected' THEN 1 ELSE 0 END")), "rejectedCount"]
+                ],
+                where: wherereturn
+            });
+            // const [creditnote] = await db.stocks.findAll({
+            //     attributes: [
+            //         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN ExpDate < CURDATE() THEN 1 ELSE 0 END")), "ExpiredCount"],
+            //         [db.sequelize.fn("SUM", db.sequelize.literal(`CASE WHEN ExpDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ${daysforexpiry} DAY) THEN 1 ELSE 0 END`)), "ExpiringSoonCount"]
+            //     ],
+            //     where: wherecn
+            // });
+            const [cnvalues] = await db.returnHeader.findAll({
+                attributes: [
+                    [db.Sequelize.fn("SUM", db.Sequelize.col("returnTotal")), "totalReturnTotal"], // Total returnTotal (all statuses)
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Pending' THEN returnTotal ELSE 0 END")), "pendingReturnTotal"], // Sum of returnTotal for Pending
+                    [db.Sequelize.fn("SUM", db.Sequelize.literal("CASE WHEN returnStatus = 'Confirmed' THEN cNAmt ELSE 0 END")), "confirmedCNAmt"] // Sum of cNAmt for Confirmed
+                ],
+                where: wherecnv
+            });
+            return {
+                status: message.code200,
+                message: message.message200,
+                Returns: {
+                    totalReturnRaised: String(Returns?.dataValues?.totalReturnRaised ?? 0),
+                    confirmedCount: String(Returns?.dataValues?.confirmedCount ?? 0),
+                    pendingCount: String(Returns?.dataValues?.pendingCount ?? 0),
+                    rejectedCount: String(Returns?.dataValues?.rejectedCount ?? 0)
+                },
+                // creditnote: {
+                //     ExpiredCount: String(creditnote?.dataValues?.ExpiredCount ?? 0),
+                //     ExpiringSoonCount: String(creditnote?.dataValues?.ExpiringSoonCount ?? 0)
+                // },
+                cnvalues: {
+                    totalReturnTotal: String(cnvalues?.dataValues?.totalReturnTotal ?? 0),
+                    pendingReturnTotal: String(cnvalues?.dataValues?.pendingReturnTotal ?? 0),
+                    confirmedCNAmt: String(cnvalues?.dataValues?.confirmedCNAmt ?? 0)
+                }
+            };
+
+        } catch (error) {
+            console.log('cn_request_page_card_data service error:', error.messagae)
+            return {
+                status: message.code500,
+                message: error.messagae
             }
         }
     }
