@@ -833,7 +833,219 @@ class ManufacturerService {
     }
   }
 
+  // async linked_users(data) {
+  //   try {
+  //     let id = data?.id;
+  //     console.log(id);
 
+  //     if (data?.userType === "Employee") {
+  //       id = data?.data?.employeeOf;
+  //     }
+
+  //     console.log(id);
+
+  //     // Fetch all authorizedBy IDs where authorizedId = id
+  //     const authorizedList = await db.authorizations.findAll({
+  //       attributes: ['authorizedBy'],
+  //       where: { authorizedId: id },
+  //       raw: true,
+  //     });
+
+  //     const authorizedIds = authorizedList.map(item => item.authorizedBy);
+  //     if (authorizedIds.length === 0) {
+  //       return {
+  //         status: 200,
+  //         message: "No linked users found.",
+  //         total: 0,
+  //         page: 1,
+  //         limit: 10,
+  //         linkedUsers: []
+  //       };
+  //     }
+
+  //     // Fetch page and limit from data or set defaults
+  //     const page = parseInt(data?.page) || 1;
+  //     const limit = parseInt(data?.limit) || 10;
+
+  //     // Fetch all manufacturers, distributors, retailers matching authorizedIds
+  //     const [manufacturers, distributors, retailers] = await Promise.all([
+  //       db.manufacturers.findAll({
+  //         attributes: ['manufacturerId', 'companyName'],
+  //         where: { manufacturerId: { [Op.in]: authorizedIds } },
+  //         raw: true,
+  //       }),
+  //       db.distributors.findAll({
+  //         attributes: ['distributorId', 'companyName'],
+  //         where: { distributorId: { [Op.in]: authorizedIds } },
+  //         raw: true,
+  //       }),
+  //       db.retailers.findAll({
+  //         attributes: ['retailerId', 'firmName'],
+  //         where: { retailerId: { [Op.in]: authorizedIds } },
+  //         raw: true,
+  //       }),
+  //     ]);
+
+  //     // Combine all users into one array
+  //     const linkedUsers = [
+  //       ...manufacturers.map(m => ({
+  //         id: m.manufacturerId,
+  //         name: m.companyName,
+  //         type: 'Manufacturer',
+  //       })),
+  //       ...distributors.map(d => ({
+  //         id: d.distributorId,
+  //         name: d.companyName,
+  //         type: 'Distributor',
+  //       })),
+  //       ...retailers.map(r => ({
+  //         id: r.retailerId,
+  //         name: r.firmName,  // corrected spelling
+  //         type: 'Retailer',
+  //       })),
+  //     ];
+
+  //     // Sort descending by id
+  //     linkedUsers.sort((a, b) => b.id - a.id);
+
+  //     // Apply pagination
+  //     const offset = (page - 1) * limit;
+  //     const paginatedUsers = linkedUsers.slice(offset, offset + limit);
+
+  //     return {
+  //       status: 200,
+  //       message: "Linked Users fetched successfully",
+  //       total: linkedUsers.length,
+  //       page,
+  //       limit,
+  //       linkedUsers: paginatedUsers,
+  //     };
+
+  //   } catch (error) {
+  //     console.error("Error in linked_users function:", error);
+  //     return {
+  //       status: 500,
+  //       message: "Something went wrong",
+  //       error: error.message,
+  //     };
+  //   }
+  // }
+
+  async linked_users(data) {
+    try {
+      let id = data?.id;
+      if (data?.userType === "Employee") {
+        id = data?.data?.employeeOf;
+      }
+
+      const authorizedList = await db.authorizations.findAll({
+        attributes: ['authorizedBy'],
+        where: { authorizedId: id },
+        raw: true,
+      });
+
+      const authorizedIds = authorizedList.map(item => item.authorizedBy);
+      if (authorizedIds.length === 0) {
+        return {
+          status: 200,
+          message: "No linked users found.",
+          total: 0,
+          page: 1,
+          limit: 10,
+          linkedUsers: []
+        };
+      }
+
+      const page = parseInt(data?.page) || 1;
+      const limit = parseInt(data?.limit) || 10;
+
+      // Fetch users
+      const [manufacturers, distributors, retailers, addresses] = await Promise.all([
+        db.manufacturers.findAll({
+          attributes: ['manufacturerId', 'companyName'],
+          where: { manufacturerId: { [Op.in]: authorizedIds } },
+          raw: true,
+        }),
+        db.distributors.findAll({
+          attributes: ['distributorId', 'companyName'],
+          where: { distributorId: { [Op.in]: authorizedIds } },
+          raw: true,
+        }),
+        db.retailers.findAll({
+          attributes: ['retailerId', 'firmName'],
+          where: { retailerId: { [Op.in]: authorizedIds } },
+          raw: true,
+        }),
+        db.address.findAll({
+          attributes: ['userId', 'mobile', 'email', 'webURL', 'addressType', 'addLine1', 'addLine2', 'city', 'state', 'pincode'],
+          where: {
+            userId: { [Op.in]: authorizedIds },
+            addressType: 'Billing',
+          },
+          raw: true,
+        }),
+      ]);
+
+      // Group billing addresses by userId
+      const addressMap = {};
+      addresses.forEach(addr => {
+        addressMap[addr.userId] = {
+          mobile: addr.mobile,
+          email: addr.email,
+          webURL: addr.webURL,
+          addLine1: addr.addLine1,
+          addLine2: addr.addLine2,
+          city: addr.city,
+          state: addr.state,
+          pincode: addr.pincode,
+        };
+      });
+
+      const linkedUsers = [
+        ...manufacturers.map(m => ({
+          type: 'Manufacturer',
+          id: m.manufacturerId,
+          name: m.companyName,
+          billingAddress: addressMap[m.manufacturerId] || null,
+        })),
+        ...distributors.map(d => ({
+          type: 'Distributor',
+          id: d.distributorId,
+          name: d.companyName,
+          billingAddress: addressMap[d.distributorId] || null,
+        })),
+        ...retailers.map(r => ({
+          type: 'Retailer',
+          id: r.retailerId,
+          name: r.firmName,
+          billingAddress: addressMap[r.retailerId] || null,
+        })),
+      ];
+
+      linkedUsers.sort((a, b) => b.id - a.id);
+
+      const offset = (page - 1) * limit;
+      const paginatedUsers = linkedUsers.slice(offset, offset + limit);
+
+      return {
+        status: 200,
+        message: "Linked Users fetched successfully",
+        total: linkedUsers.length,
+        page,
+        limit,
+        linkedUsers: paginatedUsers,
+      };
+    } catch (error) {
+      console.error("Error in linked_users function:", error);
+      return {
+        status: 500,
+        message: "Something went wrong",
+        error: error.message,
+      };
+    }
+  }
+  
+  
 }
 
 async function getcurrentResult(whereClause) {
