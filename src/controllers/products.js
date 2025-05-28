@@ -9,7 +9,7 @@ const ProductsService = require('../services/productsService');
 // Add single product
 exports.addProduct = async (req, res) => {
   try {
-    const data = req.body
+    const data = {...req.body, ...req.user};
     const Product = await ProductsService.addProduct(data);
 
     // if (!distributor) {

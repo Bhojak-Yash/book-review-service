@@ -13,7 +13,26 @@ class ProductsService {
 
     async addProduct(data) {
         try {
-            const { manufacturerId, PackagingDetails, HSN,PName, ...productData } = data;
+            const { PackagingDetails, HSN,PName, ...productData } = data;
+
+            let manufacturerId = productData.manufacturerId
+            let uploadedBy = productData.uploadedBy
+
+            manufacturerId = data?.id;
+            uploadedBy = data?.id;
+
+            console.log("ProductData ManID: ",productData.manufacturerId);
+            console.log("Manufacturer ID: ",manufacturerId);
+            console.log("uploadedBy: ",uploadedBy);
+
+            if(data?.userType === "Employee"){
+                manufacturerId = data?.data?.employeeOf
+                productData.manufacturerId = data?.data?.employeeOf
+            }
+
+            console.log("E Product Manufacturer ID", productData.manufacturerId);
+            console.log("E Manufacturer ID", manufacturerId);
+            console.log("uploadedBy: ", uploadedBy);
             // console.log("Product Data",productData);
             // Check if the product already exists
             function toTitleCase(str) {
@@ -26,7 +45,7 @@ class ProductsService {
                     manufacturerId,
                 },
             });
-            console.log(NewPName,PName,existingProduct)
+            // console.log(NewPName,PName,existingProduct)
 
             if (existingProduct) {
                 return { status: message.code200, message: `Product '${PName}' already exists.` };
@@ -44,9 +63,15 @@ class ProductsService {
                 HSN: HSN || null,
                 PackagingDetails: PackagingDetailss,
                 manufacturerId,
+                uploadedBy
                 // CreatedAt: new Date(),
                 // UpdatedAt: new Date(),
             });
+
+            console.log(newProduct.toJSON());
+            const PId = newProduct.PId;
+            const PCode = `P${PId}`;
+            await newProduct.update({ PCode });
 
             return { status: message.code200, message: 'Product added successfully.', product: newProduct }
         } catch (error) {
