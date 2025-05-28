@@ -491,11 +491,12 @@ class expiryService {
                         as: "product",
                         required: true,
                         attributes: ['PId'],
-                        where: { manufacturerId: Number(manufacturerId) }
+                        // where: { manufacturerId: Number(manufacturerId) }
                     }
                 ],
                 where: {
                     organisationId: checkId,
+                     purchasedFrom: Number(manufacturerId),
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
@@ -512,11 +513,12 @@ class expiryService {
                         model: db.products,
                         as: "product",
                         required: true,
-                        where: { manufacturerId: Number(manufacturerId) }
+                        // where: { manufacturerId: Number(manufacturerId) }
                     }
                 ],
                 where: {
                     organisationId: checkId,
+                     purchasedFrom: Number(manufacturerId),
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
