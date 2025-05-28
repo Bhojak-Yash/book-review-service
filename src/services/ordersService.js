@@ -60,6 +60,7 @@ class OrdersService {
           message: 'Mismatch in between the price of the items.'
         };
       }
+      if(orderData?.orderData?.cnId){
       const checkCN = await db.creditNotes.findOne({where:{id:Number(orderData.orderData.cnId),issuedTo:Number(orderby),issuedBy:Number(orderData.orderData.orderTo),isSettled:false}})
       let cnValue = 0 
       orderData.orderData.cnId=null
@@ -75,6 +76,7 @@ class OrdersService {
         orderData.orderData.cnId=checkCN?.dataValues?.id
         await db.creditNotes.update({isSettled:true},{where:{id:Number(checkCN?.dataValues?.id)}})
       }
+    }
       // console.log(checkCN,';;;;;;;;;;',orderData.orderData.orderTo,checkCN?.dataValues?.id,checkCN?.dataValues?.balance,cnValue)
       
       const newOrder = await db.orders.create({

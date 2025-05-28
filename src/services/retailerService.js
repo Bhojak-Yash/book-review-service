@@ -842,7 +842,7 @@ class RetailerService {
                 model: db.products,
                 as: 'product',
                 attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"],
-                required: false
+                required: true
             };
 
             if (search) {

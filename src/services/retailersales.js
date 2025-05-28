@@ -168,7 +168,7 @@ class RetailerSalesService {
             await transaction.commit();
             return {
                 status: message.code200,
-                message: message.message200,
+                message: 'Order created successfully',
                 billNumber: billNumber, invNo: `INV/${order?.id}`,
                 orderId: order?.id,
                 data: user.data
@@ -221,7 +221,7 @@ class RetailerSalesService {
             }
             console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode', 'orderStatus', 'inv_url'],
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode', 'orderStatus', 'inv_url','doctorCommission'],
                 include: [
                     {
                         model: db.patients,
@@ -248,7 +248,7 @@ class RetailerSalesService {
                     "totalAmt": item?.totalAmt,
                     "patientName": item?.patient?.name,
                     "doctorName": item?.doctor?.name,
-                    "commission": Math.round(Number(item?.totalAmt) * Number(item?.doctor?.commission) / 100),
+                    "commission":item?.doctorCommission,
                     "balance": item?.balance || 0,
                     "status": item?.balance > 0 ? 'Unpaid' : 'Paid',
                     "paymentMode": item?.paymentMode,
@@ -321,7 +321,7 @@ class RetailerSalesService {
             })
             return {
                 status: message.code200,
-                message: message.message200
+                message: 'Order deleted successfully'
             }
         } catch (error) {
             console.log('delete_order service error:', error.message)

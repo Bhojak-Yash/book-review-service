@@ -32,7 +32,7 @@ class PatientService {
             const register = await db.patients.create(insertData)
             return {
                 status: message.code200,
-                message: message.message200,
+                message: 'Patient created successfully',
                 apiData: register || null
             }
         } catch (error) {
@@ -308,7 +308,7 @@ class PatientService {
 
             return {
                 status: message.code200,
-                message: message.message200
+                message: 'Patient deleted successfully'
             }
         } catch (error) {
             console.log('patient_delete service error:', error.message)

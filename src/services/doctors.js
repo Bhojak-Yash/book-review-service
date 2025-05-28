@@ -31,7 +31,7 @@ class DoctorsService {
             const register = await db.doctors.create(insertData)
             return {
                 status: message.code200,
-                message: message.message200,
+                message: 'Doctor Created successfully',
                 apiData: register || null
             }
         } catch (error) {
