@@ -491,11 +491,12 @@ class expiryService {
                         as: "product",
                         required: true,
                         attributes: ['PId'],
-                        where: { manufacturerId: Number(manufacturerId) }
+                        // where: { manufacturerId: Number(manufacturerId) }
                     }
                 ],
                 where: {
                     organisationId: checkId,
+                     purchasedFrom: Number(manufacturerId),
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
@@ -512,11 +513,12 @@ class expiryService {
                         model: db.products,
                         as: "product",
                         required: true,
-                        where: { manufacturerId: Number(manufacturerId) }
+                        // where: { manufacturerId: Number(manufacturerId) }
                     }
                 ],
                 where: {
                     organisationId: checkId,
+                     purchasedFrom: Number(manufacturerId),
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
@@ -812,7 +814,7 @@ class expiryService {
                 return {
                     "returnId": item.returnId,
                     "returnFrom": item.returnFrom,
-                    "returnTo": item.returnTo,
+                    "returnTo": Number(item?.returnTo) || null,
                     "returnAmt": item.returnAmt,
                     "returnTotal": item.returnTotal,
                     "returnStatus": item.returnStatus,
@@ -951,12 +953,12 @@ class expiryService {
                             {
                                 model: db.products,
                                 as: 'products',
-                                attributes: ['PId', 'PName', 'SaltComposition']
+                                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails']
                             },
                             {
                                 model: db.stocks,
                                 as: "stocks",
-                                attributes: ['BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme']
+                                attributes: ['BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme','location']
                             }
                         ]
                     },
@@ -996,14 +998,16 @@ class expiryService {
                         "products": {
                             "PId": item?.products?.PId,
                             "PName": item?.products?.PName || "",
-                            "SaltComposition": item?.products?.SaltComposition || ''
+                            "SaltComposition": item?.products?.SaltComposition || '',
+                            "PackagingDetails":item?.products?.PackagingDetails || ''
                         },
                         "stocks": {
                             "BatchNo": item?.stocks?.BatchNo || null,
                             "ExpDate": item?.stocks?.ExpDate || null,
                             "MRP": item?.stocks?.MRP || 0,
                             "PTS": item?.price || item?.stocks?.PTS || 0,
-                            "Scheme": item?.stocks?.Scheme || null
+                            "Scheme": item?.stocks?.Scheme || null,
+                            "location":item?.stocks?.location || null
                         }
                     }
                 }),

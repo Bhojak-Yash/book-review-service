@@ -134,11 +134,11 @@ class RetailerSalesService {
                     "rate": item?.rate,
                     "SGST": item?.SGST,
                     "CGST": item?.CGST,
-                    "amount": item?.amount
+                    "amount": item?.amount,
                 }
             })
             const stockQtyCaseQuery = data.items.map(item =>
-                `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN Stock - ${item.qty}`
+                `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN Stock - ${item.quantity}`
             ).join(' ');
 
             // Get unique combinations of PId and SId to build the WHERE clause
