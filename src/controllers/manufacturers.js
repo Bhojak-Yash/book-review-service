@@ -105,3 +105,23 @@ exports.po_page_card_data = async (req, res) => {
     return res.status(500).json({ status:message.code500,message:error.message });
   }
 };
+
+exports.linked_users = async(req, res) =>{
+  try{
+    const data = {
+      ...req.user,
+      page: req.query.page,
+      limit: req.query.limit
+    };
+    const result = await ManufacturerService.linked_users(data);
+
+    return res.status(result?.status || 200).json(result);
+    
+  } catch(error){
+    console.error("Error linked_users: ", error);
+    return res.status(500).json({
+      status: message.code500, 
+      message: error.message 
+    });
+  }
+};

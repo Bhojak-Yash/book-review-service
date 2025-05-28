@@ -743,7 +743,7 @@ class DistributorService {
             }
 
             const moduleConfigs = await db.moduleconfigs.findAll({
-                attributes: ['moduleConfigId', 'category', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url'],
+                attributes: ['moduleConfigId', 'category', 'moduleName', 'menuType', 'parentMenuId', 'icon', 'url', 'moduleCategory'],
                 raw: true
             });
 
@@ -791,6 +791,7 @@ class DistributorService {
             Object.values(moduleMap).forEach(module => {
                 if (module.menuType === 'Main') {
                     moduleTree.push({
+                        moduleCategory: module.moduleCategory,
                         moduleConfigId: module.moduleConfigId,
                         moduleMappingId: module.moduleMappingId,
                         moduleName: module.moduleName,
@@ -807,6 +808,7 @@ class DistributorService {
                     const main = moduleTree.find(m => m.moduleConfigId === module.parentMenuId);
                     if (main) {
                         main.subModules.push({
+                            moduleCategory: module.moduleCategory,
                             moduleConfigId: module.moduleConfigId,
                             moduleMappingId: module.moduleMappingId,
                             moduleName: module.moduleName,
@@ -825,6 +827,7 @@ class DistributorService {
                         main.subModules.forEach(sub => {
                             if (sub.moduleConfigId === module.parentMenuId) {
                                 sub.components.push({
+                                    moduleCategory: module.moduleCategory,
                                     moduleConfigId: module.moduleConfigId,
                                     moduleMappingId: module.moduleMappingId,
                                     moduleName: module.moduleName,
