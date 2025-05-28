@@ -151,33 +151,33 @@ class RetailerService {
         try {
             const { search } = data;
             if (!search) {
-                 const sss= await db.distributors.findAll({
-                    attributes: ['companyName', 'distributorId','type'],
-                    where:{ "distributorId": { [db.Op.ne]: null }},
-                    include:[
+                const sss = await db.distributors.findAll({
+                    attributes: ['companyName', 'distributorId', 'type'],
+                    where: { "distributorId": { [db.Op.ne]: null } },
+                    include: [
                         {
-                            model:db.address,
-                            as:'addresses',
-                            required:false,
+                            model: db.address,
+                            as: 'addresses',
+                            required: false,
                             attributes: ['addLine1', 'addLine2', 'city', 'state'],
                         }
                     ],
                     order: db.sequelize.random(),
-                    limit:5
+                    limit: 5
                 })
-                 const finalResult = sss?.map((item) => {
+                const finalResult = sss?.map((item) => {
+                    return {
+                        "userName": item?.companyName,
+                        "id": item.distributorId,
+                        "userType": item.type,
+                        "address": item.addresses[0] || {}
+                    }
+                })
                 return {
-                    "userName": item?.companyName,
-                    "id": item.distributorId,
-                    "userType": item.type,
-                    "address": item.addresses[0] || {}
+                    status: message.code200,
+                    message: message.message200,
+                    apiData: finalResult
                 }
-            })
-            return {
-                status: message.code200,
-                message: message.message200,
-                apiData: finalResult
-            }
             }
             const halfLength = Math.floor(search?.length / 2);
             const firstHalf = search?.substring(0, halfLength);
@@ -633,7 +633,7 @@ class RetailerService {
                         attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
                         where: {
                             userId: Number(id),
-                            isDeleted:{[db.Op.not]:true}
+                            isDeleted: { [db.Op.not]: true }
                         },
                         required: false,
                     },
@@ -788,7 +788,7 @@ class RetailerService {
             }
             const nearToExpDate = Number(process.env.lowStockDays)
             // console.log(distributorId)
-            let whereCondition = { organisationId: Number(distributorId) };
+            let whereCondition = { organisationId: Number(distributorId),locked:false };
             if (entityId) {
                 whereCondition.entityId = Number(entityId);
             }
@@ -838,14 +838,49 @@ class RetailerService {
                     };
                 }
             }
+            const productInclude = {
+                model: db.products,
+                as: 'product',
+                attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"],
+                required: false
+            };
 
             if (search) {
-                whereCondition[db.Op.or] = [
-                    { BatchNo: { [db.Op.like]: `%${search}%` } },
-                    { '$product.PName$': { [db.Op.like]: `%${search}%` } },
-                    { '$product.SaltComposition$': { [db.Op.like]: `%${search}%` } }
-                ];
+                const conditions = [];
+
+                if (search.length <= 3) {
+                    conditions.push(
+                        { BatchNo: { [db.Op.like]: `%${search}%` } }
+                    );
+                    productInclude.where = {
+                        [db.Op.or]: [
+                            { PName: { [db.Op.like]: `%${search}%` } },
+                            { SaltComposition: { [db.Op.like]: `%${search}%` } }
+                        ]
+                    };
+                } else {
+                    const mid = Math.floor(search.length / 2);
+                    const firstHalf = search.slice(0, mid);
+                    const secondHalf = search.slice(mid);
+                    const firstThree = search.slice(0, 3);
+
+                    productInclude.where = {
+                        [db.Op.or]: [
+                            { PName: { [db.Op.like]: `%${search}%` } },
+                            { PName: { [db.Op.like]: `%${firstHalf}%` } },
+                            { PName: { [db.Op.like]: `%${secondHalf}%` } },
+                            { PName: { [db.Op.like]: `${firstThree}%` } },
+                            { SaltComposition: { [db.Op.like]: `%${search}%` } },
+                            { SaltComposition: { [db.Op.like]: `%${firstHalf}%` } },
+                            { SaltComposition: { [db.Op.like]: `%${secondHalf}%` } },
+                            { SaltComposition: { [db.Op.like]: `${firstThree}%` } },
+                        ]
+                    };
+                }
+
+                // whereCondition[db.Op.or] = conditions;
             }
+            console.log(productInclude,whereCondition)
             let checkAuth;
             let checkCart;
             if (id) {
@@ -888,8 +923,9 @@ class RetailerService {
             const count = await db.stocks.count({
                 where: {
                     ...whereCondition,
-                    locked: false,
-                }
+                    Stock: { [db.Op.gt]: 0 }
+                },
+                group: ['PId', 'BatchNo'],
             })
             const stocks = await db.stocks.findAll({
                 attributes: [
@@ -914,16 +950,9 @@ class RetailerService {
                 ],
                 where: {
                     ...whereCondition,
-                    locked: false,
                     Stock: { [db.Op.gt]: 0 }
                 },
-                include: [
-                    {
-                        model: db.products,
-                        as: 'product',
-                        attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED", "manufacturerId"]
-                    }
-                ],
+                include: [productInclude],
                 group: ['PId', 'BatchNo'],
                 offset: skip,
                 limit: Limit,
@@ -969,8 +998,8 @@ class RetailerService {
                 status: message.code200,
                 message: message.message200,
                 currentPage: Page,
-                totalItem: count,
-                totalPage: Math.ceil(count / Limit),
+                totalItem: count.length || 0,
+                totalPage: Math.ceil(count.length/ Limit),
                 authCheck: checkAuth ? checkAuth?.status : 'Not Send',
                 userData: userData,
                 apiData: updatedApiData
