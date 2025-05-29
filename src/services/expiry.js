@@ -477,19 +477,70 @@ class expiryService {
 
     async expire_details_card_data(data) {
         try {
-            const { id, manufacturerId } = data
+            let { id, manufacturerId, search, expStatus, startDate, endDate } = data;
+
             let checkId = Number(id)
             if (data?.userType === 'Employee') {
                 checkId = data.data.employeeOf
             }
             console.log("check Id...........", checkId);
             const daysforexpiry = Number(process.env.lowStockDays)
-            const today = moment().startOf("day");
+            const today = moment().startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
 
             let unitCount = 0;
             let totalExpiryValue = 0;
+
+            let whereCondition = {
+                organisationId: checkId,
+                purchasedFrom: Number(manufacturerId),
+                Stock: {
+                    [db.Op.gt]: 0,
+                },
+            };
+
+            if (expStatus === "Expired") {
+                whereCondition[db.Op.and] = [
+                    { ExpDate: { [db.Op.lt]: today } },
+                    { ExpDate: { [db.Op.gt]: threeMonthsBefore } },
+                ];
+            } else if (expStatus === "NearToExpiry") {
+                whereCondition[db.Op.and] = [
+                    { ExpDate: { [db.Op.lt]: after90Days } },
+                    { ExpDate: { [db.Op.gt]: today } },
+                ];
+            } else {
+                whereCondition[db.Op.and] = [
+                    { ExpDate: { [db.Op.lt]: after90Days } },
+                    { ExpDate: { [db.Op.gt]: threeMonthsBefore } },
+                ];
+            }
+
+            if (startDate && endDate) {
+                const start = moment(startDate, "DD-MM-YYYY")
+                    .startOf("day")
+                    .format("YYYY-MM-DD HH:mm:ss");
+                const end = moment(endDate, "DD-MM-YYYY")
+                    .endOf("day")
+                    .format("YYYY-MM-DD HH:mm:ss");
+
+                whereCondition.ExpDate = {
+                    [db.Op.between]: [start, end],
+                };
+
+                delete whereCondition[db.Op.and];
+            }
+
+            const productWhereCondition = {};
+            if (search && search.trim() !== "") {
+                productWhereCondition[db.Op.or] = [
+                    { PCode: { [db.Op.like]: `%${search}%` } },
+                    { PName: { [db.Op.like]: `%${search}%` } },
+                    { SaltComposition: { [db.Op.like]: `%${search}%` } },
+                ];
+            }
+
             const Data = await db.stocks.findAll({
                 attributes: [
                     [db.sequelize.fn("SUM", db.sequelize.col("Stock")), "unitCount"],
@@ -503,18 +554,11 @@ class expiryService {
                         as: "product",
                         required: true,
                         attributes: ['PId'],
-                        // where: { manufacturerId: Number(manufacturerId) }
-                    }
+                        where: Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
+                    },
                 ],
-                where: {
-                    organisationId: checkId,
-                     purchasedFrom: Number(manufacturerId),
-                    [db.Op.and]: [
-                        { ExpDate: { [db.Op.lt]: after90Days } },
-                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
-                    ]
-                },
-                group: ["stocks.PId"]
+                where: whereCondition,
+                group: ["stocks.PId"],
             });
             console.log(Data)
             const totalSKU = await db.stocks.count({
@@ -525,25 +569,18 @@ class expiryService {
                         model: db.products,
                         as: "product",
                         required: true,
-                        // where: { manufacturerId: Number(manufacturerId) }
-                    }
+                        where: Object.keys(productWhereCondition).length ? productWhereCondition : undefined,
+                    },
                 ],
-                where: {
-                    organisationId: checkId,
-                     purchasedFrom: Number(manufacturerId),
-                    [db.Op.and]: [
-                        { ExpDate: { [db.Op.lt]: after90Days } },
-                        { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
-                    ]
-                }
+                where: whereCondition,
             });
 
             let lastUpdated = null;
             // console.log(Data)
             await Data?.forEach((item) => {
                 // console.log(item.dataValues.unitCount)
-                unitCount = unitCount + Number(item.dataValues.unitCount)
-                totalExpiryValue = totalExpiryValue + Number(item.dataValues.totalExpiryValue)
+                unitCount += Number(item.dataValues.unitCount)
+                totalExpiryValue += Number(item.dataValues.totalExpiryValue)
 
                 const updatedAt = item.dataValues.updatedAt;
                 if (!lastUpdated || new Date(updatedAt) > new Date(lastUpdated)) {
@@ -558,7 +595,9 @@ class expiryService {
                 unitCount,
                 totalExpiryValue,
                 totalSKU,
-                lastUpdated: moment(lastUpdated).add(5, 'hours').add(30, 'minutes').toISOString()
+                lastUpdated: lastUpdated
+                    ? moment(lastUpdated).add(5, "hours").add(30, "minutes").toISOString()
+                    : null,
             }
         } catch (error) {
             console.log('expire_details_card_data service error:', error.message)
