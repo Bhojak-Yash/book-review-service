@@ -30,10 +30,10 @@ class RetailerSalesService {
 
             const likeConditions = {
                 [Op.or]: [
-                    { [Op.eq]: search },
+                    // { [Op.eq]: search },
                     { [Op.like]: `%${search}%` },
-                    { [Op.like]: `%${firstHalf}%` },
-                    { [Op.like]: `${firstThree}%` }
+                    // { [Op.like]: `%${firstHalf}%` },
+                    // { [Op.like]: `${firstThree}%` }
                 ]
             }
             const { count, rows: Data } = await db.stocks.findAndCountAll({

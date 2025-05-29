@@ -185,10 +185,10 @@ class RetailerService {
 
             const likeConditions = search ? {
                 [Op.or]: [
-                    { [Op.eq]: search },
+                    // { [Op.eq]: search },
                     { [Op.like]: `%${search}%` },
-                    { [Op.like]: `%${firstHalf}%` },
-                    { [Op.like]: `${firstThree}%` }
+                    // { [Op.like]: `%${firstHalf}%` },
+                    // { [Op.like]: `${firstThree}%` }
                 ]
             } : null;
 
@@ -258,10 +258,10 @@ class RetailerService {
 
             const likeConditions = search ? {
                 [Op.or]: [
-                    { [Op.eq]: search },
+                    // { [Op.eq]: search },
                     { [Op.like]: `%${search}%` },
-                    { [Op.like]: `%${firstHalf}%` },
-                    { [Op.like]: `${firstThree}%` }
+                    // { [Op.like]: `%${firstHalf}%` },
+                    // { [Op.like]: `${firstThree}%` }
                 ]
             } : null;
 
@@ -848,7 +848,7 @@ class RetailerService {
             if (search) {
                 const conditions = [];
 
-                if (search.length <= 3) {
+                if (search.length) {
                     conditions.push(
                         { BatchNo: { [db.Op.like]: `%${search}%` } }
                     );
@@ -858,29 +858,30 @@ class RetailerService {
                             { SaltComposition: { [db.Op.like]: `%${search}%` } }
                         ]
                     };
-                } else {
-                    const mid = Math.floor(search.length / 2);
-                    const firstHalf = search.slice(0, mid);
-                    const secondHalf = search.slice(mid);
-                    const firstThree = search.slice(0, 3);
+                } 
+                // else {
+                //     const mid = Math.floor(search.length / 2);
+                //     const firstHalf = search.slice(0, mid);
+                //     const secondHalf = search.slice(mid);
+                //     const firstThree = search.slice(0, 3);
 
-                    productInclude.where = {
-                        [db.Op.or]: [
-                            { PName: { [db.Op.like]: `%${search}%` } },
-                            { PName: { [db.Op.like]: `%${firstHalf}%` } },
-                            { PName: { [db.Op.like]: `%${secondHalf}%` } },
-                            { PName: { [db.Op.like]: `${firstThree}%` } },
-                            { SaltComposition: { [db.Op.like]: `%${search}%` } },
-                            { SaltComposition: { [db.Op.like]: `%${firstHalf}%` } },
-                            { SaltComposition: { [db.Op.like]: `%${secondHalf}%` } },
-                            { SaltComposition: { [db.Op.like]: `${firstThree}%` } },
-                        ]
-                    };
-                }
+                //     productInclude.where = {
+                //         [db.Op.or]: [
+                //             { PName: { [db.Op.like]: `%${search}%` } },
+                //             { PName: { [db.Op.like]: `%${firstHalf}%` } },
+                //             { PName: { [db.Op.like]: `%${secondHalf}%` } },
+                //             { PName: { [db.Op.like]: `${firstThree}%` } },
+                //             { SaltComposition: { [db.Op.like]: `%${search}%` } },
+                //             { SaltComposition: { [db.Op.like]: `%${firstHalf}%` } },
+                //             { SaltComposition: { [db.Op.like]: `%${secondHalf}%` } },
+                //             { SaltComposition: { [db.Op.like]: `${firstThree}%` } },
+                //         ]
+                //     };
+                // }
 
                 // whereCondition[db.Op.or] = conditions;
             }
-            console.log(productInclude,whereCondition)
+            // console.log(productInclude,whereCondition)
             let checkAuth;
             let checkCart;
             if (id) {
@@ -888,7 +889,7 @@ class RetailerService {
                 checkCart = await db.usercarts.findAll({ where: { orderFrom: Number(id), orderTo: Number(distributorId) } })
             }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
-            console.log(id, "checkCart")
+            // console.log(id, "checkCart")
             const userData = await db.users.findOne({
                 where: { id: Number(distributorId) },
                 attributes: ['id', 'userName'],

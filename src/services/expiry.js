@@ -754,23 +754,21 @@ class expiryService {
             // const andConditions = [baseUserCondition];
 
             // Optional search filter
-            if (search) {
-                andConditions.push({
-                    [db.Op.or]: [
-                        { returnId: { [db.Op.like]: `%${search}%` } },
-                        { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
-                    ]
-                });
-            }
+            // if (search) {
+            //     andConditions.push({
+            //         [db.Op.or]: [
+            //             { returnId: { [db.Op.like]: `%${search}%` } },
+            //             { '$returnFromUser.companyName$': { [db.Op.like]: `%${search}%` } }
+            //         ]
+            //     });
+            // }
 
             // Optional date range filter
-            if (startDate && endDate) {
-                andConditions.push({
-                    returnDate: {
-                        [db.Op.between]: [startDate, endDate]
-                    }
-                });
-            }
+            // if (startDate && endDate) {
+            //     whereClause.returnDate={
+            //             [db.Op.between]: [startDate, endDate]
+            //     }
+            // }
 
             // Assign final AND clause to whereClause
             // whereClause[db.Op.and] = andConditions;            

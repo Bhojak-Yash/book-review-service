@@ -7,7 +7,7 @@ class TallyReportsService {
         this.db = db;
     }
 
-    async partwise_outstanding_report(data,res) {
+    async partwise_outstanding_report(data, res) {
         try {
             let { id, userType } = data
             let usercheckType = 'distributors'
@@ -35,7 +35,7 @@ class TallyReportsService {
                     model: db.distributors,
                     as: 'fromDistributor',
                     attributes: ['distributorId', 'companyName', 'distributorCode'],
-                    required:true
+                    required: true
                 }
             ]
             if (usercheckType == 'Retailers') {
@@ -44,7 +44,7 @@ class TallyReportsService {
                         model: db.retailers,
                         as: 'fromRetailer',
                         attributes: ['retailerId', 'firmName', 'retailerCode'],
-                        include:true
+                        include: true
                     }
                 ]
             }
@@ -73,7 +73,20 @@ class TallyReportsService {
                     "TotalOutstanding": item?.dataValues?.totalBalance || 0
                 }
             })
-            const fields = [ 'PartyName', 'PartyCode', 'NumberOfOrders', 'TotalOrderValue', 'TotalOutstanding'];
+            // const returnData = [];
+
+            // for (let i = 1; i <= 100000; i++) {
+            //     const isDistributor = i % 2 === 0;
+            //     returnData.push({
+            //         PartyName: isDistributor ? `Distributor ${i}` : `Retailer ${i}`,
+            //         PartyCode: isDistributor ? `D-${i}` : `R-${i}`,
+            //         PartyId: i,
+            //         NumberOfOrders: Math.floor(Math.random() * 50),
+            //         TotalOrderValue: (Math.random() * 10000).toFixed(2),
+            //         TotalOutstanding: (Math.random() * 5000).toFixed(2)
+            //     });
+            // }
+            const fields = ['PartyName', 'PartyCode', 'NumberOfOrders', 'TotalOrderValue', 'TotalOutstanding'];
             const json2csvParser = new Parser({ fields });
             const csv = json2csvParser.parse(returnData);
 
