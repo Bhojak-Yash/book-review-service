@@ -1169,6 +1169,7 @@ class RetailerService {
                     raw: true,
                 }),
 
+                
                 // Fetch total retailers grouped by companyType
                 db.authorizations.count({ where: whereauthApproved }),
 
