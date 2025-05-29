@@ -509,6 +509,7 @@ class expiryService {
                 where: {
                     organisationId: checkId,
                      purchasedFrom: Number(manufacturerId),
+                     Stock:{[db.Op.gt]:0},
                     [db.Op.and]: [
                         { ExpDate: { [db.Op.lt]: after90Days } },
                         { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
