@@ -1,6 +1,7 @@
 const message = require('../helpers/message');
 const db = require('../models/db');
 const moment = require("moment");
+const { Op, literal } = db.Sequelize;
 
 class expiryService {
     constructor(db) {
@@ -115,7 +116,7 @@ class expiryService {
 
     async expired_product_list(data) {
         try {
-            let { page, limit, id } = data;
+            let { page, limit, id, search } = data;
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
             }
@@ -127,6 +128,16 @@ class expiryService {
             const today = moment().startOf("day");
             const threeMonthsBefore = moment().subtract(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
             const after90Days = moment().add(daysforexpiry, "days").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+
+            const applySearch = search && search.trim().length >= 3;
+            const searchFilter = applySearch
+                ? {
+                    [Op.or]: [
+                        { "$manufacturer.companyName$": { [Op.like]: `%${search}%` } },
+                        { "$distributor.companyName$": { [Op.like]: `%${search}%` } }
+                    ]
+                }
+                : {};
 
             const { count, rows } = await db.stocks.findAndCountAll({
                 attributes: [
@@ -143,7 +154,8 @@ class expiryService {
                     [db.Sequelize.Op.and]: [
                         { ExpDate: { [db.Sequelize.Op.lt]: after90Days } },
                         { ExpDate: { [db.Sequelize.Op.gt]: threeMonthsBefore } }
-                    ]
+                    ],
+                    ...searchFilter
                 },
                 include: [
                     {
@@ -771,7 +783,16 @@ class expiryService {
             // }
 
             // Assign final AND clause to whereClause
-            // whereClause[db.Op.and] = andConditions;            
+            // whereClause[db.Op.and] = andConditions; 
+            
+            const isSearching = search && search.trim().length >= 3;
+            if (search && isSearching) {
+                whereClause[Op.or] = [
+                    { returnId: { [Op.like]: `%${search}%` } },
+                    { '$returnToUser.companyName$': { [Op.like]: `%${search}%` } },
+                    { '$returnToMan.companyName$': { [Op.like]: `%${search}%` } },
+                ];
+            }
 
             console.log(whereClause)
             const { count, rows: Data } = await db.returnHeader.findAndCountAll({
@@ -782,7 +803,7 @@ class expiryService {
                         model: db.distributors,
                         as: 'returnToUser',
                         attributes: ['companyName', 'distributorId'],
-                        required: false,
+                        required: false
                     },
                     {
                         model: db.manufacturers,
@@ -804,6 +825,7 @@ class expiryService {
                 order: [['returnId', 'desc']],
                 offset: skip,
                 limit: Limit,
+                subQuery: false,
             });
 
             const result = await Data?.map((item) => {

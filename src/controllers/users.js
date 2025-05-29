@@ -199,7 +199,10 @@ exports.createUsers = async (req, res) => {
 // }
 exports.login = async (req, res) => {
     try {
-        const { userName, password, type } = req.body;
+        let { userName, password, type } = req.body;
+
+        userName = userName?.trim();
+        password = password?.trim();
 
         if (!userName || !password || !type) {
             return res.json({
