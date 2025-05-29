@@ -516,7 +516,7 @@ class expiryService {
                 },
                 group: ["stocks.PId"]
             });
-            console.log(Data)
+
             const totalSKU = await db.stocks.count({
                 distinct: true,
                 col: "PId",
