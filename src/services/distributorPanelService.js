@@ -151,8 +151,8 @@ class distributorDashboard {
     async distProductInfo(tokenData) {
         try {
             let ownerId = tokenData.id;
-            let checkUserType = tokenData.id;
-            // console.log(tokenData, "..............................................");
+            let checkUserType = tokenData.userType;
+            console.log(tokenData, "..............................................");
             if (tokenData?.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
                 checkUserType = tokenData.empOfType;
