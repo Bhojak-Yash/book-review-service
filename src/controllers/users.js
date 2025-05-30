@@ -391,7 +391,7 @@ exports.forgotPassword = async (req, res) => {
 
         const tempPassword = crypto.randomInt(100000, 999999).toString(); // 6-digit temp password
         const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash the temp password
-        
+
         await Users.update(
             { password: hashedPassword, isPasswordChange: 1 },
             { where: { userName } }
@@ -403,7 +403,6 @@ exports.forgotPassword = async (req, res) => {
         return res.status(200).json({
             status: message.code200,
             message: "Temporary password sent. Check your email.",
-            isPasswordChange: 1
         });
 
     } catch (error) {
