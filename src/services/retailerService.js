@@ -581,7 +581,7 @@ class RetailerService {
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", "status", 'imageSize'],
+                updateOnDuplicate: ["image", "status", 'imageSize','isDeleted'],
                 conflictFields: ["categoryId", "userId",'isDeleted'],
                 transaction
             });
