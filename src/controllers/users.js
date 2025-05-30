@@ -393,7 +393,7 @@ exports.forgotPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash the temp password
 
         await Users.update(
-            { password: hashedPassword, isPasswordChange: 1 },
+            { password: hashedPassword, isPasswordChangeRequired: 1 },
             { where: { userName } }
         );
 
