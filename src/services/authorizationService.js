@@ -227,7 +227,7 @@ class AuthService {
                             "CIN": rows?.retailers?.CIN,
                             "FSSAI": rows?.retailers?.FSSAI,
                             "wholeSaleDrugLicence": rows?.retailers?.wholeSaleDrugLicence,
-                            "type": rows?.retailers?.type,
+                            "type": 'Retailer',
                             "createdAt": rows?.retailers?.createdAt,
                             "updatedAt": rows?.retailers?.updatedAt,
                             "city": rows?.address[0]?.city || null,
@@ -624,7 +624,10 @@ class AuthService {
             // Get count of all Distributors and CNFs
             console.log(whereClause)
             const retailerCount = await db.authorizations.count({
-                where: whereClause,
+                where: {
+                    authorizedBy: Number(id),
+                    status: "Approved",
+                }, 
                 include: [{
                     model: db.retailers,
                     as: "retailers",
@@ -633,7 +636,10 @@ class AuthService {
             });
 
             const distributorCount = await db.authorizations.count({
-                where: whereClause,
+                where: {
+                    authorizedBy: Number(id),
+                    status: "Approved",
+                },    
                 include: [{
                     model: db.distributors,
                     as: 'distributor',

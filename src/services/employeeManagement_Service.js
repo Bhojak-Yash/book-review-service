@@ -1278,6 +1278,7 @@ class DistributorService {
 
             const totalRoles = await db.roles.count({
                 where: {
+                    ownerId: employeeOf,
                     deletedAt: null
                 }
             });

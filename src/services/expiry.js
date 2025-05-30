@@ -498,6 +498,10 @@ class expiryService {
                 Stock: {
                     [db.Op.gt]: 0,
                 },
+                // [db.Op.and]: [
+                //     { ExpDate: { [db.Op.lt]: after90Days } },
+                //     { ExpDate: { [db.Op.gt]: threeMonthsBefore } }
+                // ]
             };
 
             if (expStatus === "Expired") {
