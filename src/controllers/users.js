@@ -202,7 +202,7 @@ exports.login = async (req, res) => {
         let { userName, password, type } = req.body;
 
         userName = userName?.trim();
-        password = password?.trim();
+        // password = password?.trim();
 
         if (!userName || !password || !type) {
             return res.json({
