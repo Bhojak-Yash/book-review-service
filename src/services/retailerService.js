@@ -576,12 +576,13 @@ class RetailerService {
                 image: doc.image,
                 status: 'Verified',
                 imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
-                userId: Number(retailerId)
+                userId: Number(retailerId),
+                isDeleted:false
             }));
 
             await db.documents.bulkCreate(documentsData, {
                 updateOnDuplicate: ["image", "status", 'imageSize'],
-                conflictFields: ["categoryId", "userId"],
+                conflictFields: ["categoryId", "userId",'isDeleted'],
                 transaction
             });
 
@@ -644,7 +645,7 @@ class RetailerService {
             if (aa) {
                 columns = aa.map((item) => item.documentName);
             }
-
+console.log(document)
             const documentColumns = columns.length > 0 ? columns.map(col => `doc.\`${col}\``).join(", ") : '';
 
             const documentColumnsQuery = documentColumns ? `, ${documentColumns}` : '';
