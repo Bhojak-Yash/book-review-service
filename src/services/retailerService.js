@@ -1335,7 +1335,7 @@ class RetailerService {
                             data?.Package, data?.ProductForm, data?.Quantity, data?.SaltComposition,
                             data.MRP,
                             data.PTR, data.PTS, false, new Date(),
-                            new Date(), data?.BatchNo, data?.ExpDate, data?.Scheme || null,
+                            new Date(), data?.BatchNo, new Date(data?.ExpDate), data?.Scheme || null,
                             data?.Stock, data?.location, data?.HSN, data?.purchasedFrom, data?.BoxQty || null, data?.Loose || null
                         ],
                         //   type: db.Sequelize.QueryTypes.INSERT
