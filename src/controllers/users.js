@@ -352,18 +352,43 @@ exports.logout = async(req,res) => {
 
 exports.forgotPassword = async (req, res) => {
     try {
-        const { userName } = req.body;
+        const { userName, type } = req.body;
 
-        if (!userName) {
-            return res.status(400).json({ status: message.code400, message: "Username is required" });
+        if (!userName || !type) {
+            return res.status(400).json({ status: message.code400, message: "Username and type are required" });
         }
-
         // ✅ Check if user exists
-        const user = await Users.findOne({ where: { userName } });
+        const user = await Users.findOne({
+            where: { userName },
+            include: [
+                {
+                    model: db.employees,
+                    required: false
+                }
+            ]
+        });
 
         if (!user) {
             return res.status(404).json({ status: message.code400, message: "User not found" });
         }
+
+        if (user.userType === 'Employee') {
+            const employeeOf = user.employee?.employeeOf;
+
+            if (!employeeOf) {
+                return res.status(400).json({ status: message.code400, message: "employeeOf not found" });
+            }
+
+            const managerUser = await db.users.findOne({ where: { id: employeeOf } });
+
+            if (!managerUser || managerUser.userType !== type) {
+                return res.status(400).json({
+                    status: message.code400,
+                    message: `Access denied. Manager userType is not '${type}'`
+                });
+            }
+        }
+
         const tempPassword = crypto.randomInt(100000, 999999).toString(); // 6-digit temp password
         const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash the temp password
         
@@ -371,12 +396,16 @@ exports.forgotPassword = async (req, res) => {
             { password: hashedPassword, isPasswordChange: 1 },
             { where: { userName } }
         );
-        
+
         // ✅ Send Temporary Password via Email
         await sendTemporaryPasswordEmail(user.userName, tempPassword);
-        
-        return res.status(200).json({ status: message.code200, message: "Temporary password sent. Check your email." });
-        
+
+        return res.status(200).json({
+            status: message.code200,
+            message: "Temporary password sent. Check your email.",
+            isPasswordChange: 1
+        });
+
     } catch (error) {
         console.error("Forgot Password Error:", error);
         return res.status(500).json({ status: message.code500, message: "Internal Server Error" });
