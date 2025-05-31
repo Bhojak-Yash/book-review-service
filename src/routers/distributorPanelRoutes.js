@@ -18,5 +18,7 @@ router.get('/get-payment-stats', verifyToken, distributorPanelController.getPaym
 router.get('/get-slow-moving-items', verifyToken, distributorPanelController.getSlowMovingMedicines);
 router.get('/get-patients-doctors', verifyToken, distributorPanelController.getPatientsAndDoctors);
 
+router.get('/get-topPatients', verifyToken, distributorPanelController.getTopPatients);
+
 
 module.exports =router

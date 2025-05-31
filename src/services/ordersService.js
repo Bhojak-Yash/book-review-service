@@ -1692,8 +1692,9 @@ class OrdersService {
 
       if (!creditNote) {
         return {
-          status: 404,
-          message: "No unsettled credit note found for this user and URL."
+          status: 200,
+          message: "No unsettled credit note found for this user and URL.",
+          data: null
         };
       }
 
