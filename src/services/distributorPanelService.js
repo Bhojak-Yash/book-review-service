@@ -161,7 +161,7 @@ class distributorDashboard {
                 throw new Error('Stocks model is not loaded correctly');
             }
 
-            if (checkUserType === "Retailer"){
+            if (checkUserType === "Retailer") {
 
                 const endDate = new Date();
                 const startDate = new Date();
@@ -183,9 +183,9 @@ class distributorDashboard {
                         organisationId: ownerId,
                     }
                 });
-                
+
                 const countDoctor = await db.doctors.count({
-                    where:{
+                    where: {
                         retailerId: ownerId,
                         createdAt: {
                             [Op.between]: [startDate, endDate]
@@ -198,12 +198,12 @@ class distributorDashboard {
                     message: 'Retailer sales count fetched successfully.',
                     data: {
                         orderReceivedLast30days: count,
-                        totalSKUs : countSKUs,
+                        totalSKUs: countSKUs,
                         DoctorsAdded: countDoctor
                     }
                 };
 
-            }else {
+            } else {
                 // Fetch product count, retailer count, and order stats using Sequelize ORM
                 const [productStats, retailerStats, orderStats] = await Promise.all([
                     db.products.count({
@@ -459,75 +459,96 @@ class distributorDashboard {
         try {
             let ownerId = tokenData.id;
             let checkUserType = tokenData.userType;
-            
+
             if (tokenData?.userType === 'Employee') {
                 checkUserType = tokenData.empOfType;
                 ownerId = tokenData.data.employeeOf;
             }
-            
-            // Validate filterType
+
             if (filterType !== 'Revenue' && filterType !== 'Quantity') {
                 throw new Error('Invalid filter type. Use "Revenue" or "Quantity".');
             }
 
             if (checkUserType === "Retailer") {
-                const ownerId = tokenData.id;
-
-                // Get total orders placed by this retailer
-                const totalOrders = await db.retailerSalesHeader.count({
-                    where: { retailerId: ownerId }
-                });
-
-                // Get order count per patient with patient name, grouped and sorted
-                const topPatientsData = await db.retailerSalesHeader.findAll({
+                // Get header IDs
+                const headerIds = await db.retailerSalesHeader.findAll({
                     where: { retailerId: ownerId },
-                    attributes: [
-                        'patientId',
-                        [db.Sequelize.fn('COUNT', db.Sequelize.col('patientId')), 'orderCount']
-                    ],
-                    include: [
-                        {
-                            model: db.patients,
-                            as: 'patients', // Use the correct alias set in the model
-                            attributes: ['name']
-                        }
-                    ],
-                    group: ['patientId', 'patients.id', 'patients.name'],
-                    order: [[db.Sequelize.literal('orderCount'), 'DESC']],
+                    attributes: ['id'],
                     raw: true
                 });
 
-                if (!topPatientsData || topPatientsData.length === 0) {
+                const headerIdList = headerIds.map(h => h.id);
+                if (!headerIdList.length) {
                     return {
                         status: 200,
-                        message: "No patient orders found for this retailer.",
-                        data: { topPatients: [] }
+                        message: "No sales data found for this retailer.",
+                        apiData: []
                     };
                 }
 
-                // Build result array with order percentage
-                const topPatients = topPatientsData.map(patient => {
-                    const orderCount = parseInt(patient.orderCount);
-                    const percentage = totalOrders > 0 ? (orderCount / totalOrders) * 100 : 0;
-
-                    return {
-                        patientId: patient.patientId,
-                        name: patient['patients.name'],
-                        orderCount: orderCount,
-                        orderPercentage: parseFloat(percentage.toFixed(2))
-                    };
+                // Get total value for percentage calculation
+                const totalResult = await db.retailerSalesDetails.findOne({
+                    where: { headerId: headerIdList },
+                    attributes: [
+                        [filterType === 'Revenue'
+                            ? db.Sequelize.literal('SUM(qty * rate)')
+                            : db.Sequelize.literal('SUM(qty)'),
+                            'total_value']
+                    ],
+                    raw: true
                 });
+
+                const totalValue = parseFloat(totalResult?.total_value || 1); // prevent division by zero
+
+                // Main query for top products
+                const results = await db.retailerSalesDetails.findAll({
+                    where: {
+                        headerId: headerIdList
+                    },
+                    attributes: [
+                        'PId',
+                        [
+                            filterType === 'Revenue'
+                                ? db.Sequelize.literal('SUM(qty * rate)')
+                                : db.Sequelize.literal('SUM(qty)'),
+                            'value'
+                        ],
+                        [
+                            db.Sequelize.literal(`ROUND((
+                                ${filterType === 'Revenue' ? 'SUM(qty * rate)' : 'SUM(qty)'} / ${totalValue}
+                            ) * 100, 2)`),
+                            'percentage'
+                        ]
+                    ],
+                    include: [
+                        {
+                            model: db.products,
+                            as: 'product', 
+                            attributes: ['PCode', 'PName']
+                        }
+                    ],
+                    group: ['PId', 'product.PCode', 'product.PName'],
+                    order: [[db.Sequelize.literal('value'), 'DESC']],
+                    raw: true
+                });
+
+                // Flatten product fields into top level
+                const formattedResults = results.map(r => ({
+                    PId: r.PId,
+                    PCode: r['product.PCode'],
+                    PName: r['product.PName'],
+                    value: parseFloat(r.value),
+                    percentage: parseFloat(r.percentage),
+                }));
 
                 return {
                     status: 200,
-                    message: "Top patients fetched successfully.",
-                    data: {
-                        topPatients
-                    }
+                    message: "Top products fetched successfully.",
+                    apiData: formattedResults
                 };
-            }
-            
-            else if (checkUserType === "Manufacturer" || checkUserType === "Distributor"){
+            } 
+
+            else if (checkUserType === "Manufacturer" || checkUserType === "Distributor") {
 
                 // Define columns and calculation based on filterType
                 const valueColumn = filterType === 'Revenue'
@@ -950,7 +971,7 @@ class distributorDashboard {
                         totalAmountReceivedToday: paymentsCollectedResult.data.totalAmountReceived || 0,
                         newPatiendRegistered: newPatiendRegistered?.countPatientsRegistered,
                         expirySoon: countExpiringSoon.expiringSoonCount || 0,
-                        expiryRaised: expiryRaised?.data.count ,
+                        expiryRaised: expiryRaised?.data.count,
                     }
                 };
             }
@@ -1305,7 +1326,7 @@ class distributorDashboard {
             try {
                 // const userType = tokenData.userType;
                 let organisationId = tokenData.id;
-                
+
                 let checkUserType = tokenData.userType;
                 if (tokenData?.userType === 'Employee') {
                     organisationId = tokenData.data.employeeOf;
@@ -1394,7 +1415,7 @@ class distributorDashboard {
                 };
             }
         }
-        async getExpiryRaised(tokenData, startOfDay, endOfDay){
+        async getExpiryRaised(tokenData, startOfDay, endOfDay) {
             try {
                 let userId = tokenData.id;
                 if (tokenData.userType === 'Employee') {
@@ -1462,10 +1483,10 @@ class distributorDashboard {
             const endOfDay = new Date(date.setHours(23, 59, 59, 999));
             endOfDay.setMinutes(endOfDay.getMinutes() + 330);
 
-            
+
             let checkUserType = tokenData.userType;
             if (tokenData?.userType === 'Employee') {
-                checkUserType = tokenData.empOfType; 
+                checkUserType = tokenData.empOfType;
             }
 
             if (checkUserType === "Manufacturer" || checkUserType === "Distributor") {
@@ -1502,7 +1523,7 @@ class distributorDashboard {
                         ...userSpecificMetric
                     }
                 }
-            } else if (checkUserType === "Retailer"){
+            } else if (checkUserType === "Retailer") {
                 const [
                     paymentCollected,
                     totalSalesToday,
@@ -2159,7 +2180,7 @@ class distributorDashboard {
                     include: [
                         {
                             model: db.orders,
-                            as: 'orders', 
+                            as: 'orders',
                             where: {
                                 orderFrom: ownerId,
                                 orderDate: {
@@ -2325,11 +2346,11 @@ class distributorDashboard {
             };
         }
     }
-        
+
     async getPatientsAndDoctors(tokenData, page = 1, limit = 10) {
         try {
             const ownerId = tokenData.id;
-            if(tokenData.userType === "Employee"){
+            if (tokenData.userType === "Employee") {
                 ownerId = tokenData?.tokenData?.employeeOf
             }
 
@@ -2348,7 +2369,7 @@ class distributorDashboard {
                     {
                         model: db.patients,
                         as: 'patient',
-                        attributes: [ 'name', 'mobile']
+                        attributes: ['name', 'mobile']
                     },
                     {
                         model: db.doctors,
@@ -2369,7 +2390,7 @@ class distributorDashboard {
                 // Process Patient
                 if (patientId && !seenPatients.has(patientId)) {
                     seenPatients.set(patientId, {
-                        patientId: patientId,
+                        id: patientId,
                         name: entry['patient.name'],
                         type: 'Patient',
                         mobile: entry['patient.mobile'],
@@ -2387,7 +2408,7 @@ class distributorDashboard {
 
                     if (!doctor) {
                         seenDoctors.set(doctorId, {
-                            doctorId: doctorId,
+                            id: doctorId,
                             name: entry['doctor.name'],
                             type: 'Doctor',
                             mobile: entry['doctor.mobile'],
@@ -2400,7 +2421,7 @@ class distributorDashboard {
                         // Add to total commissionAmount
                         doctor.commissionAmount += commissionAmount;
 
-                        console.log(commissionAmount);
+                        console.log(commissionAmount, doctor.commissionAmount);
                         // Update lastPurchase and date if this record is newer
                         if (new Date(createdAt) > new Date(doctor.purchasedDate)) {
                             doctor.lastPurchase = totalAmt;
@@ -2410,6 +2431,7 @@ class distributorDashboard {
                         seenDoctors.set(doctorId, doctor);
                     }
                 }
+                console.log(entry);
             }
 
             // Combine both
@@ -2420,13 +2442,13 @@ class distributorDashboard {
                     commissionAmount: doc.commissionAmount.toFixed(2) // round off
                 }))
             ];
-
+            console.log(allResults, ';;;;;;')
             const totalRecords = allResults.length;
             const totalPages = Math.ceil(totalRecords / limit);
             const currentPage = parseInt(page);
 
             // Apply pagination
-            const paginatedResults = allResults.slice((page - 1) * limit, page * limit);
+            // const paginatedResults = allResults.slice((page - 1) * limit, page * limit);
 
             return {
                 status: 200,
@@ -2437,7 +2459,7 @@ class distributorDashboard {
                     currentPage,
                     totalPatientsAdded,
                     totalDoctorsAdded,
-                    results: paginatedResults
+                    results: allResults
                 }
             };
 
@@ -2446,6 +2468,79 @@ class distributorDashboard {
             return {
                 status: 500,
                 message: "Internal Server Error"
+            };
+        }
+    }
+
+    async getTopPatients(tokenData) {
+        try {
+
+            let ownerId = tokenData.id;
+            let checkUserType = tokenData.userType;
+
+            if (tokenData?.userType === 'Employee') {
+                checkUserType = tokenData.empOfType;
+                ownerId = tokenData.data.employeeOf;
+            }
+
+            // Get total orders placed by this retailer
+            const totalOrders = await db.retailerSalesHeader.count({
+                where: { retailerId: ownerId }
+            });
+
+            // Get order count per patient with patient name, grouped and sorted
+            const topPatientsData = await db.retailerSalesHeader.findAll({
+                where: { retailerId: ownerId },
+                attributes: [
+                    'patientId',
+                    [db.Sequelize.fn('COUNT', db.Sequelize.col('patientId')), 'orderCount']
+                ],
+                include: [
+                    {
+                        model: db.patients,
+                        as: 'patient', // Use the correct alias set in the model
+                        attributes: ['name']
+                    }
+                ],
+                group: ['patientId', 'patient.id', 'patient.name'],
+                order: [[db.Sequelize.literal('orderCount'), 'DESC']],
+                raw: true
+            });
+
+            if (!topPatientsData || topPatientsData.length === 0) {
+                return {
+                    status: 400,
+                    message: "No patient orders found for this retailer.",
+                    data: { topPatients: [] }
+                };
+            }
+
+            // Build result array with order percentage
+            const topPatients = topPatientsData.map(patient => {
+                const orderCount = parseInt(patient.orderCount);
+                const percentage = totalOrders > 0 ? (orderCount / totalOrders) * 100 : 0;
+
+                return {
+                    patientId: patient.patientId,
+                    name: patient['patient.name'],
+                    orderCount: orderCount,
+                    orderPercentage: parseFloat(percentage.toFixed(2))
+                };
+            });
+
+            return {
+                status: 200,
+                message: "Top patients fetched successfully.",
+                data: {
+                    topPatients
+                }
+            };
+        } catch (error) {
+            console.error("Error in topPatients:", error);
+            return {
+                status: 500,
+                message: "Internal server error while fetching top patients.",
+                error: error.message
             };
         }
     }

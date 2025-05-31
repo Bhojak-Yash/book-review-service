@@ -254,6 +254,11 @@ db.orderitems.belongsTo(db.products, {
   as: 'products',
 });
 
+db.retailerSalesDetails.belongsTo(db.products, {
+  foreignKey: 'PId',
+  as: 'product'
+});
+
 
 
 db.users.hasOne(db.employees, { foreignKey: 'employeeId', sourceKey: 'id' });
