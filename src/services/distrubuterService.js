@@ -556,7 +556,7 @@ class DistributorService {
             }
 
             // Parallelizing queries for better performance
-            const [orderStats,pendingOrders, retailerCounts, pendingAuthorizations] = await Promise.all([
+            const [orderStats, retailerCounts, pendingAuthorizations] = await Promise.all([
                 db.orders.findOne({
                     attributes: [
                         [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
