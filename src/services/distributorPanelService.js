@@ -2329,6 +2329,9 @@ class distributorDashboard {
     async getPatientsAndDoctors(tokenData, page = 1, limit = 10) {
         try {
             const ownerId = tokenData.id;
+            if(tokenData.userType === "Employee"){
+                ownerId = tokenData?.tokenData?.employeeOf
+            }
 
             const totalPatientsAdded = await db.patients.count({
                 where: { retailerId: ownerId }
@@ -2344,12 +2347,12 @@ class distributorDashboard {
                 include: [
                     {
                         model: db.patients,
-                        as: 'patients',
-                        attributes: ['name', 'mobile']
+                        as: 'patient',
+                        attributes: [ 'name', 'mobile']
                     },
                     {
                         model: db.doctors,
-                        as: 'doctors',
+                        as: 'doctor',
                         attributes: ['name', 'mobile', 'commission']
                     }
                 ],
@@ -2366,25 +2369,28 @@ class distributorDashboard {
                 // Process Patient
                 if (patientId && !seenPatients.has(patientId)) {
                     seenPatients.set(patientId, {
-                        name: entry['patients.name'],
+                        patientId: patientId,
+                        name: entry['patient.name'],
                         type: 'Patient',
-                        mobile: entry['patients.mobile'],
+                        mobile: entry['patient.mobile'],
                         lastPurchase: totalAmt,
                         purchasedDate: createdAt
                     });
                 }
 
+                console.log(doctorId);
                 // Process Doctor
                 if (doctorId) {
                     const doctor = seenDoctors.get(doctorId);
-                    const commission = parseFloat(entry['doctors.commission']) || 0;
+                    const commission = parseFloat(entry['doctor.commission']) || 0;
                     const commissionAmount = (totalAmt * commission) / 100;
 
                     if (!doctor) {
                         seenDoctors.set(doctorId, {
-                            name: entry['doctors.name'],
+                            doctorId: doctorId,
+                            name: entry['doctor.name'],
                             type: 'Doctor',
-                            mobile: entry['doctors.mobile'],
+                            mobile: entry['doctor.mobile'],
                             lastPurchase: totalAmt,
                             purchasedDate: createdAt,
                             commissionPercentage: commission,
@@ -2394,6 +2400,7 @@ class distributorDashboard {
                         // Add to total commissionAmount
                         doctor.commissionAmount += commissionAmount;
 
+                        console.log(commissionAmount);
                         // Update lastPurchase and date if this record is newer
                         if (new Date(createdAt) > new Date(doctor.purchasedDate)) {
                             doctor.lastPurchase = totalAmt;

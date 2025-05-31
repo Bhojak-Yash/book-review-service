@@ -1669,6 +1669,49 @@ class OrdersService {
     }
   }
 
+  async getCreditNote(tokenData, url) {
+    try {
+      // Determine the actual ID to use
+      let userId = tokenData.id;
+      if (tokenData?.userType === "Employee") {
+        userId = tokenData?.tokenData?.employeeOf;
+      }
+
+      console.log("IssuedTo:", userId);
+      console.log("IssuedBy (url):", url);
+
+      // Fetch the latest unsettled credit note for the given criteria
+      const creditNote = await db.creditNotes.findOne({
+        where: {
+          issuedTo: userId,
+          issuedBy: url,
+          isSettled: 0
+        },
+        order: [['createdAt', 'DESC']]
+      });
+
+      if (!creditNote) {
+        return {
+          status: 404,
+          message: "No unsettled credit note found for this user and URL."
+        };
+      }
+
+      return {
+        status: 200,
+        message: "Latest unsettled credit note fetched successfully.",
+        data: creditNote
+      };
+
+    } catch (error) {
+      console.error("Error in getCreditNote:", error);
+      return {
+        status: 500,
+        message: "Internal Server Error"
+      };
+    }
+  }
+
 }
 
 module.exports = OrdersService;

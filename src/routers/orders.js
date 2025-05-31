@@ -21,4 +21,6 @@ router.get('/calculate-order',ordersc.calculate_order)
 router.post('/remove-order-item',verifyToken,ordersc.remove_order_item)
 // router.post('/calculate-price', verifyToken, ordersc.calculate_price);
 
+router.get('/get-creditNote/:url', verifyToken, ordersc.getCreditNote);
+
 module.exports =router

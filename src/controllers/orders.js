@@ -243,6 +243,21 @@ class OrdersController {
   //   }
   // }
 
+  static async getCreditNote(req, res) {
+    try {
+      const data = req.user;
+      const {url} = req.params;
+      const result = await ordersService.getCreditNote(data, url);
+      return res.status(result?.status || 200).json(result);
+
+    } catch (error) {
+      console.log("Error in remove_order_item Controller", error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
 
 }
 
