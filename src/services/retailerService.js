@@ -577,12 +577,12 @@ class RetailerService {
                 status: 'Verified',
                 imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
                 userId: Number(retailerId),
-                isDeleted:false
+                isDeleted: false
             }));
 
             await db.documents.bulkCreate(documentsData, {
-                updateOnDuplicate: ["image", "status", 'imageSize','isDeleted'],
-                conflictFields: ["categoryId", "userId",'isDeleted'],
+                updateOnDuplicate: ["image", "status", 'imageSize', 'isDeleted'],
+                conflictFields: ["categoryId", "userId", 'isDeleted'],
                 transaction
             });
 
@@ -645,7 +645,7 @@ class RetailerService {
             if (aa) {
                 columns = aa.map((item) => item.documentName);
             }
-console.log(document)
+            console.log(document)
             const documentColumns = columns.length > 0 ? columns.map(col => `doc.\`${col}\``).join(", ") : '';
 
             const documentColumnsQuery = documentColumns ? `, ${documentColumns}` : '';
@@ -789,7 +789,7 @@ console.log(document)
             }
             const nearToExpDate = Number(process.env.lowStockDays)
             // console.log(distributorId)
-            let whereCondition = { organisationId: Number(distributorId),locked:false };
+            let whereCondition = { organisationId: Number(distributorId), locked: false };
             if (entityId) {
                 whereCondition.entityId = Number(entityId);
             }
@@ -859,7 +859,7 @@ console.log(document)
                             { SaltComposition: { [db.Op.like]: `%${search}%` } }
                         ]
                     };
-                } 
+                }
                 // else {
                 //     const mid = Math.floor(search.length / 2);
                 //     const firstHalf = search.slice(0, mid);
@@ -1001,7 +1001,7 @@ console.log(document)
                 message: message.message200,
                 currentPage: Page,
                 totalItem: count.length || 0,
-                totalPage: Math.ceil(count.length/ Limit),
+                totalPage: Math.ceil(count.length / Limit),
                 authCheck: checkAuth ? checkAuth?.status : 'Not Send',
                 userData: userData,
                 apiData: updatedApiData
@@ -1163,6 +1163,7 @@ console.log(document)
                     attributes: [
                         [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Settled') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus NOT IN ('Rejected','Cancelled','Settled') THEN 1 ELSE 0 END")), "pendingOrders"],
                         [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                     ],
@@ -1170,7 +1171,7 @@ console.log(document)
                     raw: true,
                 }),
 
-                
+
                 // Fetch total retailers grouped by companyType
                 db.authorizations.count({ where: whereauthApproved }),
 
@@ -1188,7 +1189,7 @@ console.log(document)
                 data: {
                     totalOrders: Number(orderStats?.totalOrders) || 0,
                     completedOrders: Number(orderStats?.completedOrders) || 0,
-                    pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
+                    pendingOrders: (Number(orderStats?.pendingOrders) || 0),
                     totalDueAmtOrders: orderStats?.totalDueAmtOrders ? Number(orderStats.totalDueAmtOrders.toFixed(2)) : 0.0,
                     totalDueAmount: orderStats?.totalDueAmount ? Number(orderStats.totalDueAmount.toFixed(2)) : 0.0,
                     distributors: distributors,
