@@ -379,6 +379,59 @@ class RetailerSalesService {
             }
         }
     }
+
+    async get_retailerSales_cardData(data){
+        try{
+            let id = data?.id;
+            if(data?.userType === "Employee"){
+                id = data?.data?.employeeOf
+            }
+            
+            const totalPatients = await db.patients.count({
+                where: { retailerId: id }
+            });
+            
+            const totalDoctors = await db.doctors.count({
+                where: { retailerId: id }
+            });
+
+            const result = await db.retailerSalesHeader.findOne({
+                attributes: [
+                    [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'totalOrders'], 
+                    [db.Sequelize.fn('SUM', db.Sequelize.col('totalAmt')), 'totalAmount'],
+                    [db.Sequelize.fn('SUM', db.Sequelize.literal(`CASE WHEN PaymentMode = 'Cash' THEN totalAmt ELSE 0 END`)), 'totalCashAmount'],
+                    [db.Sequelize.fn('SUM', db.Sequelize.literal(`CASE WHEN PaymentMode = 'Online' THEN totalAmt ELSE 0 END`)), 'totalOnlineAmount']
+                ],
+                where: {
+                    retailerId: id, 
+                },
+                raw: true,
+            });
+              
+
+            console.log(result);
+              
+            
+            return {
+                status: 200,
+                message: "Data fetched Successfully",
+                data: {
+                    AllOrders: result.AllOrders,
+                    Patients: totalPatients,
+                    Doctors: totalDoctors,
+                    totalAmount: result.totalAmount,
+                    totalCashAmount: result.totalCashAmount,
+                    totalOnlineAmount: result.totalOnlineAmount,
+                }
+            }
+
+        } catch (error) {
+            console.log('get_retailerSales_cardData service error:', error.message)
+            return {
+                status: message.code500, message: error.message
+            }
+        }
+    }
 }
 
 module.exports = new RetailerSalesService(db);
