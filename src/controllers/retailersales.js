@@ -98,3 +98,16 @@ exports.update_sales_order = async (req,res) => {
       return res.status(500).json({ status:message.code500,message:error.message });
     }
 };
+
+exports.get_retailerSales_cardData = async (req,res) => {
+  try {
+      const data = req.user
+      const Data = await RetailerSalesService.get_retailerSales_cardData(data);
+  
+      return res.status(Data?.status || 200).json(Data);
+  
+    } catch (error) {
+    console.error("Error get_retailerSales_cardData:", error);
+      return res.status(500).json({ status:message.code500,message:error.message });
+    }
+};
