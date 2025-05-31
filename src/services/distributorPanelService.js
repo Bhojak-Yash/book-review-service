@@ -1531,7 +1531,7 @@ class distributorDashboard {
                     poValueToday,
                     blackBoxResult,
                 ] = await Promise.all([
-                    this.paymentsCollected(tokenData, startOfDay, endOfDay),
+                    this.retailerPaymentCollected(tokenData, startOfDay, endOfDay),
                     this.totalSalesToday(tokenData, startOfDay, endOfDay),
                     this.totalPoRaisedToday(tokenData, startOfDay, endOfDay),
                     this.poValueToday(tokenData, startOfDay, endOfDay),
@@ -2244,6 +2244,85 @@ class distributorDashboard {
                 return {
                     status: 500,
                     message: "Internal Server Error"
+                };
+            }
+        }
+        async retailerPaymentCollected(tokenData, startOfDay, endOfDay){
+            try{
+                let ownerId = tokenData.id;
+                if (tokenData?.userType === 'Employee') {
+                    ownerId = tokenData.data.employeeOf;
+                }
+
+                console.log("Today start date", startOfDay);
+                console.log("Today end date", endOfDay);
+
+                // ----- YESTERDAY -----
+                const startOfYesterday = new Date(startOfDay);
+                startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+                console.log("yesterday start date", startOfYesterday);
+
+                const endOfYesterday = new Date(endOfDay);
+                endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+                console.log("yesterday end date", endOfYesterday);
+                
+                // --- Step 1: Get total amount for today ---
+                const todayResult = await db.retailerSalesHeader.findAll({
+                    where: {
+                        retailerId: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfDay, endOfDay],
+                        },
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('totalAmt')), 'totalAmountReceived'],
+                    ],
+                    raw: true,
+                });
+
+                const todayAmount = parseFloat(todayResult[0].totalAmountReceived) || 0;
+
+                // --- Step 2: Get total amount for yesterday ---
+                const yesterdayResult = await db.retailerSalesHeader.findAll({
+                    where: {
+                        retailerId: ownerId,
+                        createdAt: {
+                            [Op.between]: [startOfYesterday, endOfYesterday],
+                        },
+                    },
+                    attributes: [
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('totalAmt')), 'totalAmountReceived'],
+                    ],
+                    raw: true,
+                });
+
+                const yesterdayAmount = parseFloat(yesterdayResult[0].totalAmountReceived) || 0;
+
+                // --- Step 3: Calculate percentage change ---
+                let percentageChange = 0;
+                if (yesterdayAmount > 0) {
+                    percentageChange = ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100;
+                } else if (todayAmount > 0) {
+                    percentageChange = 100;
+                }
+
+                console.log(todayAmount);
+                console.log(yesterdayAmount);
+                return {
+                    status: 200,
+                    message: "Data fetched successfully.",
+                    data: {
+                        totalAmountReceivedToday: todayAmount,
+                        percentageChange: Number(percentageChange.toFixed(2))
+                    }
+                };
+                
+
+            } catch (error) {
+                console.error('Error in retailerPaymentCollected:', error);
+                return {
+                    status: 500,
+                    message: error.message,
                 };
             }
         }
