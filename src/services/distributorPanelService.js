@@ -2331,90 +2331,181 @@ class distributorDashboard {
     async getSlowMovingMedicines(tokenData, page = 1, limit = 10) {
         try {
             let ownerId = tokenData.id;
+            let checkUserType = tokenData?.userType;
             if (tokenData.userType === 'Employee') {
                 ownerId = tokenData.data.employeeOf;
+                checkUserType = tokenData?.empOfType;
             }
 
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-            const orderedItems = await db.orders.findAll({
-                where: {
-                    orderTo: ownerId,
-                    orderDate: { [Op.gte]: thirtyDaysAgo }
-                },
-                include: [
-                    {
-                        model: db.orderitems,
-                        as: 'orderItems',
-                        required: true,
-                        include: [
-                            {
-                                model: db.products,
-                                as: 'products',
-                                attributes: ['PId', 'PName'],
-                                required: true
-                            }
-                        ],
-                        attributes: ['PId', 'quantity']
-                    }
-                ],
-                attributes: ['id', 'orderDate'],
-                raw: true,
-                nest: true
-            });
+            if(checkUserType === "Retailer"){
+                const headers = await db.retailerSalesHeader.findAll({
+                    where: { retailerId: ownerId },
+                    attributes: ['id'],
+                    raw: true
+                });
 
-            const groupedMap = {};
-
-            for (const item of orderedItems) {
-                const PId = item.orderItems.PId;
-                const PName = item.orderItems.products.PName?.trim();
-                const quantity = item.orderItems.quantity;
-                const orderDate = new Date(item.orderDate);
-
-                if (!groupedMap[PId]) {
-                    groupedMap[PId] = {
-                        PId,
-                        PName,
-                        quantity: 0,
-                        latestOrderDate: orderDate
+                const headerIds = headers.map(h => h.id);
+                if (!headerIds.length) {
+                    return {
+                        status: 200,
+                        message: "No orders found for this retailer.",
+                        data: [],
+                        pagination: { totalItems: 0, currentPage: page, limit, totalPages: 0 }
                     };
                 }
 
-                groupedMap[PId].quantity += quantity;
+                const details = await db.retailerSalesDetails.findAll({
+                    where: {
+                        headerId: { [Op.in]: headerIds },
+                        createdAt: { [Op.gte]: thirtyDaysAgo }
+                    },
+                    include: [
+                        {
+                            model: db.products,
+                            as: 'product',
+                            attributes: ['PName'],
+                            required: true
+                        }
+                    ],
+                    attributes: ['PId', 'qty', 'createdAt'],
+                    raw: true,
+                    nest: true
+                });
 
-                if (orderDate > groupedMap[PId].latestOrderDate) {
-                    groupedMap[PId].latestOrderDate = orderDate;
+                const groupedMap = {};
+
+                for (const item of details) {
+                    const PId = item.PId;
+                    const PName = item.product?.PName?.trim() || '';
+                    const quantity = item.qty;
+                    const createdAt = new Date(item.createdAt);
+
+                    if (!groupedMap[PId]) {
+                        groupedMap[PId] = {
+                            PId,
+                            PName,
+                            quantity: 0,
+                            latestOrderDate: createdAt
+                        };
+                    }
+
+                    groupedMap[PId].quantity += quantity;
+
+                    if (createdAt > groupedMap[PId].latestOrderDate) {
+                        groupedMap[PId].latestOrderDate = createdAt;
+                    }
                 }
-            }
 
-            const groupedArray = Object.values(groupedMap).sort((a, b) => a.quantity - b.quantity);
+                const groupedArray = Object.values(groupedMap).sort((a, b) => a.quantity - b.quantity);
 
-            // Add the days difference calculation
-            const resultWithDays = groupedArray.map(item => {
-                const today = new Date();
-                const daysDifference = Math.floor((today - item.latestOrderDate) / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+                const resultWithDays = groupedArray.map(item => {
+                    const today = new Date();
+                    const daysDifference = Math.floor((today - item.latestOrderDate) / (1000 * 60 * 60 * 24));
+                    return {
+                        ...item,
+                        daysSinceOrder: daysDifference
+                    };
+                });
+
+                const total = resultWithDays.length;
+                const offset = (page - 1) * limit;
+                const paginated = resultWithDays.slice(offset, offset + limit);
+
                 return {
-                    ...item,
-                    daysSinceOrder: daysDifference
-                };
-            });
+                    status: 200,
+                    message: 'Ordered product quantities from the last 30 days fetched successfully',
+                    pagination: {
+                        totalItems: total,
+                        currentPage: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: Math.ceil(total / limit)
+                    },
+                    data: paginated,
+                };                
+                
+            }
+            else if(checkUserType === "Manufacturer" || checkUserType === "Distributor"){
+                const orderedItems = await db.orders.findAll({
+                    where: {
+                        orderTo: ownerId,
+                        orderDate: { [Op.gte]: thirtyDaysAgo }
+                    },
+                    include: [
+                        {
+                            model: db.orderitems,
+                            as: 'orderItems',
+                            required: true,
+                            include: [
+                                {
+                                    model: db.products,
+                                    as: 'products',
+                                    attributes: ['PId', 'PName'],
+                                    required: true
+                                }
+                            ],
+                            attributes: ['PId', 'quantity']
+                        }
+                    ],
+                    attributes: ['id', 'orderDate'],
+                    raw: true,
+                    nest: true
+                });
 
-            const total = resultWithDays.length;
-            const offset = (page - 1) * limit;
-            const paginated = resultWithDays.slice(offset, offset + limit);
+                const groupedMap = {};
 
-            return {
-                status: 200,
-                message: 'Ordered product quantities from the last 30 days fetched successfully',
-                data: paginated,
-                pagination: {
-                    totalItems: total,
-                    currentPage: parseInt(page),
-                    limit: parseInt(limit),
-                    totalPages: Math.ceil(total / limit)
+                for (const item of orderedItems) {
+                    const PId = item.orderItems.PId;
+                    const PName = item.orderItems.products.PName?.trim();
+                    const quantity = item.orderItems.quantity;
+                    const orderDate = new Date(item.orderDate);
+
+                    if (!groupedMap[PId]) {
+                        groupedMap[PId] = {
+                            PId,
+                            PName,
+                            quantity: 0,
+                            latestOrderDate: orderDate
+                        };
+                    }
+
+                    groupedMap[PId].quantity += quantity;
+
+                    if (orderDate > groupedMap[PId].latestOrderDate) {
+                        groupedMap[PId].latestOrderDate = orderDate;
+                    }
                 }
-            };
+
+                const groupedArray = Object.values(groupedMap).sort((a, b) => a.quantity - b.quantity);
+
+                // Add the days difference calculation
+                const resultWithDays = groupedArray.map(item => {
+                    const today = new Date();
+                    const daysDifference = Math.floor((today - item.latestOrderDate) / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+                    return {
+                        ...item,
+                        daysSinceOrder: daysDifference
+                    };
+                });
+
+                const total = resultWithDays.length;
+                const offset = (page - 1) * limit;
+                const paginated = resultWithDays.slice(offset, offset + limit);
+
+                return {
+                    status: 200,
+                    message: 'Ordered product quantities from the last 30 days fetched successfully',
+                    pagination: {
+                        totalItems: total,
+                        currentPage: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: Math.ceil(total / limit)
+                    },
+                    data: paginated,
+                };
+            }
 
         } catch (error) {
             console.error('❌ Error in getSlowMovingMedicines:', error);
