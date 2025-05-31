@@ -103,12 +103,15 @@ class RetailerSalesService {
         try {
             // console.log(user, ';;;;;;;;')
             transaction = await db.sequelize.transaction();
-            const doctor = await db.doctors.findOne({ where: { id: Number(data?.order?.doctorId) } })
-            const doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
+            let doctorCommission = 0
+            if (data?.order?.doctorId) {
+                const doctor = await db.doctors.findOne({ where: { id: Number(data?.order?.doctorId) } })
+                doctorCommission = Number((Number(data?.order?.totalAmt) * Number(doctor?.commission) / 100).toFixed(2))
+            }
             const orderDetails = {
                 "date": data?.order?.date,
-                "patientId": data?.order?.patientId,
-                "doctorId": data?.order?.doctorId,
+                "patientId": data?.order?.patientId || null,
+                "doctorId": data?.order?.doctorId || null,
                 "address": data?.order?.address,
                 "regNo": data?.order?.regNo,
                 "subTotal": data?.order?.subTotal,
@@ -121,8 +124,9 @@ class RetailerSalesService {
                 "paymentMode": data?.order?.paymentMode || "Cash",
                 "orderStatus": "Created",
                 "inv_url": data?.order?.inv_url,
-                "doctorCommission":Number(doctorCommission)
+                "doctorCommission": Number(doctorCommission) || 0
             }
+            console.log(doctorCommission, ';;;;;;;;;;;')
             const order = await db.retailerSalesHeader.create(orderDetails, { transaction })
             const orderItmes = data?.items?.map((item) => {
                 return {
@@ -137,11 +141,29 @@ class RetailerSalesService {
                     "amount": item?.amount,
                 }
             })
+            //             const stockQtyCaseQuery = data.items.map(item =>
+            //                 `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN Stock - ${item.quantity}`
+            //             ).join(' ');
+
+            //             // Get unique combinations of PId and SId to build the WHERE clause
+            //             const whereConditions = data.items.map(item => `(${item.PId}, ${item.SId})`).join(',');
+
+            //             await db.sequelize.query(`
+            //     UPDATE stocks 
+            //     SET Stock = CASE 
+            //         ${stockQtyCaseQuery}
+            //     END
+            //     WHERE (PId, SId) IN (${whereConditions});
+            // `, { transaction });
+
             const stockQtyCaseQuery = data.items.map(item =>
-                `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN Stock - ${item.quantity}`
+                `WHEN PId = ${item.PId} AND SId = ${item.SId} THEN 
+        CASE 
+            WHEN Stock < ${item.quantity} THEN 0 
+            ELSE Stock - ${item.quantity} 
+        END`
             ).join(' ');
 
-            // Get unique combinations of PId and SId to build the WHERE clause
             const whereConditions = data.items.map(item => `(${item.PId}, ${item.SId})`).join(',');
 
             await db.sequelize.query(`
@@ -151,6 +173,7 @@ class RetailerSalesService {
     END
     WHERE (PId, SId) IN (${whereConditions});
 `, { transaction });
+
 
             // console.log(orderItmes,order.items)
             const orderItem = await db.retailerSalesDetails.bulkCreate(orderItmes, { transaction })
@@ -163,8 +186,12 @@ class RetailerSalesService {
             const billNumber = generateBillNumber(user?.data?.firmName, order?.id);
             // console.log(billNumber)
             await db.retailerSalesHeader.update({ billNumber: billNumber, invNo: `INV/${order?.id}` }, { where: { id: Number(order?.id) }, transaction })
-            await db.doctors.update({ name: data?.order?.doctorName, RGNo: data?.order?.doctorRGNo }, { where: { id: Number(data?.order?.doctorId) }, transaction })
-            await db.patients.update({ name: data?.order?.patientName, address: data?.order?.patientAddress }, { where: { id: Number(data?.order?.patientId) }, transaction })
+            if (data?.order?.doctorId) {
+                await db.doctors.update({ name: data?.order?.doctorName, RGNo: data?.order?.doctorRGNo }, { where: { id: Number(data?.order?.doctorId) }, transaction })
+            };
+            if (data?.order?.patientId) {
+                await db.patients.update({ name: data?.order?.patientName, address: data?.order?.patientAddress }, { where: { id: Number(data?.order?.patientId) }, transaction })
+            }
             await transaction.commit();
             return {
                 status: message.code200,
@@ -221,7 +248,7 @@ class RetailerSalesService {
             }
             console.log(whereCondition)
             const { count, rows: orders } = await db.retailerSalesHeader.findAndCountAll({
-                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode', 'orderStatus', 'inv_url','doctorCommission'],
+                attributes: ['id', 'patientId', 'doctorId', 'totalAmt', 'balance', 'date', 'paymentMode', 'orderStatus', 'inv_url', 'doctorCommission'],
                 include: [
                     {
                         model: db.patients,
@@ -248,7 +275,7 @@ class RetailerSalesService {
                     "totalAmt": item?.totalAmt,
                     "patientName": item?.patient?.name,
                     "doctorName": item?.doctor?.name,
-                    "commission":item?.doctorCommission,
+                    "commission": item?.doctorCommission,
                     "balance": item?.balance || 0,
                     "status": item?.balance > 0 ? 'Unpaid' : 'Paid',
                     "paymentMode": item?.paymentMode,
@@ -343,7 +370,7 @@ class RetailerSalesService {
             await db.retailerSalesHeader.update({ inv_url: invUrl }, { where: { id: Number(orderId), retailerId: Number(id) } })
             return {
                 status: message.code200,
-                message: message.message200
+                message: 'Invoice craeted successfully'
             }
         } catch (error) {
             console.log('update_sales_order service error:', error.message)

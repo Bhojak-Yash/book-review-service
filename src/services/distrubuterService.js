@@ -531,6 +531,7 @@ class DistributorService {
     async po_page_data(data) {
         try {
             const { id, startDate, endDate } = data;
+            console.log(id)
             const userId = Number(id);
             let whereCondition = { orderFrom: userId }
             let whereauth = { authorizedBy: userId, status: "Approved" }
@@ -555,11 +556,12 @@ class DistributorService {
             }
 
             // Parallelizing queries for better performance
-            const [orderStats, retailerCounts, pendingAuthorizations] = await Promise.all([
+            const [orderStats,pendingOrders, retailerCounts, pendingAuthorizations] = await Promise.all([
                 db.orders.findOne({
                     attributes: [
                         [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
-                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Inward', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Settled') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus NOT IN ('Rejected','Cancelled','Settled') THEN 1 ELSE 0 END")), "pendingOrders"], // Completed orders count
                         [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                     ],
@@ -599,7 +601,7 @@ class DistributorService {
                 data: {
                     totalOrders: Number(orderStats?.totalOrders) || 0,
                     completedOrders: Number(orderStats?.completedOrders) || 0,
-                    pendingOrders: (Number(orderStats?.totalOrders) || 0) - (Number(orderStats?.completedOrders) || 0),
+                    pendingOrders: (Number(orderStats?.pendingOrders) || 0),
                     totalDueAmtOrders: orderStats?.totalDueAmtOrders ? Number(orderStats.totalDueAmtOrders.toFixed(2)) : 0.0,
                     totalDueAmount: orderStats?.totalDueAmount ? Number(orderStats.totalDueAmount.toFixed(2)) : 0.0,
                     totalRetailersCount: totalRetailersCount,
@@ -643,7 +645,8 @@ class DistributorService {
             const result = await db.orders.findOne({
                 attributes: [
                     [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
-                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Inward', 'Paid', 'Partial paid') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Settled') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
+                    [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus NOT IN ('Rejected','Cancelled','Settled') THEN 1 ELSE 0 END")), "pendingOrders"],
                     [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
                     [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                 ],
@@ -686,7 +689,7 @@ class DistributorService {
                 apiData: {
                     "totalOrders": result.totalOrders,
                     "completedOrders": Number(result.completedOrders),
-                    "pendingOrders": Number(result.totalOrders) - Number(result.completedOrders),
+                    "pendingOrders": Number(result.pendingOrders),
                     "totalDueAmtOrders": result.totalDueAmtOrders,
                     "totalDueAmount": result.totalDueAmount,
                     "totalDistribuor": users.totalDistributors || 0,
