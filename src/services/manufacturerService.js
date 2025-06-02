@@ -18,14 +18,14 @@ async function hashPassword(password) {
 }
 
 const formatSize = (size) => {
-  let bytes = Number(size); 
+  let bytes = Number(size);
   if (isNaN(bytes)) return null;
 
   const units = ['B', 'KB', 'MB', 'GB'];
   let i = 0;
   while (bytes >= 1024 && i < units.length - 1) {
-      bytes /= 1024;
-      i++;
+    bytes /= 1024;
+    i++;
   }
   return `${bytes.toFixed(1)} ${units[i]}`;
 };
@@ -205,10 +205,10 @@ class ManufacturerService {
             phone,
             address,
             GST,
-            licence:licence?licence:'',
+            licence: licence ? licence : '',
             PAN,
             CIN,
-            drugLicense:drugLicense || "",
+            drugLicense: drugLicense || "",
             fssaiLicense: fssaiLicense || "",
             wholesaleLicense: wholesaleLicense || "",
           },
@@ -298,14 +298,14 @@ class ManufacturerService {
         categoryId: doc.id,
         image: doc.image,
         status: 'Verified',
-        imageSize:doc?.imageSize?formatSize(doc?.imageSize || 0):"0KB",
+        imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
         userId: Number(manufacturerId),
-        isDeleted:false
+        isDeleted: false
       }));
 
       await db.documents.bulkCreate(documentsData, {
-        updateOnDuplicate: ["image", 'status','imageSize','isDeleted'],
-        conflictFields: ["categoryId", "userId",'isDeleted']
+        updateOnDuplicate: ["image", 'status', 'imageSize', 'isDeleted'],
+        conflictFields: ["categoryId", "userId", 'isDeleted']
       });
 
       await transaction.commit();
@@ -343,9 +343,9 @@ class ManufacturerService {
           {
             model: db.documents,
             as: "documnets",
-            attributes: ['documentId','image', "status","imageSize", 'updatedAt'],
+            attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
             where: {
-              isDeleted:{[db.Op.not]:true},
+              isDeleted: { [db.Op.not]: true },
               userId: Number(manufacturerId)
             },
             required: false,
@@ -499,11 +499,11 @@ class ManufacturerService {
       if (data?.status) {
         if (data?.status === 'Unpaid') {
           whereCondition.balance = { [Op.gt]: 0 }
-        }else if(data?.status === 'Delivered'){
-          whereCondition.orderStatus={
-            [db.Op.in]:['Inward','Partially paid','Paid']
+        } else if (data?.status === 'Delivered') {
+          whereCondition.orderStatus = {
+            [db.Op.in]: ['Inward', 'Partially paid', 'Paid']
           }
-        }else {
+        } else {
           whereCondition.orderStatus = data.status
         }
       }
@@ -514,7 +514,7 @@ class ManufacturerService {
         whereCondition[Op.or] = [
           { id: { [Op.like]: `%${data.search}%` } },
           { orderFrom: { [Op.like]: `%${data.search}%` } },
-          {'$distributer.companyName$':{ [Op.like]: `%${data.search}%` }}
+          { '$distributer.companyName$': { [Op.like]: `%${data.search}%` } }
         ];
       }
       if (data?.distributorId) {
@@ -543,7 +543,7 @@ class ManufacturerService {
       console.log(whereCondition)
       // const totalData = await db.orders.count({ where: whereCondition })
       console.log(whereCondition)
-      const { count,rows:result} = await db.orders.findAndCountAll({
+      const { count, rows: result } = await db.orders.findAndCountAll({
         attributes: ['id', 'orderDate', 'dueDate', 'deliveredAt', 'orderTotal', 'invAmt', 'balance', 'orderFrom', 'orderStatus', 'orderTo', 'dMan', 'dMobile', 'deliveryType', 'entityId'],
         where: whereCondition,
         include: [
@@ -551,12 +551,12 @@ class ManufacturerService {
             model: db.distributors,
             as: 'distributer',
             attributes: ['distributorId', 'companyName'],
-            required:true,
-            include:{
-              model:db.authorizations,
-              as:'auth',
-              where:{authorizedBy:Number(data.id)},
-              attributes:['creditCycle']
+            required: true,
+            include: {
+              model: db.authorizations,
+              as: 'auth',
+              where: { authorizedBy: Number(data.id) },
+              attributes: ['creditCycle']
             }
           }
         ],
@@ -571,22 +571,22 @@ class ManufacturerService {
         const distributer = order.distributer;
         const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
         const creditCycle = distributer && distributer.auth.length > 0 ? distributer.auth[0].creditCycle : 0;
-      
+
         // Calculate due date by adding `creditCycle` days to `deliveredAt`
         let dueDate = null;
         let overdue = false;
-      
+
         if (deliveredAt) {
           dueDate = new Date(deliveredAt);
           dueDate.setDate(dueDate.getDate() + creditCycle); // Add credit cycle days
-      
+
           // Check if the due date is before today
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Normalize today's date
-      
+
           overdue = dueDate < today;
         }
-      
+
         return {
           ...order.toJSON(),
           entityId: order.entityId,
@@ -604,9 +604,9 @@ class ManufacturerService {
         };
 
       });
-      
+
       // console.log(result);
-      
+
 
       // const updateResult = result.map((item) => {
       //   const plainItem = item.toJSON(); // Convert to plain object
@@ -751,35 +751,35 @@ class ManufacturerService {
 
   async po_page_card_data(data) {
     try {
-      const { userType,start_date,end_date } = data;
+      const { userType, start_date, end_date } = data;
       let id = data?.id;
-      if(data?.userType === "Employee"){
+      if (data?.userType === "Employee") {
         id = data?.data?.employeeOf
       }
       const checkId = userType === "Employee" ? data?.data?.employeeOf : id;
-      let whereOrderCount ={orderTo: Number(checkId) };
-      let wherePending={
+      let whereOrderCount = { orderTo: Number(checkId) };
+      let wherePending = {
         orderTo: Number(checkId),
-        orderStatus: { [Op.notIn]: ['Settled','Rejected','Cancelled'] },
+        orderStatus: { [Op.notIn]: ['Settled', 'Rejected', 'Cancelled'] },
       }
-      let wherecounts={ authorizedBy: Number(id), status: "Approved" }
+      let wherecounts = { authorizedBy: Number(id), status: "Approved" }
       let wherePendingRequest = { authorizedBy: Number(checkId), status: "Pending" }
-      let whereBalance = { balance: { [db.Op.gt]: 0,[db.Op.ne]: null },orderTo:Number(checkId)  }
+      let whereBalance = { balance: { [db.Op.gt]: 0, [db.Op.ne]: null }, orderTo: Number(checkId) }
       if (data.start_date && data.end_date) {
-              const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-              const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
-              whereOrderCount.orderDate = { [Op.between]: [startDate, endDate] };
-              wherePending.orderDate = { [Op.between]: [startDate, endDate] };
-              wherecounts.createdAt = { [Op.between]: [startDate, endDate] };
-              wherePendingRequest.createdAt = { [Op.between]: [startDate, endDate] };
-              whereBalance.orderDate = { [Op.between]: [startDate, endDate] };
-            }
-// console.log(checkId)
+        const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+        whereOrderCount.orderDate = { [Op.between]: [startDate, endDate] };
+        wherePending.orderDate = { [Op.between]: [startDate, endDate] };
+        wherecounts.createdAt = { [Op.between]: [startDate, endDate] };
+        wherePendingRequest.createdAt = { [Op.between]: [startDate, endDate] };
+        whereBalance.orderDate = { [Op.between]: [startDate, endDate] };
+      }
+      // console.log(checkId)
       // Parallelizing queries for better performance
       const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
-        db.orders.count({ where: whereOrderCount}),
+        db.orders.count({ where: whereOrderCount }),
         db.orders.count({
-          where:wherePending
+          where: wherePending
         }),
         db.authorizations.findAll({
           attributes: [
@@ -797,7 +797,7 @@ class ManufacturerService {
           group: ["user.userType"],
           raw: true,
         }),
-        db.authorizations.count({ where:wherePendingRequest }),
+        db.authorizations.count({ where: wherePendingRequest }),
         db.orders.findOne({
           attributes: [
             [db.sequelize.fn("SUM", db.sequelize.col("balance")), "totalBalance"],
@@ -939,8 +939,8 @@ class ManufacturerService {
       }
 
       const authorizedList = await db.authorizations.findAll({
-        attributes: ['authorizedBy'],
-        where: { authorizedId: id },
+        attributes: ['authorizedBy', 'status', 'createdAt'],
+        where: { authorizedId: id, status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] } },
         raw: true,
       });
 
@@ -1001,26 +1001,49 @@ class ManufacturerService {
         };
       });
 
+      const getAuthDetails = (id) => authorizedList.find(a => a.authorizedBy === id) || {};
+
       const linkedUsers = [
-        ...manufacturers.map(m => ({
-          type: 'Manufacturer',
-          id: m.manufacturerId,
-          name: m.companyName,
-          billingAddress: addressMap[m.manufacturerId] || null,
-        })),
-        ...distributors.map(d => ({
-          type: 'Distributor',
-          id: d.distributorId,
-          name: d.companyName,
-          billingAddress: addressMap[d.distributorId] || null,
-        })),
-        ...retailers.map(r => ({
-          type: 'Retailer',
-          id: r.retailerId,
-          name: r.firmName,
-          billingAddress: addressMap[r.retailerId] || null,
-        })),
+        ...manufacturers.map(m => {
+          const { status, createdAt, reason } = getAuthDetails(m.manufacturerId);
+          return {
+            type: 'Manufacturer',
+            id: m.manufacturerId,
+            name: m.companyName,
+            status: status || null,
+            createdAt: createdAt || null,
+            reason: reason || null,
+            billingAddress: addressMap[m.manufacturerId] || null
+          };
+        }),
+
+        ...distributors.map(d => {
+          const { status, createdAt, reason } = getAuthDetails(d.distributorId);
+          return {
+            type: 'Distributor',
+            id: d.distributorId,
+            name: d.companyName,
+            status: status || null,
+            createdAt: createdAt || null,
+            reason: reason || null,
+            billingAddress: addressMap[d.distributorId] || null
+          };
+        }),
+
+        ...retailers.map(r => {
+          const { status, createdAt, reason } = getAuthDetails(r.retailerId);
+          return {
+            type: 'Retailer',
+            id: r.retailerId,
+            name: r.firmName,
+            status: status || null,
+            createdAt: createdAt || null,
+            reason: reason || null,
+            billingAddress: addressMap[r.retailerId] || null
+          };
+        })
       ];
+
 
       linkedUsers.sort((a, b) => b.id - a.id);
 
@@ -1044,8 +1067,66 @@ class ManufacturerService {
       };
     }
   }
-  
-  
+
+  async linked_users_card_data(data) {
+    try {
+      let { id, userType, startDate, endDate } = data
+      const authIds = await db.authorizations.findAll({
+        attributes: [
+          'status',
+          'authorizedBy',
+          [db.Sequelize.fn('COUNT', db.Sequelize.col('status')), 'count']
+        ],
+        where: {
+          authorizedId: Number(id),
+          status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] }
+        },
+        group: ['status', 'authorizedBy']
+      });
+
+      const ids = [
+        ...new Set(
+          authIds
+            ?.filter(item => item.status === 'Approved')
+            .map(item => item.authorizedBy)
+        )
+      ];
+      const statusCounts = {
+        Approved: 0,
+        Rejected: 0,
+        Pending: 0
+      };
+
+      authIds?.forEach(item => {
+        if (statusCounts.hasOwnProperty(item.status)) {
+          statusCounts[item.status]++;
+        }
+      });
+
+      const totalDistribuor = await db.distributors.count({ where: { distributorId: { [db.Op.in]: ids }, type: "Distributor" } })
+      const totalCNF = await db.distributors.count({ where: { distributorId: { [db.Op.in]: ids }, type: "CNF" } })
+      const totalmanufacturer = await db.manufacturers.count({ where: { manufacturerId: { [db.Op.in]: ids } } })
+      return {
+        status: message.code200,
+        message: message.message200,
+        apiData: {
+          totalCNF,
+          totalDistribuor, totalmanufacturer,
+          Approved: statusCounts.Approved,
+          Rejected: statusCounts.Rejected,
+          Pending: statusCounts.Pending
+        }
+      }
+    } catch (error) {
+      console.log('linked_users_card_data service error:', error.message)
+      return {
+        status: message.code500,
+        message: error.message
+      }
+    }
+  }
+
+
 }
 
 async function getcurrentResult(whereClause) {
@@ -1093,6 +1174,7 @@ async function getcurrentResult(whereClause) {
   currentResult.dis = distributorCount
   return currentResult
 }
+
 
 
 

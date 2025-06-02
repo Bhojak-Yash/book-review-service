@@ -63,6 +63,7 @@ class DistributorService {
                     password: hashedPassword,
                     userType: 'Distributor',
                     status: "Active",
+                    isPasswordChangeRequired:false
                 },
                 { transaction }
             );

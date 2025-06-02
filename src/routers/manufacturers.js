@@ -12,5 +12,6 @@ router.get('/distributors-cnf-summary',verifyToken,manufacturerc.distributers_cn
 router.get('/po-page-card-data',verifyToken,manufacturerc.po_page_card_data)
 
 router.get('/linked-users', verifyToken, manufacturerc.linked_users);
+router.get('/linked-users-card-data',verifyToken,manufacturerc.linked_users_card_data)
 
 module.exports =router

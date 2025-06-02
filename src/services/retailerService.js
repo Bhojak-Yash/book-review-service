@@ -64,6 +64,7 @@ class RetailerService {
                     password: hashedPassword,
                     userType: 'Retailer',
                     status: "Active",
+                    isPasswordChangeRequired:false
                 },
                 { transaction }
             );

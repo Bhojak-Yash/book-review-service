@@ -125,3 +125,17 @@ exports.linked_users = async(req, res) =>{
     });
   }
 };
+
+exports.linked_users_card_data = async (req,res) => {
+  try {
+    const data = {...req.user,...req.query}
+    const result = await ManufacturerService.linked_users_card_data(data);
+    return res.status(result?.status || 200).json(result);
+  } catch (error) {
+     console.error("Error linked_users_card_data: ", error);
+    return res.status(500).json({
+      status: message.code500, 
+      message: error.message 
+    });
+  }
+}
