@@ -39,6 +39,7 @@ class OrdersService {
       } else {
         orderby = data.id
       }
+      console.log(orderData.orderItems)
       const checkAddress = await db.address.findOne({where:{userId:Number(orderby)}})
       console.log('address hai')
       if(!checkAddress){

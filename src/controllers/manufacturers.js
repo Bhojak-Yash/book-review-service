@@ -110,8 +110,7 @@ exports.linked_users = async(req, res) =>{
   try{
     const data = {
       ...req.user,
-      page: req.query.page,
-      limit: req.query.limit
+      ...req.query
     };
     const result = await ManufacturerService.linked_users(data);
 

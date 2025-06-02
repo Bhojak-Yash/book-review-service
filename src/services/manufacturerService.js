@@ -944,10 +944,22 @@ class ManufacturerService {
       if (data?.userType === "Employee") {
         id = data?.data?.employeeOf;
       }
-
+      const {status,start_date,end_date} = data
+      let whereCondition ={ authorizedId: id, status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] } }
+      
+      if(status){
+        let aa= []
+        aa.push(status)
+        whereCondition ={ authorizedId: id, status: { [db.Op.in]: aa } }
+      }
+      if(start_date && end_date){
+         const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
+        whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
+      }
       const authorizedList = await db.authorizations.findAll({
         attributes: ['authorizedBy', 'status', 'createdAt'],
-        where: { authorizedId: id, status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] } },
+        where: whereCondition,
         raw: true,
       });
 
