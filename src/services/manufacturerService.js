@@ -762,6 +762,10 @@ class ManufacturerService {
         orderTo: Number(checkId),
         orderStatus: { [Op.notIn]: ['Settled', 'Rejected', 'Cancelled'] },
       }
+      let whereCompleted = {
+        orderTo: Number(checkId),
+        orderStatus: { [Op.notIn]: ['Settled'] },
+      }
       let wherecounts = { authorizedBy: Number(id), status: "Approved" }
       let wherePendingRequest = { authorizedBy: Number(checkId), status: "Pending" }
       let whereBalance = { balance: { [db.Op.gt]: 0, [db.Op.ne]: null }, orderTo: Number(checkId) }
@@ -773,11 +777,13 @@ class ManufacturerService {
         wherecounts.createdAt = { [Op.between]: [startDate, endDate] };
         wherePendingRequest.createdAt = { [Op.between]: [startDate, endDate] };
         whereBalance.orderDate = { [Op.between]: [startDate, endDate] };
+        whereCompleted.orderDate = { [Op.between]: [startDate, endDate] };
       }
       // console.log(checkId)
       // Parallelizing queries for better performance
-      const [ordersCount, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
+      const [ordersCount,completedOrders, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
         db.orders.count({ where: whereOrderCount }),
+        db.orders.count({where:whereCompleted}),
         db.orders.count({
           where: wherePending
         }),
@@ -817,6 +823,7 @@ class ManufacturerService {
         data: {
           ordersCount,
           pendingCount,
+          completedOrders,
           cnfCount,
           distributorCount,
           pendingRequest,
