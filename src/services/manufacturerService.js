@@ -764,7 +764,7 @@ class ManufacturerService {
       }
       let whereCompleted = {
         orderTo: Number(checkId),
-        orderStatus: { [Op.notIn]: ['Settled'] },
+        orderStatus: { [Op.in]: ['Settled'] },
       }
       let wherecounts = { authorizedBy: Number(id), status: "Approved" }
       let wherePendingRequest = { authorizedBy: Number(checkId), status: "Pending" }
