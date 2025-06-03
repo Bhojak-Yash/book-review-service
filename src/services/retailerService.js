@@ -921,7 +921,7 @@ class RetailerService {
             const userData = {
                 "id": userDataa?.id,
                 "userName": userDataa?.userName,
-                "userType": userDataa?.userType,
+                "userType": 'Distributor',
                 "disuser": userDataa?.disuser.length > 0 ? userDataa?.disuser : userDataa?.manufacturer,
                 "addresss": userDataa?.addresss
             }
