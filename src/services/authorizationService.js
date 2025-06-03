@@ -13,7 +13,7 @@ class AuthService {
         try {
             const { authorizedBy } = data
             let authorizedId = data?.id;
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 authorizedId = data?.data?.employeeOf
             }
 
@@ -96,7 +96,7 @@ class AuthService {
             const Limit = Number(data.limit) || 10;
             let skip = 0
             let id = Number(data?.id)
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             let whereClause = {
@@ -168,7 +168,7 @@ class AuthService {
                     }
                 ],
                 where: whereClause,
-                subQuery: false, 
+                subQuery: false,
                 order: [["id", "DESC"]],
                 offset: skip,
                 limit: Limit
@@ -450,7 +450,7 @@ class AuthService {
             const { start_date, end_date } = data;
             let id = data?.id
             console.log(id);
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             console.log(id);
@@ -558,7 +558,7 @@ class AuthService {
         try {
             const { start_date, end_date } = data;
             let id = data?.id
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             let whereClause = {
@@ -627,7 +627,7 @@ class AuthService {
                 where: {
                     authorizedBy: Number(id),
                     status: "Approved",
-                }, 
+                },
                 include: [{
                     model: db.retailers,
                     as: "retailers",
@@ -639,7 +639,7 @@ class AuthService {
                 where: {
                     authorizedBy: Number(id),
                     status: "Approved",
-                },    
+                },
                 include: [{
                     model: db.distributors,
                     as: 'distributor',
@@ -680,7 +680,7 @@ class AuthService {
         try {
             const { userId } = data
             let id = data?.id
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             console.log(userId, id);
@@ -711,7 +711,7 @@ class AuthService {
         try {
             const { userId, status } = data
             let id = data?.id
-            if(data?.userType === "Employee"){
+            if (data?.userType === "Employee") {
                 id = data?.data?.employeeOf
             }
             console.log(id);
@@ -846,6 +846,21 @@ class AuthService {
         try {
             const { id, userId, startDate, endDate, userType } = data
             const checkId = userType === "Employee" ? Number(data?.data?.employeeOf) : Number(id);
+            const auth = await db.authorizations.findOne({
+                where: {
+                    authorizedBy: Number(checkId),
+                    authorizedId: Number(userId)
+                },
+                attributes: ['status']
+            })
+            if (!auth) {
+                return {
+                    status: message.code400,
+                    message: message.message400,
+                    apiData: null
+                }
+            }
+
             const { Op, fn, col, literal } = db.sequelize;
             let whereClause = {
                 orderTo: Number(checkId),
@@ -945,13 +960,6 @@ class AuthService {
                 raw: true
             });
 
-            const auth = await db.authorizations.findOne({
-                where: {
-                    authorizedBy: Number(checkId),
-                    authorizedId: Number(userId)
-                },
-                attributes: ['status']
-            })
 
             const returnData = {
                 user: {

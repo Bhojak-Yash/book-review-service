@@ -40,13 +40,13 @@ class OrdersService {
         orderby = data.id
       }
       console.log(orderData.orderItems)
-      const checkAddress = await db.address.findOne({where:{userId:Number(orderby)}})
+      const checkAddress = await db.address.findOne({ where: { userId: Number(orderby) } })
       console.log('address hai')
-      if(!checkAddress){
+      if (!checkAddress) {
         console.log('address nhi hai')
         return {
-          status:message.code400,
-          message:'Users address is required.'
+          status: message.code400,
+          message: 'Users address is required.'
         }
       }
       transaction = await db.sequelize.transaction();
@@ -61,25 +61,25 @@ class OrdersService {
           message: 'Mismatch in between the price of the items.'
         };
       }
-      if(orderData?.orderData?.cnId){
-      const checkCN = await db.creditNotes.findOne({where:{id:Number(orderData.orderData.cnId),issuedTo:Number(orderby),issuedBy:Number(orderData.orderData.orderTo),isSettled:false}})
-      let cnValue = 0 
-      orderData.orderData.cnId=null
-      if(checkCN){
-        let balance = Number(orderData.orderData.balance) || 0
-        cnValue = Number(checkCN?.dataValues?.balance) || 0
-        if(balance>cnValue){
-          let amtdiff = balance - cnValue
-          orderData.orderData.balance = amtdiff
-        }else{
-          orderData.orderData.balance=0
+      if (orderData?.orderData?.cnId) {
+        const checkCN = await db.creditNotes.findOne({ where: { id: Number(orderData.orderData.cnId), issuedTo: Number(orderby), issuedBy: Number(orderData.orderData.orderTo), isSettled: false } })
+        let cnValue = 0
+        orderData.orderData.cnId = null
+        if (checkCN) {
+          let balance = Number(orderData.orderData.balance) || 0
+          cnValue = Number(checkCN?.dataValues?.balance) || 0
+          if (balance > cnValue) {
+            let amtdiff = balance - cnValue
+            orderData.orderData.balance = amtdiff
+          } else {
+            orderData.orderData.balance = 0
+          }
+          orderData.orderData.cnId = checkCN?.dataValues?.id
+          await db.creditNotes.update({ isSettled: true }, { where: { id: Number(checkCN?.dataValues?.id) } })
         }
-        orderData.orderData.cnId=checkCN?.dataValues?.id
-        await db.creditNotes.update({isSettled:true},{where:{id:Number(checkCN?.dataValues?.id)}})
       }
-    }
       // console.log(checkCN,';;;;;;;;;;',orderData.orderData.orderTo,checkCN?.dataValues?.id,checkCN?.dataValues?.balance,cnValue)
-      
+
       const newOrder = await db.orders.create({
         ...orderData.orderData,
         orderFrom: Number(orderby)
@@ -343,9 +343,9 @@ class OrdersService {
         //   description: `Your purchase order has been confirmed for orderId ${orderId}.`
         // })
       }
-      if(updates.orderStatus === "Rejected"){
-        if(order?.cnId){
-          await db.creditNotes.update({isSettled:false},{where:{id:Number(order?.cnId)}})
+      if (updates.orderStatus === "Rejected") {
+        if (order?.cnId) {
+          await db.creditNotes.update({ isSettled: false }, { where: { id: Number(order?.cnId) } })
         }
       }
 
@@ -573,7 +573,7 @@ class OrdersService {
   async distributer_purchase_orders(data) {
     try {
       let id = Number(data?.id);
-      if(data?.userType === "Employee"){
+      if (data?.userType === "Employee") {
         id = data?.data?.employeeOf
       }
       const Page = Number(data.page) || 1;
@@ -597,7 +597,7 @@ class OrdersService {
           }
         ];
       }
-      
+
       if (data.start_date && data.end_date) {
         const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
         const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
@@ -606,15 +606,15 @@ class OrdersService {
           [Op.between]: [startDate, endDate]
         };
       }
-       if (data.status) {
+      if (data.status) {
         if (data.status === 'Unpaid') {
           whereClause.balance = { [Op.gt]: 0 };
-        }else if(data?.status === 'Delivered'){
-          whereCondition.orderStatus={
-            [db.Op.in]:['Inward','Partially paid','Paid']
+        } else if (data?.status === 'Delivered') {
+          whereCondition.orderStatus = {
+            [db.Op.in]: ['Inward', 'Partially paid', 'Paid']
           }
         }
-         else {
+        else {
           whereClause.orderStatus = data.status;
         }
       }
@@ -713,7 +713,7 @@ class OrdersService {
   async distributer_sales_orders(data) {
     try {
       let id = Number(data.id);
-      if(data?.userType === "Employee"){
+      if (data?.userType === "Employee") {
         id = data.data.employeeOf
       }
       console.log(id);
@@ -733,12 +733,12 @@ class OrdersService {
       if (data.status) {
         if (data.status === 'Unpaid') {
           whereClause.balance = { [Op.gt]: 0 };
-        }else if(data?.status === 'Delivered'){
-          whereClause.orderStatus={
-            [db.Op.in]:['Inward','Partially paid','Paid']
+        } else if (data?.status === 'Delivered') {
+          whereClause.orderStatus = {
+            [db.Op.in]: ['Inward', 'Partially paid', 'Paid']
           }
         }
-         else {
+        else {
           whereClause.orderStatus = data.status;
         }
       }
@@ -1186,7 +1186,9 @@ class OrdersService {
 
       // console.log(as, tableName, ';;;;;;;;', checkUser?.dataValues?.userType)
       const order = await db.orders.findOne({
-        where: { id: Number(orderId) },
+        where: {
+          id: Number(orderId)
+        },
         include: [
           {
             model: db.orderitems,
@@ -1220,8 +1222,15 @@ class OrdersService {
         ],
         // group: groupBy
       })
-
-      order.balance = parseFloat(order.balance).toFixed(2);
+      if (Number(order.orderFrom) !== Number(userId) && Number(order.orderTo) !== Number(userId)) {
+        return {
+          status: message.code400,
+          message: message.message400
+        };
+      }
+      if (order) {
+        order.balance = parseFloat(order?.balance).toFixed(2);
+      }
 
       const Op = db.Op
 
@@ -1232,19 +1241,19 @@ class OrdersService {
           {
             model: db.distributors,
             as: "disuser",
-            attributes: ["distributorId", "companyName", "PAN", "GST", 'distributorCode', 'FSSAI', 'wholeSaleDrugLicence', 'IFSC', 'AccHolderName', 'accountNumber','profilePic'],
+            attributes: ["distributorId", "companyName", "PAN", "GST", 'distributorCode', 'FSSAI', 'wholeSaleDrugLicence', 'IFSC', 'AccHolderName', 'accountNumber', 'profilePic'],
             required: false,
           },
           {
             model: db.retailers,
             as: "reuser",
-            attributes: ["retailerId", "firmName", "PAN", "GST", 'retailerCode', 'FSSAI', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber','profilePic'],
+            attributes: ["retailerId", "firmName", "PAN", "GST", 'retailerCode', 'FSSAI', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber', 'profilePic'],
             required: false,
           },
           {
             model: db.manufacturers,
             as: "manufacturer",
-            attributes: ["manufacturerId", "companyName", "PAN", "GST", 'manufacturerCode', 'fssaiLicense', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber','logo'],
+            attributes: ["manufacturerId", "companyName", "PAN", "GST", 'manufacturerCode', 'fssaiLicense', 'drugLicense', 'IFSC', 'AccHolderName', 'accountNumber', 'logo'],
             required: false,
           },
           {
@@ -1406,7 +1415,7 @@ class OrdersService {
       if (fromState && toState) {
         taxType = (fromState?.trim()?.toLowerCase() === toState?.trim()?.toLowerCase()) ? 'SGST_CGST' : 'IGST';
       }
-// console.log(fromState,toState,taxType,(fromState == toState),typeof(fromState),typeof(toState))
+      // console.log(fromState,toState,taxType,(fromState == toState),typeof(fromState),typeof(toState))
       return {
         status: message.code200,
         message: "Order fetched successfully.",
@@ -1458,7 +1467,7 @@ class OrdersService {
   async getAddressDetails(data) {
     try {
       let userId = data?.id
-      if(data?.userType === "Employee"){
+      if (data?.userType === "Employee") {
         userId = data?.data?.employeeOf
       }
       console.log(userId);
