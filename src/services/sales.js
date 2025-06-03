@@ -12,9 +12,11 @@ class SalesService {
     async search_product(data) {
         try {
             let { id, userType, limit, page } = data
+            let usercheckType = userType
             if (userType === "Employee") {
                 // console.log(';;;;;;;;;;;;')
                 id = data?.data?.employeeOf;
+                usercheckType = data?.empOfType
             }
             let Page = Number(page) || 1
             let Limit = Number(limit) || 10
@@ -25,27 +27,53 @@ class SalesService {
             if (search) {
                 whereCondition.PName = { [Op.like]: `%${search}%` }
             }
-            const { rows: Data, count } = await db.manufacturerStocks.findAndCountAll({
-                attributes: ['SId', 'PId', 'BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'BoxQty', 'Loose', 'Stock', 'organisationId', 'location', 'locked'],
-                where: { organisationId: Number(id), locked: { [db.Op.not]: true }, Stock: { [db.Op.gt]: 0 } },
-                include: [
-                    {
-                        model: db.products,
-                        as: 'product',
-                        where: whereCondition,
-                        required: true
-                    }
-                ],
-                offset: Skip,
-                limit: Limit
-            })
-            return {
-                status: message.code200,
-                message: message.message200,
-                currentPage: Page,
-                totalPage: Math.ceil(Number(count) / Limit),
-                totalData: count,
-                apiData: Data
+            console.log(usercheckType)
+            if (usercheckType == 'Manufacturer') {
+                const { rows: Data, count } = await db.manufacturerStocks.findAndCountAll({
+                    attributes: ['SId', 'PId', 'BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'BoxQty', 'Loose', 'Stock', 'organisationId', 'location', 'locked'],
+                    where: { organisationId: Number(id), locked: { [db.Op.not]: true }, Stock: { [db.Op.gt]: 0 } },
+                    include: [
+                        {
+                            model: db.products,
+                            as: 'product',
+                            where: whereCondition,
+                            required: true
+                        }
+                    ],
+                    offset: Skip,
+                    limit: Limit
+                })
+                return {
+                    status: message.code200,
+                    message: message.message200,
+                    currentPage: Page,
+                    totalPage: Math.ceil(Number(count) / Limit),
+                    totalData: count,
+                    apiData: Data
+                }
+            } else {
+                const { rows: Data, count } = await db.stocks.findAndCountAll({
+                    attributes: ['SId', 'PId', 'BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'BoxQty', 'Loose', 'Stock', 'organisationId', 'location', 'locked'],
+                    where: { organisationId: Number(id), locked: { [db.Op.not]: true }, Stock: { [db.Op.gt]: 0 } },
+                    include: [
+                        {
+                            model: db.products,
+                            as: 'product',
+                            where: whereCondition,
+                            required: true
+                        }
+                    ],
+                    offset: Skip,
+                    limit: Limit
+                })
+                return {
+                    status: message.code200,
+                    message: message.message200,
+                    currentPage: Page,
+                    totalPage: Math.ceil(Number(count) / Limit),
+                    totalData: count,
+                    apiData: Data
+                }
             }
         } catch (error) {
             console.log('search_product service error:', error.message)
@@ -269,9 +297,11 @@ class SalesService {
     async sales_details(data) {
         try {
             const { id, userType, salesId } = data
+             let usercheckType = userType
             if (userType === "Employee") {
                 // console.log(';;;;;;;;;;;;')
                 id = data?.data?.employeeOf;
+                usercheckType = data?.empOfType
             }
             let whereCondition = { organisationId: Number(id), id: Number(salesId) }
             const Data = await db.salesHeader.findOne({
@@ -288,8 +318,8 @@ class SalesService {
                                 required: true
                             },
                             {
-                                model: db.manufacturerStocks,
-                                as: 'salesStock',
+                                model: usercheckType=='Manufacturer'? db.manufacturerStocks :db.stocks,
+                                as: usercheckType=='Manufacturer'? 'salesStock': 'stockssales',
                                 required: true
                             }
                         ]
@@ -297,9 +327,9 @@ class SalesService {
                 ]
             })
             return {
-                status:message.code200,
-                message:'Data ge successfully',
-                apiData:Data
+                status: message.code200,
+                message: 'Data ge successfully',
+                apiData: Data
             }
         } catch (error) {
             console.log('sales_details service error:', error.message)

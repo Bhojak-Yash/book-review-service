@@ -283,6 +283,11 @@ db.salesDetails.belongsTo(db.manufacturerStocks, {
   targetKey: 'SId', 
   as: 'salesStock'
 });
+db.salesDetails.belongsTo(db.stocks, {
+  foreignKey: 'SId',
+  targetKey: 'SId', 
+  as: 'stockssales'
+});
 db.salesHeader.hasOne(db.partyList,{ foreignKey: 'id', sourceKey: 'partyId', as: "partyData" })
 db.partyList.belongsTo(db.salesHeader,{ foreignKey: 'id', sourceKey: 'partyId', as: "partyData" })
 
