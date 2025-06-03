@@ -195,13 +195,14 @@ class RetailerService {
 
             // Get distributors (users + disuser)
             const whereClause = {
-                userType: ['distributor', 'manufacturer']
+                userType: ['distributor', 'cnf']
             };
 
             if (search) {
                 whereClause[Op.or] = [
-                    { '$disuser.companyName$': { [Op.like]: `%${search}%` } },
-                    { '$manufacturer.companyName$': { [Op.like]: `%${search}%` } }
+                    { '$disuser.companyName$': { [Op.like]: `%${search}%` } }
+                    // ,
+                    // { '$manufacturer.companyName$': { [Op.like]: `%${search}%` } }
                 ];
             }
 
@@ -211,12 +212,12 @@ class RetailerService {
                 attributes: ['companyName', 'type'],
                 // required: true
             },
-            {
-                model: db.manufacturers,
-                as: 'manufacturer',
-                attributes: ['companyName'],
-                // required: true
-            },
+            // {
+            //     model: db.manufacturers,
+            //     as: 'manufacturer',
+            //     attributes: ['companyName'],
+            //     // required: true
+            // },
             {
                 model: db.address,
                 as: 'addresss',
@@ -240,8 +241,8 @@ class RetailerService {
 
             const userResults = users.map(item => ({
                 id: item.id,
-                userType: item?.disuser[0]?.type || 'Manufacturer',
-                userName: item?.disuser[0]?.companyName || item?.manufacturer[0]?.companyName || item?.userName,
+                userType: item?.disuser[0]?.type ,
+                userName: item?.disuser[0]?.companyName || item?.userName,
                 address: item.addresss[0] || {}
             }));
 
