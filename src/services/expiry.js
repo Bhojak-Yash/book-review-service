@@ -1043,6 +1043,12 @@ class expiryService {
                     }
                 ]
             })
+            if(!Data){
+                return {
+                    status:message.code400,
+                    message:message.message400
+                }
+            }
             const result = {
                 "returnId": Data.returnId,
                 "returnDate": Data.returnDate,
