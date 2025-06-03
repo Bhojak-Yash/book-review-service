@@ -1090,6 +1090,9 @@ class ManufacturerService {
   async linked_users_card_data(data) {
     try {
       let { id, userType, startDate, endDate } = data
+      if (data?.userType === "Employee") {
+        id = data?.data?.employeeOf;
+      }
       const authIds = await db.authorizations.findAll({
         attributes: [
           'status',

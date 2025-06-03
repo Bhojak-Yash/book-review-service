@@ -24,8 +24,9 @@ const accountsRouter = require('./accountsRoutes')
 const retailerSalesRouter = require('./retailersales');
 const patientRouter = require('./patient');
 const doctorRouter = require('./doctors');
-const salesReportRouter = require('./salesReport')
-const tallyReports = require('./tallyReports')
+const salesReportRouter = require('./salesReport');
+const tallyReports = require('./tallyReports');
+const salesRouter = require('./sales')
 
 
 
@@ -34,4 +35,4 @@ module.exports ={usersRouter,dashboardRouter,orderRouter,pharmacyRouter,inquiryR
     ,manufacturerRouter,expiryRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,
     entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, 
     statesRouter, notificationsRouter, employeeManagement_Router, warehouseManagement_Router,
-     accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports}
+     accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter}

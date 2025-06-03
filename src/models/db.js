@@ -32,10 +32,13 @@ const modulemappings = require('./modulemappings');
 const retailerSalesHeader = require('./retailer_sales_header');
 const retailerSalesDetails = require('./retailer_sales_details');
 const patients = require('./patient');
-const doctors =require('./doctors');
+const doctors = require('./doctors');
 const doctorPayments = require('./doctorsPayments');
 const stocksReport = require('./stocksReport')
 const HSN_code = require('./HSN_code');
+const salesHeader = require('./salesHeader');
+const salesDetails = require('./salesDetails');
+const partyList = require('./partylist');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -47,7 +50,7 @@ const sequelize = new Sequelize(
     host: dbConfig.HOST,
     port: dbConfig.PORT,
     dialect: 'mysql',
-      timezone: '+05:30',
+    timezone: '+05:30',
     logging: false,
     pool: {
       max: dbConfig.pool.max,
@@ -68,36 +71,39 @@ const db = {
   retailers: retailers(sequelize, Sequelize),
   orders: orders(sequelize, Sequelize),
   orderitems: orderitems(sequelize, Sequelize),
- // pharmacies: pharmacies(sequelize, Sequelize),
-  loginLogs:loginLogs(sequelize,Sequelize),
-  inquiry:inquiry(sequelize,Sequelize),
-  products:products(sequelize,Sequelize),
-  stocks:stocks(sequelize,Sequelize),
-  usercarts:usercarts(sequelize,Sequelize),
-  authorizations:authorizations(sequelize,Sequelize),
-  employees:employees(sequelize,Sequelize),
-  entities:entities(sequelize,Sequelize),
-  roles:roles(sequelize,Sequelize),
-  address:address(sequelize,Sequelize),
-  documentCategory:documentCategory(sequelize,Sequelize),
-  documents:documents(sequelize,Sequelize),
-  payments:payments(sequelize,Sequelize),
+  // pharmacies: pharmacies(sequelize, Sequelize),
+  loginLogs: loginLogs(sequelize, Sequelize),
+  inquiry: inquiry(sequelize, Sequelize),
+  products: products(sequelize, Sequelize),
+  stocks: stocks(sequelize, Sequelize),
+  usercarts: usercarts(sequelize, Sequelize),
+  authorizations: authorizations(sequelize, Sequelize),
+  employees: employees(sequelize, Sequelize),
+  entities: entities(sequelize, Sequelize),
+  roles: roles(sequelize, Sequelize),
+  address: address(sequelize, Sequelize),
+  documentCategory: documentCategory(sequelize, Sequelize),
+  documents: documents(sequelize, Sequelize),
+  payments: payments(sequelize, Sequelize),
   states: states(sequelize, Sequelize),
   cities: cities(sequelize, Sequelize),
   notifications: notifications(sequelize, Sequelize),
-  returnHeader:returnHeader(sequelize,Sequelize),
+  returnHeader: returnHeader(sequelize, Sequelize),
   returnDetails: returnDetails(sequelize, Sequelize),
-  creditNotes: creditNotes(sequelize,Sequelize),
-  manufacturerStocks:manufacturerStocks(sequelize,Sequelize),
+  creditNotes: creditNotes(sequelize, Sequelize),
+  manufacturerStocks: manufacturerStocks(sequelize, Sequelize),
   moduleconfigs: moduleconfigs(sequelize, Sequelize),
   modulemappings: modulemappings(sequelize, Sequelize),
-  retailerSalesHeader:retailerSalesHeader(sequelize,Sequelize),
-  retailerSalesDetails:retailerSalesDetails(sequelize,Sequelize),
-  patients:patients(sequelize,Sequelize),
-  doctors:doctors(sequelize,Sequelize),
-  doctorPayments:doctorPayments(sequelize,Sequelize),
-  stocksReport:stocksReport(sequelize,Sequelize),
-  HSN_code: HSN_code(sequelize,Sequelize),
+  retailerSalesHeader: retailerSalesHeader(sequelize, Sequelize),
+  retailerSalesDetails: retailerSalesDetails(sequelize, Sequelize),
+  patients: patients(sequelize, Sequelize),
+  doctors: doctors(sequelize, Sequelize),
+  doctorPayments: doctorPayments(sequelize, Sequelize),
+  stocksReport: stocksReport(sequelize, Sequelize),
+  HSN_code: HSN_code(sequelize, Sequelize),
+  salesDetails: salesDetails(sequelize, Sequelize),
+  salesHeader: salesHeader(sequelize, Sequelize),
+  partyList: partyList(sequelize, Sequelize)
 };
 
 db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
@@ -143,7 +149,7 @@ db.products.hasMany(db.manufacturerStocks, {
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: 'distributors' });
 db.authorizations.belongsTo(db.retailers, { foreignKey: 'authorizedId', as: 'retailers' });
 db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedBy', as: 'distributor' });
-db.authorizations.hasMany(db.address, { foreignKey: 'userId',targetKey:'authorizedId', as: 'address' });
+db.authorizations.hasMany(db.address, { foreignKey: 'userId', targetKey: 'authorizedId', as: 'address' });
 db.authorizations.belongsTo(db.manufacturers, { foreignKey: 'authorizedBy', as: 'manufacturer' });
 
 
@@ -156,16 +162,16 @@ db.manufacturerStocks.hasMany(db.usercarts, { foreignKey: 'stockId', as: 'cartIt
 db.orders.belongsTo(db.users, { as: "orderToUser", foreignKey: "orderTo" });
 // db.orders.belongsTo(db.users, { as: "distributor", foreignKey: "orderTo" });
 db.orders.belongsTo(db.users, { as: "orderFromUser", foreignKey: "orderFrom" });
-db.documentCategory.hasMany(db.documents, {foreignKey:'categoryId',as: 'documnets'})
-db.documents.belongsTo(db.documentCategory, {foreignKey:'categoryId',as: 'documnets'})
+db.documentCategory.hasMany(db.documents, { foreignKey: 'categoryId', as: 'documnets' })
+db.documents.belongsTo(db.documentCategory, { foreignKey: 'categoryId', as: 'documnets' })
 db.orders.belongsTo(db.distributors, {
-  foreignKey: 'orderFrom', 
+  foreignKey: 'orderFrom',
   as: 'distributer'
 });
-db.orders.hasMany(db.orderitems,{foreignKey: "orderId", as: "orderItems"})
-db.orders.belongsTo(db.manufacturers,{foreignKey:'orderTo',as: 'manufacturer'})
-db.orders.belongsTo(db.distributors,{foreignKey:'orderTo',as: 'distributor'})
-db.orders.belongsTo(db.retailers, {foreignKey: 'orderTo', targetKey: 'retailerId', as: 'retailer'});
+db.orders.hasMany(db.orderitems, { foreignKey: "orderId", as: "orderItems" })
+db.orders.belongsTo(db.manufacturers, { foreignKey: 'orderTo', as: 'manufacturer' })
+db.orders.belongsTo(db.distributors, { foreignKey: 'orderTo', as: 'distributor' })
+db.orders.belongsTo(db.retailers, { foreignKey: 'orderTo', targetKey: 'retailerId', as: 'retailer' });
 // db.orders.hasMany(db.authorizations, { foreignKey: "authorizedBy", targetKey: "orderTo", as: "auth" });
 db.orders.belongsTo(db.authorizations, { foreignKey: "orderTo", targetKey: "authorizedBy", as: "auth" });
 
@@ -174,15 +180,15 @@ db.orders.belongsTo(db.distributors, { foreignKey: 'orderFrom', as: 'fromDistrib
 db.orders.belongsTo(db.retailers, { foreignKey: 'orderFrom', as: 'fromRetailer' });
 
 
-db.distributors.belongsTo(db.manufacturers,{foreignKey:'distributorId',as:"disuser"})
-db.retailers.belongsTo(db.manufacturers,{foreignKey:'retailerId',as:"reuser"})
-db.users.hasMany(db.distributors,{foreignKey:'distributorId',as:"disuser"})
-db.users.hasMany(db.retailers,{foreignKey:'retailerId',as:"reuser"})
-db.users.hasMany(db.manufacturers,{foreignKey:'manufacturerId',as:"manufacturer"})
-db.users.hasMany(db.address,{foreignKey:'userId',as:"addresss"})
+db.distributors.belongsTo(db.manufacturers, { foreignKey: 'distributorId', as: "disuser" })
+db.retailers.belongsTo(db.manufacturers, { foreignKey: 'retailerId', as: "reuser" })
+db.users.hasMany(db.distributors, { foreignKey: 'distributorId', as: "disuser" })
+db.users.hasMany(db.retailers, { foreignKey: 'retailerId', as: "reuser" })
+db.users.hasMany(db.manufacturers, { foreignKey: 'manufacturerId', as: "manufacturer" })
+db.users.hasMany(db.address, { foreignKey: 'userId', as: "addresss" })
 
 db.distributors.hasMany(db.orders, {
-  foreignKey: 'orderFrom', 
+  foreignKey: 'orderFrom',
   as: 'distributer'
 });
 
@@ -194,49 +200,49 @@ db.orders.belongsTo(db.authorizations, {
 
 
 
-db.authorizations.belongsTo(db.distributors,{foreignKey:'authorizedId',as:"distributers"})
-db.distributors.hasMany(db.authorizations,{foreignKey:'authorizedId',as:"auth"})
-db.authorizations.belongsTo(db.users,{foreignKey:'authorizedId',as:"user"})
-db.address.belongsTo(db.distributors,{foreignKey:'userId',targetKey:'distributorId',as:'distributorAddress'})
+db.authorizations.belongsTo(db.distributors, { foreignKey: 'authorizedId', as: "distributers" })
+db.distributors.hasMany(db.authorizations, { foreignKey: 'authorizedId', as: "auth" })
+db.authorizations.belongsTo(db.users, { foreignKey: 'authorizedId', as: "user" })
+db.address.belongsTo(db.distributors, { foreignKey: 'userId', targetKey: 'distributorId', as: 'distributorAddress' })
 db.distributors.hasMany(db.address, {
   foreignKey: "userId",
   sourceKey: "distributorId",
   as: "addresses"
 });
 db.authorizations.belongsTo(db.users, { foreignKey: "authorizedId", as: "authorizedUser" });
-db.users.hasMany(db.address,{foreignKey: "userId", as: "address"})
+db.users.hasMany(db.address, { foreignKey: "userId", as: "address" })
 db.orderitems.belongsTo(db.products, { foreignKey: "PId", as: "product" });
 db.orderitems.belongsTo(db.stocks, { foreignKey: "stockId", as: "stock" });
 db.orderitems.belongsTo(db.manufacturerStocks, { foreignKey: "stockId", as: "stocks" });
-db.orders.hasMany(db.payments,{ foreignKey: "orderId", as: "payments" })
+db.orders.hasMany(db.payments, { foreignKey: "orderId", as: "payments" })
 
-db.manufacturers.hasMany(db.products,{ foreignKey: "manufacturerId", as: "products" })
-db.manufacturers.hasMany(db.returnHeader, { 
-  foreignKey: "returnTo", 
-  targetKey:'manufacturerId',
-  as: "returnHeader" 
+db.manufacturers.hasMany(db.products, { foreignKey: "manufacturerId", as: "products" })
+db.manufacturers.hasMany(db.returnHeader, {
+  foreignKey: "returnTo",
+  targetKey: 'manufacturerId',
+  as: "returnHeader"
 });
-db.products.belongsTo(db.manufacturers,{ foreignKey: "manufacturerId", as: "manufacturer" })
-db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnFrom", as: "returnFromUser" })
-db.returnHeader.belongsTo(db.distributors,{foreignKey: "returnTo", as: "returnToUser" })
-db.returnHeader.belongsTo(db.manufacturers,{foreignKey: "returnTo", as: "returnToMan" })
-db.returnHeader.hasMany(db.returnDetails,{foreignKey: "returnId", as: "returnDetails" })
-db.returnDetails.belongsTo(db.products,{foreignKey: "PId", as: "products" })
-db.returnDetails.belongsTo(db.stocks,{foreignKey: "SId", as: "stocks" })
+db.products.belongsTo(db.manufacturers, { foreignKey: "manufacturerId", as: "manufacturer" })
+db.returnHeader.belongsTo(db.distributors, { foreignKey: "returnFrom", as: "returnFromUser" })
+db.returnHeader.belongsTo(db.distributors, { foreignKey: "returnTo", as: "returnToUser" })
+db.returnHeader.belongsTo(db.manufacturers, { foreignKey: "returnTo", as: "returnToMan" })
+db.returnHeader.hasMany(db.returnDetails, { foreignKey: "returnId", as: "returnDetails" })
+db.returnDetails.belongsTo(db.products, { foreignKey: "PId", as: "products" })
+db.returnDetails.belongsTo(db.stocks, { foreignKey: "SId", as: "stocks" })
 // db.returnDetails.belongsTo(db.manufacturerStocks,{foreignKey: "SId", as: "stocks" })
-db.returnHeader.hasMany(db.creditNotes,{foreignKey: "returnId", as: "creditnote" })
-db.returnHeader.belongsTo(db.retailers,{foreignKey: "returnFrom", as: "returnByUser" })
-db.stocks.belongsTo(db.manufacturers,{foreignKey: "purchasedFrom",targetKey:'manufacturerId', as: "manufacturer" })
-db.stocks.belongsTo(db.distributors,{foreignKey: "purchasedFrom",targetKey:'distributorId', as: "distributor" })
-db.stocks.belongsTo(db.returnHeader,{foreignKey: "purchasedFrom",targetKey:"returnTo", as: "returnHeader" })
-db.stocks.belongsTo(db.distributors,{foreignKey: "organisationId",targetKey:'distributorId', as: "distributors" })
-db.retailerSalesHeader.belongsTo(db.patients,{foreignKey: "patientId", as: "patient" })
-db.retailerSalesHeader.belongsTo(db.doctors,{foreignKey: "doctorId", as: "doctor" })
-db.patients.hasMany(db.retailerSalesHeader,{foreignKey:"patientId",as:'retailerSalesHeaders'})
-db.doctors.hasMany(db.retailerSalesHeader,{foreignKey:"doctorId",as:'retailerSalesHeaders'});
-db.doctors.hasMany(db.doctorPayments,{foreignKey:"doctorId",as:'doctorPayments'})
-db.payments.belongsTo(db.orders,{foreignKey:"orderId",as:'order'});
-db.address.belongsTo(db.states,{foreignKey: "State",targetKey:'state', as: "states" })
+db.returnHeader.hasMany(db.creditNotes, { foreignKey: "returnId", as: "creditnote" })
+db.returnHeader.belongsTo(db.retailers, { foreignKey: "returnFrom", as: "returnByUser" })
+db.stocks.belongsTo(db.manufacturers, { foreignKey: "purchasedFrom", targetKey: 'manufacturerId', as: "manufacturer" })
+db.stocks.belongsTo(db.distributors, { foreignKey: "purchasedFrom", targetKey: 'distributorId', as: "distributor" })
+db.stocks.belongsTo(db.returnHeader, { foreignKey: "purchasedFrom", targetKey: "returnTo", as: "returnHeader" })
+db.stocks.belongsTo(db.distributors, { foreignKey: "organisationId", targetKey: 'distributorId', as: "distributors" })
+db.retailerSalesHeader.belongsTo(db.patients, { foreignKey: "patientId", as: "patient" })
+db.retailerSalesHeader.belongsTo(db.doctors, { foreignKey: "doctorId", as: "doctor" })
+db.patients.hasMany(db.retailerSalesHeader, { foreignKey: "patientId", as: 'retailerSalesHeaders' })
+db.doctors.hasMany(db.retailerSalesHeader, { foreignKey: "doctorId", as: 'retailerSalesHeaders' });
+db.doctors.hasMany(db.doctorPayments, { foreignKey: "doctorId", as: 'doctorPayments' })
+db.payments.belongsTo(db.orders, { foreignKey: "orderId", as: 'order' });
+db.address.belongsTo(db.states, { foreignKey: "State", targetKey: 'state', as: "states" })
 
 // db.orders.belongsTo(db.products, {
 //   foreignKey: 'PId',
@@ -264,6 +270,21 @@ db.retailerSalesDetails.belongsTo(db.products, {
 db.users.hasOne(db.employees, { foreignKey: 'employeeId', sourceKey: 'id' });
 db.employees.belongsTo(db.users, { foreignKey: 'employeeId', targetKey: 'id' });
 
+db.salesHeader.hasMany(db.salesDetails, { foreignKey: 'headerId', sourceKey: 'id', as: "salesDetails" })
+db.salesDetails.belongsTo(db.products, {
+  foreignKey: 'PId',
+  targetKey: 'PId',
+  as: 'salesProduct'
+});
+
+
+db.salesDetails.belongsTo(db.manufacturerStocks, {
+  foreignKey: 'SId',
+  targetKey: 'SId', 
+  as: 'salesStock'
+});
+db.salesHeader.hasOne(db.partyList,{ foreignKey: 'id', sourceKey: 'partyId', as: "partyData" })
+db.partyList.belongsTo(db.salesHeader,{ foreignKey: 'id', sourceKey: 'partyId', as: "partyData" })
 
 
 

@@ -8,7 +8,7 @@ const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter
   manufacturerRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,
   rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, statesRouter,
    notificationsRouter, expiryRouter, employeeManagement_Router, warehouseManagement_Router,
-    accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports} = require('./routers/index')
+    accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter} = require('./routers/index')
 const cors = require('cors')
 const {cronTest,sendSalesReport,openingStockEntry} =require('./cron-jobs')
 app.use(cors());
@@ -36,7 +36,7 @@ function formatToMySQLDateTime(inputDate) {
 app.use(usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
   retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard,
    distributorPanelRouter, statesRouter, notificationsRouter, expiryRouter, employeeManagement_Router,
-    warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports)
+    warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter)
 
 
     cronTest()
