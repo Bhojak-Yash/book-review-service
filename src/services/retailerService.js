@@ -944,7 +944,7 @@ class RetailerService {
             let count=0
             let stocks;
             console.log(userData.userType)
-            if (userData?.userType === 'Distributor') {
+            if (userDataa?.userType === 'Distributor') {
                  stocks = await db.stocks.findAll({
                     attributes: [
                         // 'SId',
