@@ -827,7 +827,7 @@ class expiryService {
 
             // Assign final AND clause to whereClause
             // whereClause[db.Op.and] = andConditions; 
-            
+
             const isSearching = search && search.trim().length >= 3;
             if (search && isSearching) {
                 whereClause[Op.or] = [
@@ -1006,7 +1006,7 @@ class expiryService {
             }
             const Data = await db.returnHeader.findOne({
                 attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo', 'returnStatus'],
-                where: { returnId: Number(returnId),returnTo:Number(id) },
+                where: { returnId: Number(returnId) },
                 include: [
                     {
                         model: db.returnDetails,
@@ -1016,12 +1016,12 @@ class expiryService {
                             {
                                 model: db.products,
                                 as: 'products',
-                                attributes: ['PId', 'PName', 'SaltComposition','PackagingDetails']
+                                attributes: ['PId', 'PName', 'SaltComposition', 'PackagingDetails']
                             },
                             {
                                 model: db.stocks,
                                 as: "stocks",
-                                attributes: ['BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme','location']
+                                attributes: ['BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'location']
                             }
                         ]
                     },
@@ -1043,11 +1043,11 @@ class expiryService {
                     }
                 ]
             })
-            if(!Data){
+            if (Number(Data?.returnFrom) !== Number(id) && Number(Data?.returnTo) !== Number(id)) {
                 return {
-                    status:message.code400,
-                    message:message.message400
-                }
+                    status: message.code400,
+                    message: message.message400
+                };
             }
             const result = {
                 "returnId": Data.returnId,
@@ -1068,7 +1068,7 @@ class expiryService {
                             "PId": item?.products?.PId,
                             "PName": item?.products?.PName || "",
                             "SaltComposition": item?.products?.SaltComposition || '',
-                            "PackagingDetails":item?.products?.PackagingDetails || ''
+                            "PackagingDetails": item?.products?.PackagingDetails || ''
                         },
                         "stocks": {
                             "BatchNo": item?.stocks?.BatchNo || null,
@@ -1076,7 +1076,7 @@ class expiryService {
                             "MRP": item?.stocks?.MRP || 0,
                             "PTS": item?.price || item?.stocks?.PTS || 0,
                             "Scheme": item?.stocks?.Scheme || null,
-                            "location":item?.stocks?.location || null
+                            "location": item?.stocks?.location || null
                         }
                     }
                 }),
