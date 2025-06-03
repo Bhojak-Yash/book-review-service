@@ -738,7 +738,9 @@ class DistributorService {
         try {
             // Step 1: Get all module configs
             let userType = data?.userType;
+            let checkId = data?.id
             if (userType === "Employee") {
+                checkId = data?.data?.employeeOf
                 userType = data.empOfType;
             }
 
@@ -762,10 +764,16 @@ class DistributorService {
             if (roleId) {
                 const role = await db.roles.findOne({
                     where: {id: roleId },
-                    attributes: ['roleName'],
+                    attributes: ['roleName','ownerId'],
                     raw: true
                 });
 
+                if(Number(role.ownerId!==Number(checkId))){
+                    return {
+                        status:message.code400,
+                        message:message.message400
+                    }
+                }
                 roleName = role?.roleName || null;
 
                 const mappings = await db.modulemappings.findAll({
