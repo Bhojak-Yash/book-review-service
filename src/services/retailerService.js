@@ -64,7 +64,7 @@ class RetailerService {
                     password: hashedPassword,
                     userType: 'Retailer',
                     status: "Active",
-                    isPasswordChangeRequired:false
+                    isPasswordChangeRequired: false
                 },
                 { transaction }
             );
@@ -195,12 +195,13 @@ class RetailerService {
 
             // Get distributors (users + disuser)
             const whereClause = {
-                userType: ['distributor', 'cnfs']
+                userType: ['distributor', 'manufacturer']
             };
 
             if (search) {
                 whereClause[Op.or] = [
-                    { '$disuser.companyName$': { [Op.like]: `%${search}%` } }
+                    { '$disuser.companyName$': { [Op.like]: `%${search}%` } },
+                    { '$manufacturer.companyName$': { [Op.like]: `%${search}%` } }
                 ];
             }
 
@@ -208,7 +209,13 @@ class RetailerService {
                 model: db.distributors,
                 as: 'disuser',
                 attributes: ['companyName', 'type'],
-                required: true
+                // required: true
+            },
+            {
+                model: db.manufacturers,
+                as: 'manufacturer',
+                attributes: ['companyName'],
+                // required: true
             },
             {
                 model: db.address,
@@ -233,8 +240,8 @@ class RetailerService {
 
             const userResults = users.map(item => ({
                 id: item.id,
-                userType: item?.disuser[0]?.type || null,
-                userName: item?.disuser[0]?.companyName || item.userName,
+                userType: item?.disuser[0]?.type || 'Manufacturer',
+                userName: item?.disuser[0]?.companyName || item?.manufacturer[0]?.companyName || item?.userName,
                 address: item.addresss[0] || {}
             }));
 
@@ -892,9 +899,9 @@ class RetailerService {
             }
             // let skip = Page>1?(Page - 1) * Number(Limit):Limit
             // console.log(id, "checkCart")
-            const userData = await db.users.findOne({
+            const userDataa = await db.users.findOne({
                 where: { id: Number(distributorId) },
-                attributes: ['id', 'userName'],
+                attributes: ['id', 'userName', 'userType'],
                 include: [
                     {
                         model: db.distributors,
@@ -902,11 +909,22 @@ class RetailerService {
                         // attributes:['distributorId','companyName',"profilePic",''],
                     },
                     {
+                        model: db.manufacturers,
+                        as: "manufacturer"
+                    },
+                    {
                         model: db.address,
                         as: 'addresss',
                     }
                 ]
             })
+            const userData = {
+                "id": userDataa?.id,
+                "userName": userDataa?.userName,
+                "userType": userDataa?.userType,
+                "disuser": userDataa?.disuser.length > 0 ? userDataa?.disuser : userDataa?.manufacturer,
+                "addresss": userDataa?.addresss
+            }
             // const { rows: stocks, count } = await db.stocks.findAndCountAll({
             //     // attributes:[]
             //     where: {
@@ -930,36 +948,72 @@ class RetailerService {
                 },
                 group: ['PId', 'BatchNo'],
             })
-            const stocks = await db.stocks.findAll({
-                attributes: [
-                    // 'SId',
-                    'PId',
-                    'BatchNo',
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
-                    [db.Sequelize.fn('SUM', db.Sequelize.col('quantity')), 'quantity'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.MRP')), 'MRP'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTR')), 'PTR'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Scheme')), 'Scheme'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.BoxQty')), 'BoxQty'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Loose')), 'Loose'],
-                    [db.Sequelize.fn('SUM', db.Sequelize.col('Stock')), 'Stock'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('organisationId')), 'organisationId'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.entityId')), 'entityId'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.location')), 'location'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.createdAt')), 'createdAt'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.updatedAt')), 'updatedAt'],
-                    [db.Sequelize.fn('MAX', db.Sequelize.col('purchasedFrom')), 'purchasedFrom'],
-                ],
-                where: {
-                    ...whereCondition,
-                    Stock: { [db.Op.gt]: 0 }
-                },
-                include: [productInclude],
-                group: ['PId', 'BatchNo'],
-                offset: skip,
-                limit: Limit,
-            });
+            let stocks;
+            console.log(userData.userType)
+            if (userData?.userType === 'Distributor') {
+                 stocks = await db.stocks.findAll({
+                    attributes: [
+                        // 'SId',
+                        'PId',
+                        'BatchNo',
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('quantity')), 'quantity'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.MRP')), 'MRP'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.PTR')), 'PTR'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Scheme')), 'Scheme'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.BoxQty')), 'BoxQty'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.Loose')), 'Loose'],
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('Stock')), 'Stock'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('organisationId')), 'organisationId'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.entityId')), 'entityId'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.location')), 'location'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.createdAt')), 'createdAt'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('stocks.updatedAt')), 'updatedAt'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('purchasedFrom')), 'purchasedFrom'],
+                    ],
+                    where: {
+                        ...whereCondition,
+                        Stock: { [db.Op.gt]: 0 }
+                    },
+                    include: [productInclude],
+                    group: ['PId', 'BatchNo'],
+                    offset: skip,
+                    limit: Limit,
+                })
+            } else {
+                 stocks = await db.manufacturerStocks.findAll({
+                    attributes: [
+                        // 'SId',
+                        'PId',
+                        'BatchNo',
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('SId')), 'SId'],
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('quantity')), 'quantity'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('ExpDate')), 'ExpDate'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.MRP')), 'MRP'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.PTS')), 'PTS'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.Scheme')), 'Scheme'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.BoxQty')), 'BoxQty'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.Loose')), 'Loose'],
+                        [db.Sequelize.fn('SUM', db.Sequelize.col('Stock')), 'Stock'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('organisationId')), 'organisationId'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.entityId')), 'entityId'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.location')), 'location'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.createdAt')), 'createdAt'],
+                        [db.Sequelize.fn('MAX', db.Sequelize.col('manufacturer_stocks.updatedAt')), 'updatedAt'],
+                        // [db.Sequelize.fn('MAX', db.Sequelize.col('purchasedFrom')), 'purchasedFrom'],
+                    ],
+                    where: {
+                        ...whereCondition,
+                        Stock: { [db.Op.gt]: 0 }
+                    },
+                    include: [productInclude],
+                    group: ['PId', 'BatchNo'],
+                    offset: skip,
+                    limit: Limit,
+                })
+            }
+
 
             const updatedApiData = stocks.map(item => {
                 const match = checkCart?.find(cart => cart.stockId === item.SId && cart.PId === item.PId);
@@ -972,7 +1026,7 @@ class RetailerService {
                     "BatchNo": item?.BatchNo,
                     "ExpDate": item?.ExpDate,
                     "MRP": item?.MRP,
-                    "PTR": item?.PTR,
+                    "PTR":userData?.userType === 'Distributor'? item?.PTR :item?.PTS ,
                     // "PTS": item?.PTS,
                     "Scheme": item?.Scheme,
                     "BoxQty": item?.BoxQty,
@@ -983,7 +1037,7 @@ class RetailerService {
                     "location": item?.location,
                     "createdAt": item?.createdAt,
                     "updatedAt": item?.updatedAt,
-                    "purchasedFrom": item?.purchasedFrom,
+                    "purchasedFrom": item?.purchasedFrom || null,
                     "quantity": match ? match.quantity : 0,
                     "product": {
                         "PId": item?.product?.PId,
