@@ -919,12 +919,16 @@ class RetailerService {
                 ]
             })
             const userData = {
-                "id": userDataa?.id,
-                "userName": userDataa?.userName,
-                "userType": 'Distributor',
-                "disuser": userDataa?.disuser.length > 0 ? userDataa?.disuser : userDataa?.manufacturer,
-                "addresss": userDataa?.addresss
-            }
+                id: userDataa?.id,
+                userName: userDataa?.userName,
+                userType: 'Distributor',
+                disuser: (userDataa?.disuser.length > 0 ? userDataa.disuser : userDataa.manufacturer)?.map(item => ({
+                    ...item,
+                    distributorId: userDataa?.id
+                })),
+                addresss: userDataa?.addresss
+            };
+
             // const { rows: stocks, count } = await db.stocks.findAndCountAll({
             //     // attributes:[]
             //     where: {
@@ -941,11 +945,11 @@ class RetailerService {
             //     offset: skip,
             //     limit: Limit,
             // })
-            let count=0
+            let count = 0
             let stocks;
             console.log(userData.userType)
             if (userDataa?.userType === 'Distributor') {
-                 stocks = await db.stocks.findAll({
+                stocks = await db.stocks.findAll({
                     attributes: [
                         // 'SId',
                         'PId',
@@ -976,14 +980,14 @@ class RetailerService {
                     limit: Limit,
                 })
                 count = await db.stocks.count({
-                where: {
-                    ...whereCondition,
-                    Stock: { [db.Op.gt]: 0 }
-                },
-                group: ['PId', 'BatchNo'],
-            })
+                    where: {
+                        ...whereCondition,
+                        Stock: { [db.Op.gt]: 0 }
+                    },
+                    group: ['PId', 'BatchNo'],
+                })
             } else {
-                 stocks = await db.manufacturerStocks.findAll({
+                stocks = await db.manufacturerStocks.findAll({
                     attributes: [
                         // 'SId',
                         'PId',
@@ -1014,12 +1018,12 @@ class RetailerService {
                     limit: Limit,
                 })
                 count = await db.manufacturerStocks.count({
-                where: {
-                    ...whereCondition,
-                    Stock: { [db.Op.gt]: 0 }
-                },
-                group: ['PId', 'BatchNo'],
-            })
+                    where: {
+                        ...whereCondition,
+                        Stock: { [db.Op.gt]: 0 }
+                    },
+                    group: ['PId', 'BatchNo'],
+                })
             }
 
 
@@ -1034,7 +1038,7 @@ class RetailerService {
                     "BatchNo": item?.BatchNo,
                     "ExpDate": item?.ExpDate,
                     "MRP": item?.MRP,
-                    "PTR":userData?.userType === 'Distributor'? item?.PTR :item?.PTS ,
+                    "PTR": userData?.userType === 'Distributor' ? item?.PTR : item?.PTS,
                     // "PTS": item?.PTS,
                     "Scheme": item?.Scheme,
                     "BoxQty": item?.BoxQty,
