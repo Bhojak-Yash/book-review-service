@@ -35,6 +35,21 @@ exports.create_party = async (req,res) => {
         return res.status(500).json({ status:message.code500,message: error.message });
       }
 };
+exports.check_party = async (req,res) => {
+    try {
+        const data = {...req.user}
+        const sales = await SalesService.check_party(data,req.body);
+    
+        // if (!distributor) {
+          return res.status(sales?.status || 200).json(sales);
+        // }
+    
+        // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+      } catch (error) {
+        console.error("Error fetching check_party:", error);
+        return res.status(500).json({ status:message.code500,message: error.message });
+      }
+};
 
 exports.get_party_list = async (req,res) => {
     try {

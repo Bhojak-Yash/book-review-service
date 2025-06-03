@@ -124,6 +124,31 @@ class SalesService {
         }
     }
 
+    async check_party(data,party){
+           let { id, userType } = data
+            if (userType === "Employee") {
+                // console.log(';;;;;;;;;;;;')
+                id = data?.data?.employeeOf;
+            }
+            const {phone} = party
+            const check = await db.partyList.findOne({
+                where:{organisationId:Number(id),phone:Number(phone)}
+            })
+            if(check){
+                return {
+                    status:message.code200,
+                    message:'party already exist.',
+                    apiData:check
+                }
+            }else{
+                 return {
+                    status:message.code400,
+                    message:'No party found with this number',
+                    // apiData:check
+                }
+            }
+    }
+
     async get_party_list(data) {
         try {
             let { id, userType } = data
