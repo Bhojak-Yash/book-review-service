@@ -768,12 +768,12 @@ class DistributorService {
                     raw: true
                 });
 
-                if(Number(role.ownerId!==Number(checkId))){
-                    return {
-                        status:message.code400,
-                        message:message.message400
-                    }
-                }
+                // if(Number(role.ownerId!==Number(checkId))){
+                //     return {
+                //         status:message.code400,
+                //         message:message.message400
+                //     }
+                // }
                 roleName = role?.roleName || null;
 
                 const mappings = await db.modulemappings.findAll({
