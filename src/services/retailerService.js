@@ -941,13 +941,7 @@ class RetailerService {
             //     offset: skip,
             //     limit: Limit,
             // })
-            const count = await db.stocks.count({
-                where: {
-                    ...whereCondition,
-                    Stock: { [db.Op.gt]: 0 }
-                },
-                group: ['PId', 'BatchNo'],
-            })
+            let count=0
             let stocks;
             console.log(userData.userType)
             if (userData?.userType === 'Distributor') {
@@ -981,6 +975,13 @@ class RetailerService {
                     offset: skip,
                     limit: Limit,
                 })
+                count = await db.stocks.count({
+                where: {
+                    ...whereCondition,
+                    Stock: { [db.Op.gt]: 0 }
+                },
+                group: ['PId', 'BatchNo'],
+            })
             } else {
                  stocks = await db.manufacturerStocks.findAll({
                     attributes: [
@@ -1012,6 +1013,13 @@ class RetailerService {
                     offset: skip,
                     limit: Limit,
                 })
+                count = await db.manufacturerStocks.count({
+                where: {
+                    ...whereCondition,
+                    Stock: { [db.Op.gt]: 0 }
+                },
+                group: ['PId', 'BatchNo'],
+            })
             }
 
 
