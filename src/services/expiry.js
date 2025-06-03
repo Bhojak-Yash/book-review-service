@@ -1006,7 +1006,7 @@ class expiryService {
             }
             const Data = await db.returnHeader.findOne({
                 attributes: ['returnId', 'returnDate', 'returnFrom', 'returnTo', 'returnStatus'],
-                where: { returnId: Number(returnId) },
+                where: { returnId: Number(returnId),returnTo:Number(id) },
                 include: [
                     {
                         model: db.returnDetails,
