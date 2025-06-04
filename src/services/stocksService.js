@@ -16,7 +16,7 @@ class StocksService {
   }
 
   async addStock(organisationId, stocksData, data) {
-    
+
     console.log("pehle", organisationId);
 
     if (data?.userType === "Employee") {
@@ -27,13 +27,13 @@ class StocksService {
     console.log("baad me", organisationId);
     console.log(stocksData);
 
-    console.log(stocksData,'gfhjkl',organisationId)
+    console.log(stocksData, 'gfhjkl', organisationId)
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
     let check;
-    if(userData?.userType === 'Manufacturer' ){
-     check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId } })
-    }else{
+    if (userData?.userType === 'Manufacturer') {
+      check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId } })
+    } else {
       check = await tableName.findOne({ where: { PId: stocksData.PId, BatchNo: stocksData.BatchNo, organisationId: organisationId, purchasedFrom: stocksData.purchasedFrom } })
     }
     if (check) {
@@ -51,7 +51,7 @@ class StocksService {
         Stock: updatedStock // Update stock in the returned object
       };
     }
-    if(userData?.userType === 'Manufacturer'){
+    if (userData?.userType === 'Manufacturer') {
       return await tableName.create({
         PId: stocksData.PId,
         BatchNo: stocksData.BatchNo,
@@ -70,7 +70,7 @@ class StocksService {
         CreatedAt: new Date(),
         UpdatedAt: new Date(),
       });
-    }else{
+    } else {
       return await tableName.create({
         PId: stocksData.PId,
         BatchNo: stocksData.BatchNo,
@@ -93,7 +93,7 @@ class StocksService {
   }
 
   async updateStock(SId, organisationId, stockData, data) {
-      
+
     console.log("pehle", organisationId);
 
     if (data?.userType === "Employee") {
@@ -103,7 +103,7 @@ class StocksService {
     }
     console.log("baad me", organisationId);
     console.log(stockData);
-    
+
     const userData = await db.users.findOne({ where: { id: Number(organisationId) } })
     const tableName = userData?.userType === 'Manufacturer' ? db.manufacturerStocks : db.stocks;
     const existingStock = await tableName.findOne({
@@ -137,7 +137,7 @@ class StocksService {
     const { entityId, page, limit, expStatus, search, stockStatus } = data;
     let manufacturerId = data?.manufacturerId
     console.log(manufacturerId);
-    if(data?.userType === "Employee"){
+    if (data?.userType === "Employee") {
       manufacturerId = data?.data?.employeeOf
     }
     console.log(data)
@@ -145,7 +145,15 @@ class StocksService {
     let Limit = limit || 10;
     const lowStockDays = Number(process.env.lowStockDays)
     // console.log(nearToExpDate)
-    let whereCondition = { organisationId: Number(manufacturerId), locked: false};
+    let whereCondition = { organisationId: Number(manufacturerId), locked: false };
+    let includeTable = [
+        {
+          model: db.manufacturerStocks,
+          as: "stockss", 
+          required: false,
+          where: whereCondition
+        },
+      ]
     if (entityId) {
       whereCondition.entityId = Number(entityId);
     }
@@ -181,36 +189,21 @@ class StocksService {
         };
       }
     }
+ const aboutToEmpty = Number(process.env.aboutToEmpty || 10);
+    if (stockStatus === "outOfStock") {
+      whereCondition.Stock = { [db.Sequelize.Op.ne]: null, [db.Sequelize.Op.lte]: 0 };
+    } else if (stockStatus === "aboutEmpty") {
+      whereCondition.Stock = {  [db.Sequelize.Op.ne]: null,[db.Sequelize.Op.gt]: 0, [db.Sequelize.Op.lt]: aboutToEmpty };
+    } else if (stockStatus === "upToDate") {
+      whereCondition.Stock = {  [db.Sequelize.Op.ne]: null,[db.Sequelize.Op.gte]: aboutToEmpty };
+    }
 
 
 
     let skip = (Page - 1) * Number(Limit);
 
-    // let stocks = await db.stocks.findAll({
-    //   include: [
-    //     {
-    //       model: db.products,
-    //       as: "product",
-    //       attributes: ["PId", "PCode", "PName", "PackagingDetails", "SaltComposition", "LOCKED"],
-    //       where: search
-    //                 ? {
-    //                     [db.Sequelize.Op.or]: [
-    //                         { PCode: { [db.Sequelize.Op.like]: `%${search}%` } },
-    //                         { PName: { [db.Sequelize.Op.like]: `%${search}%` } },
-    //                         { SaltComposition: { [db.Sequelize.Op.like]: `%${search}%` } },
-    //                     ],
-    //                 }
-    //                 : undefined,
-    //     },
-    //   ],
-    //   where: whereCondition,
-    //   offset: skip,
-    //   limit: Number(Limit),
-    // })
-
     const { Sequelize, Op } = db;
 
-    // Step 1: Fetch the total stock sum for each PId
     const stockSums = await db.manufacturerStocks.findAll({
       attributes: [
         "PId",
@@ -223,41 +216,28 @@ class StocksService {
           as: "product",
           // attributes: [],
           where: {
-            ...search?{
+            ...search ? {
               [Op.or]: [
                 { PCode: { [Op.like]: `%${search}%` } },
                 { PName: { [Op.like]: `%${search}%` } },
                 { SaltComposition: { [Op.like]: `%${search}%` } },
               ],
             }
-            : undefined,
+              : undefined,
           },
         },
       ],
       group: ["PId"],
       raw: true,
     });
-    // const test = db.products.findAll({
-    //   where: search
-    //   ? {
-    //       [Op.or]: [
-    //         { PCode: { [Op.like]: `%${search}%` } },
-    //         { PName: { [Op.like]: `%${search}%` } },
-    //         { SaltComposition: { [Op.like]: `%${search}%` } },
-    //       ],
-    //     }
-    //   : undefined,
-    // })
 
-    // Convert the result into a lookup object
     const stockSumMap = stockSums.reduce((acc, item) => {
-      acc[item.PId] = parseFloat(item.sumOfStocks); // Ensure numeric value
+      acc[item.PId] = parseFloat(item.sumOfStocks); 
       return acc;
     }, {});
 
-    // Step 2: Apply stockStatus filtering
-    let filteredPIds = [];
 
+    let filteredPIds = [];
     if (stockStatus) {
       filteredPIds = Object.keys(stockSumMap).filter((PId) => {
         const sum = stockSumMap[PId];
@@ -270,41 +250,17 @@ class StocksService {
       });
     }
 
-    // Step 3: Fetch the paginated stock data
-    // const {rows:stocks,count} = await db.stocks.findAndCountAll({
-    //   include: [
-    //     {
-    //       model: db.products,
-    //       as: "product",
-    //       attributes: [
-    //         "PId",
-    //         "PCode",
-    //         "PName",
-    //         "PackagingDetails",
-    //         "SaltComposition",
-    //         "LOCKED",
-    //       ],
-    //       where: search
-    //         ? {
-    //             [Op.or]: [
-    //               { PCode: { [Op.like]: `%${search}%` } },
-    //               { PName: { [Op.like]: `%${search}%` } },
-    //               { SaltComposition: { [Op.like]: `%${search}%` } },
-    //             ],
-    //           }
-    //         : undefined,
-    //     },
-    //   ],
-    //   where: {
-    //     ...whereCondition,
-    //     ...(filteredPIds.length > 0 && { PId: { [Op.in]: filteredPIds } }), // Apply stockStatus filter
-    //   },
-    //   offset: skip,
-    //   limit: Number(Limit),
-    //   raw: true,
-    //   nest: true,
-    // })
-    // console.log(whereCondition)
+    if(expStatus || stockStatus){
+      includeTable=[
+        {
+          model: db.manufacturerStocks,
+          as: "stockss", 
+          required: true,
+          where: whereCondition
+        },
+      ]
+    }
+
     const { rows: stocks, count } = await db.products.findAndCountAll({
       attributes: [
         "PId",
@@ -315,14 +271,7 @@ class StocksService {
         "LOCKED",
         "manufacturerId"
       ],
-      include: [
-        {
-          model: db.manufacturerStocks,
-          as: "stockss", // Adjust alias as per your association
-          required: false, // LEFT JOIN: include products even if stock is not available
-          where: whereCondition
-        },
-      ],
+      include: includeTable,
       where: {
         manufacturerId: manufacturerId,
         ...(search
@@ -430,7 +379,7 @@ class StocksService {
 
       // Calculate the difference in days
       const diffDays = Math.floor((expDate - today) / (1000 * 60 * 60 * 24));
-// console.log(diffDays,lowStockDays,'pppppppppp')
+      // console.log(diffDays,lowStockDays,'pppppppppp')
       let expStatus;
       if (diffDays < 0) {
         expStatus = "expired";
@@ -513,65 +462,65 @@ class StocksService {
     try {
       let distributorId = data.distributorId
       console.log(data);
-      if(data?.userType === "Employee"){
+      if (data?.userType === "Employee") {
         distributorId = data?.data?.employeeOf
       }
       console.log(distributorId);
       const aboutToEmpty = Number(process.env.aboutToEmpty)
       const nearToExpDate = Number(process.env.lowStockDays)
-    //   const authRecords = await db.authorizations.findAll({
-    //     where: {
-    //         authorizedId: Number(distributorId),
-    //         // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
-    //     },
-    //     attributes: ['authorizedBy'],
-    // });
+      //   const authRecords = await db.authorizations.findAll({
+      //     where: {
+      //         authorizedId: Number(distributorId),
+      //         // status: { [db.Sequelize.Op.in]: ['Approved', 'Not Send'] },
+      //     },
+      //     attributes: ['authorizedBy'],
+      // });
 
-    // // console.log(authRecords)
-    // const authorizedBy = authRecords?.map(a => a.authorizedBy);
-    // console.log(authorizedBy)
-    // const result = await db.products.findOne({
-    //   attributes: [
-    //     [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
-    //     [
-    //       db.sequelize.fn(
-    //         "SUM",
-    //         db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
-    //       ),
-    //       "unlockedProducts"
-    //     ]
-    //   ],
-    //   where: {manufacturerId:{[db.Op.in]:authorizedBy}},
-    //   raw: true
-    // })
-    const sss = await db.stocks.findAll({
-      attributes: [
-        'PId',
-        [db.sequelize.fn('COUNT', db.sequelize.col('PId')), 'totalProducts'],
-        [
-          db.sequelize.fn(
-            'SUM',
-            db.sequelize.literal('CASE WHEN locked = false THEN 1 ELSE 0 END')
-          ),
-          'unlockedProducts'
-        ]
-      ],
-      where: {
-        organisationId: Number(distributorId)
-      },
-      group: ['PId'],
-      raw: true
-    });
+      // // console.log(authRecords)
+      // const authorizedBy = authRecords?.map(a => a.authorizedBy);
+      // console.log(authorizedBy)
+      // const result = await db.products.findOne({
+      //   attributes: [
+      //     [db.sequelize.fn("COUNT", db.sequelize.col("PId")), "totalProducts"],
+      //     [
+      //       db.sequelize.fn(
+      //         "SUM",
+      //         db.sequelize.literal("CASE WHEN LOCKED = false THEN 1 ELSE 0 END")
+      //       ),
+      //       "unlockedProducts"
+      //     ]
+      //   ],
+      //   where: {manufacturerId:{[db.Op.in]:authorizedBy}},
+      //   raw: true
+      // })
+      const sss = await db.stocks.findAll({
+        attributes: [
+          'PId',
+          [db.sequelize.fn('COUNT', db.sequelize.col('PId')), 'totalProducts'],
+          [
+            db.sequelize.fn(
+              'SUM',
+              db.sequelize.literal('CASE WHEN locked = false THEN 1 ELSE 0 END')
+            ),
+            'unlockedProducts'
+          ]
+        ],
+        where: {
+          organisationId: Number(distributorId)
+        },
+        group: ['PId'],
+        raw: true
+      });
 
-    const result = sss?.reduce(
-      (acc, item) => {
-        acc.totalProducts += Number(item.totalProducts);
-        acc.unlockedProducts += Number(item.unlockedProducts);
-        return acc;
-      },
-      { totalProducts: 0, unlockedProducts: 0 }
-    );
-    
+      const result = sss?.reduce(
+        (acc, item) => {
+          acc.totalProducts += Number(item.totalProducts);
+          acc.unlockedProducts += Number(item.unlockedProducts);
+          return acc;
+        },
+        { totalProducts: 0, unlockedProducts: 0 }
+      );
+
       const today = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
 
       const results = await db.stocks.findOne({
@@ -591,7 +540,7 @@ class StocksService {
 
 
       return {
-         ...results,...result
+        ...results, ...result
       }
     } catch (error) {
       console.log('getManufacturerStockSummary error:', error.message)
@@ -708,7 +657,7 @@ class StocksService {
           return true; // Default case if no status matches
         });
       }
-// console.log(whereCondition)
+      // console.log(whereCondition)
       // Step 3: Fetch the paginated stock data
       const { rows: stocks, count } = await db.products.findAndCountAll({
         attributes: [

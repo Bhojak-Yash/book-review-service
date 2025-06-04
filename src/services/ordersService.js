@@ -342,6 +342,15 @@ class OrdersService {
         //   title: "Purchase Order: Confirmed",
         //   description: `Your purchase order has been confirmed for orderId ${orderId}.`
         // })
+
+        if (updates?.advance > 0) {
+          await notificationsService.createNotification({
+            organisationId: order.orderFrom,
+            category: "PO Status update",
+            title: "Purchase Order: Advance Payment Requested",
+            description: `Your purchase order has been confirmed (Order ID: ${orderId}). An advance payment of ₹${updates.advance} is requested.`,
+          });
+        }
       }
       if (updates.orderStatus === "Rejected") {
         if (order?.cnId) {
@@ -1467,8 +1476,10 @@ class OrdersService {
   async getAddressDetails(data) {
     try {
       let userId = data?.id
+      let usercheck = data?.userType
       if (data?.userType === "Employee") {
         userId = data?.data?.employeeOf
+        usercheck = data?.empOfType
       }
       console.log(userId);
       const addresses = await db.address.findAll({
@@ -1488,10 +1499,20 @@ class OrdersService {
           businessAddress = address;
         }
       });
-
+      let userss;
+      if (usercheck == 'Distributor') {
+        userss = await db.distributors.findOne({ attributes: ['PAN', 'GST'], where: { distributorId: Number(userId) } })
+      } else if (usercheck == 'Retailer') {
+        userss = await db.retailers.findOne({ attributes: ['PAN', 'GST'], where: { retailerId: Number(userId) } })
+      } else {
+        userss = await db.manufacturers.findOne({ attributes: ['PAN', 'GST'], where: { manufacturerId: Number(userId) } })
+      }
+      // console.log(userss,usercheck)
       return {
         success: true,
         data: {
+          PAN: userss?.dataValues?.PAN || null,
+          GST: userss?.dataValues?.GST || null,
           billingAddress,
           businessAddress
         }
