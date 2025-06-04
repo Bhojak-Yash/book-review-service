@@ -768,12 +768,13 @@ class DistributorService {
                     raw: true
                 });
 
-                // if(Number(role.ownerId!==Number(checkId))){
-                //     return {
-                //         status:message.code400,
-                //         message:message.message400
-                //     }
-                // }
+                // console.log(role,checkId)
+                if(Number(role?.ownerId!==Number(checkId))){
+                    return {
+                        status:message.code400,
+                        message:message.message400
+                    }
+                }
                 roleName = role?.roleName || null;
 
                 const mappings = await db.modulemappings.findAll({
@@ -1328,10 +1329,14 @@ class DistributorService {
         }
     }
     
-    async getEmployeeById(employeeId) {
+    async getEmployeeById(params,user) {
         try {
+             let {id,userType} = user;
+            if (userType === "Employee") {
+                id = user?.employeeOf;
+            }
             const employee = await db.employees.findOne({
-                where: { employeeId },
+                where: { employeeId:Number(params.id),employeeOf:Number(id) },
                 attributes: [
                     'employeeId',
                     'employeeCode',

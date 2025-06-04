@@ -199,8 +199,9 @@ exports.getEmployeeStats = async (req, res) => {
 
 exports.getEmployeeById = async (req, res) => {
     try {
-        const { id } = req.params;
-        const employee = await empManagement_Service.getEmployeeById(id);
+        const params  = req.params;
+        const user = req.user
+        const employee = await empManagement_Service.getEmployeeById(params,user);
 
         if (!employee) {
             return res.status(404).json({ status: 404, message: "Employee not found" });
