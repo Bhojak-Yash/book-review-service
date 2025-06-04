@@ -722,6 +722,18 @@ class expiryService {
                 ]
             }
 
+            if (startDate && endDate) {
+                const startDateParts = startDate.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
+                const endDateParts = endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`; // "2025-09-02 00:00:00"
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`; // "2025-09-02 23:59:59"
+
+                whereClause.returnDate = {
+                    [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
+            }
+
             // Optional date range filter
             if (startDate && endDate) {
                 andConditions.push({
@@ -835,6 +847,18 @@ class expiryService {
                     { '$returnToUser.companyName$': { [Op.like]: `%${search}%` } },
                     { '$returnToMan.companyName$': { [Op.like]: `%${search}%` } },
                 ];
+            }
+
+             if (startDate && endDate) {
+                const startDateParts = startDate.split('-'); // Split "02-09-2025" -> ["02", "09", "2025"]
+                const endDateParts = endDate.split('-');
+
+                const formattedStartDate = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]} 00:00:00`; // "2025-09-02 00:00:00"
+                const formattedEndDate = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]} 23:59:59`; // "2025-09-02 23:59:59"
+
+                whereClause.returnDate = {
+                    [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)]
+                };
             }
 
             console.log(whereClause)
