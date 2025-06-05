@@ -39,12 +39,12 @@ class SalesService {
                             where: whereCondition,
                             required: true,
                             include: [
-                            {
-                                model: db.manufacturers,
-                                as: "manufacturer",
-                                attributes: ['manufacturerId', 'companyName'],
-                            }
-                        ]
+                                {
+                                    model: db.manufacturers,
+                                    as: "manufacturer",
+                                    attributes: ['manufacturerId', 'companyName'],
+                                }
+                            ]
                         }
                     ],
                     offset: Skip,
@@ -69,12 +69,12 @@ class SalesService {
                             where: whereCondition,
                             required: true,
                             include: [
-                            {
-                                model: db.manufacturers,
-                                as: "manufacturer",
-                                attributes: ['manufacturerId', 'companyName'],
-                            }
-                        ]
+                                {
+                                    model: db.manufacturers,
+                                    as: "manufacturer",
+                                    attributes: ['manufacturerId', 'companyName'],
+                                }
+                            ]
                         }
                     ],
                     offset: Skip,
@@ -138,29 +138,29 @@ class SalesService {
         }
     }
 
-    async check_party(data,party){
-           let { id, userType } = data
-            if (userType === "Employee") {
-                // console.log(';;;;;;;;;;;;')
-                id = data?.data?.employeeOf;
+    async check_party(data, party) {
+        let { id, userType } = data
+        if (userType === "Employee") {
+            // console.log(';;;;;;;;;;;;')
+            id = data?.data?.employeeOf;
+        }
+        const { phone } = party
+        const check = await db.partyList.findOne({
+            where: { organisationId: Number(id), phone: Number(phone) }
+        })
+        if (check) {
+            return {
+                status: message.code200,
+                message: 'party already exist.',
+                apiData: check
             }
-            const {phone} = party
-            const check = await db.partyList.findOne({
-                where:{organisationId:Number(id),phone:Number(phone)}
-            })
-            if(check){
-                return {
-                    status:message.code200,
-                    message:'party already exist.',
-                    apiData:check
-                }
-            }else{
-                 return {
-                    status:message.code400,
-                    message:'No party found with this number',
-                    // apiData:check
-                }
+        } else {
+            return {
+                status: message.code400,
+                message: 'No party found with this number',
+                // apiData:check
             }
+        }
     }
 
     async get_party_list(data) {
@@ -220,6 +220,43 @@ class SalesService {
                 id = data?.data?.employeeOf;
             }
             // console.log(sales)
+            let userData = await db.users.findOne(
+                    {
+                        where: { id: Number(id) },
+                        attributes: ['id'],
+                        include: [
+                            {
+                                model:db.manufacturers,
+                                as:"manufacturer",
+                                attributes: ['manufacturerId', 'manufacturerCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'fssaiLicense', 'drugLicense'],
+                            },
+                            {
+                                model:db.distributors,
+                                as:'disuser',
+                                attributes: ['distributorId', 'distributorCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'FSSAI', 'wholeSaleDrugLicence'],
+                            },
+                            {
+                                model:db.address,
+                                as:'addresss',
+                                where:{"addressType":'Billing'},
+                                attributes:['State','city','userId','addressId']
+                            }
+                        ]
+                    }
+                )
+                let returnUser = {
+                    id:userData?.id,
+                    userCode:userData?.disuser.length>0?userData?.disuser[0]?.distributorCode:userData?.manufacturer[0]?.manufacturerId,
+                    email:userData?.disuser.length>0?userData?.disuser[0]?.email:userData?.manufacturer[0]?.email,
+                    phone:userData?.disuser.length>0?userData?.disuser[0]?.phone:userData?.manufacturer[0]?.phone,
+                    companyName:userData?.disuser.length>0?userData?.disuser[0]?.companyName:userData?.manufacturer[0]?.companyName,
+                    PAN:userData?.disuser.length>0?userData?.disuser[0]?.PAN:userData?.manufacturer[0]?.PAN,
+                    GST:userData?.disuser.length>0?userData?.disuser[0]?.GST:userData?.manufacturer[0]?.GST,
+                    FSSAI:userData?.disuser.length>0?userData?.disuser[0]?.FSSAI:userData?.manufacturer[0]?.fssaiLicense,
+                    drugLicense:userData?.disuser.length>0?userData?.disuser[0]?.wholeSaleDrugLicence:userData?.manufacturer[0]?.drugLicense,
+                    state:userData?.addresss[0]?.State,
+                    city:userData?.addresss[0]?.city
+                }
             const salesData = await db.salesHeader.create(
                 {
                     date: sales?.order?.date || null,
@@ -236,11 +273,11 @@ class SalesService {
                     paymentMode: sales?.order?.paymentMode || null,
                     orderStatus: sales?.order?.orderStatus || null,
                     inv_url: sales?.order?.inv_url || null,
-                    deliveryType:sales?.order?.deliveryType || null,
-                    deliveryDate:sales?.order?.deliveryDate || null,
-                    extraDiscountValue:sales?.order?.extraDiscountValue || null,
-                    extraDiscountPercent:sales?.order?.extraDiscountPercent || null,
-                    advance:sales?.order?.advance || null
+                    deliveryType: sales?.order?.deliveryType || null,
+                    deliveryDate: sales?.order?.deliveryDate || null,
+                    extraDiscountValue: sales?.order?.extraDiscountValue || null,
+                    extraDiscountPercent: sales?.order?.extraDiscountPercent || null,
+                    advance: sales?.order?.advance || null
                 }
             )
             const salesDetailsData = sales?.items?.map((item) => {
@@ -255,14 +292,23 @@ class SalesService {
                     "CGST": item?.CGST,
                     "IGST": item?.IGST,
                     "amount": item?.amount,
-                    "scheme":item?.Scheme
+                    "scheme": item?.Scheme
                 }
             })
             const salesDetails = await db.salesDetails.bulkCreate(salesDetailsData)
+            function generateBillNumber(firmName, id) {
+                const firstLetter = firmName.trim().charAt(0).toUpperCase();
+                const date = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+                return `${firstLetter}/${date}/${id}`;
+            }
+            const billNumber = generateBillNumber(returnUser?.companyName, salesData?.id);
+            await db.salesHeader.update({invNo:billNumber},{where:{id:salesData.id}})
+            salesData.invNo = billNumber
             return {
                 status: message.code200,
                 message: 'Sales created',
-                apiData: salesData
+                apiData: salesData,
+                user:returnUser
             }
         } catch (error) {
             console.log('create_sales service error:', error.message)
@@ -342,7 +388,7 @@ class SalesService {
     async sales_details(data) {
         try {
             const { id, userType, salesId } = data
-             let usercheckType = userType
+            let usercheckType = userType
             if (userType === "Employee") {
                 // console.log(';;;;;;;;;;;;')
                 id = data?.data?.employeeOf;
@@ -363,8 +409,8 @@ class SalesService {
                                 required: true
                             },
                             {
-                                model: usercheckType=='Manufacturer'? db.manufacturerStocks :db.stocks,
-                                as: usercheckType=='Manufacturer'? 'salesStock': 'stockssales',
+                                model: usercheckType == 'Manufacturer' ? db.manufacturerStocks : db.stocks,
+                                as: usercheckType == 'Manufacturer' ? 'salesStock' : 'stockssales',
                                 required: true
                             }
                         ]
@@ -386,13 +432,13 @@ class SalesService {
     }
 
     async update_sales(data) {
-         try {
-             const { id, userType, salesId,inv_url } = data
+        try {
+            const { id, userType, salesId, inv_url } = data
             if (userType === "Employee") {
                 // console.log(';;;;;;;;;;;;')
                 id = data?.data?.employeeOf;
             }
-             if (!salesId || !inv_url) {
+            if (!salesId || !inv_url) {
                 return {
                     status: message.code400,
                     message: 'Invalid Input'
@@ -403,13 +449,13 @@ class SalesService {
                 status: message.code200,
                 message: 'Invoice craeted successfully'
             }
-         } catch (error) {
-            console.log('update_sales service error:',error.message)
+        } catch (error) {
+            console.log('update_sales service error:', error.message)
             return {
-                status:message.code500,
-                message:error.message
+                status: message.code500,
+                message: error.message
             }
-         }
+        }
     }
 
 }

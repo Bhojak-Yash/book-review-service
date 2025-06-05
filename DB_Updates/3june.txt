@@ -1,5 +1,6 @@
 CREATE TABLE `sales_header` (
   `id` INT NOT NULL AUTO_INCREMENT,
+   `invNo` VARCHAR(255) DEFAULT NULL,
   `date` DATETIME DEFAULT NULL,
   `partyId` INT DEFAULT NULL,
   `address` VARCHAR(255) DEFAULT NULL,
@@ -46,6 +47,8 @@ CREATE TABLE `sales_details` (
 CREATE TABLE `partyList` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `companyName` VARCHAR(255) NOT NULL,
+  `State` VARCHAR(255) NOT NULL,
+  `city` VARCHAR(255) NOT NULL,
   `ownerName` VARCHAR(255) DEFAULT NULL,
   `profilePic` VARCHAR(255) DEFAULT NULL,
   `address` VARCHAR(255) NOT NULL,

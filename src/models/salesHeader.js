@@ -6,6 +6,9 @@ module.exports =(sequelize,Sequelize)=>{
             autoIncrement: true,
             allowNull: false
         },
+        "invNo":{
+            type:Sequelize.STRING
+        },
         "date":{
             type:Sequelize.DATE
         },

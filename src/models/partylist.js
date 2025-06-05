@@ -64,6 +64,12 @@ module.exports =(sequelize,Sequelize)=>{
         "organisationId":{
             type:Sequelize.BIGINT,
             required:true
+        },
+        "State":{
+            type:Sequelize.STRING
+        },
+        "city":{
+            type:Sequelize.STRING
         }
     },
     {
