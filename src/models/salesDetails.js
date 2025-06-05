@@ -35,6 +35,9 @@ module.exports =(sequelize,Sequelize)=>{
         },
         "amount":{
             type:Sequelize.DECIMAL
+        },
+        "scheme":{
+            type:Sequelize.STRING
         }
     },
 

@@ -10,6 +10,7 @@ router.get('/get-party-list',verifyToken,salesc.get_party_list)
 router.post('/create-sales',verifyToken,salesc.create_sales)
 router.get('/get-sales',verifyToken,salesc.get_sales)
 router.get('/sales-details',verifyToken,salesc.sales_details)
+router.post('/update-sales',verifyToken,salesc.update_sales)
 
 
 module.exports =router

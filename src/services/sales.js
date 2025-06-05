@@ -37,7 +37,14 @@ class SalesService {
                             model: db.products,
                             as: 'product',
                             where: whereCondition,
-                            required: true
+                            required: true,
+                            include: [
+                            {
+                                model: db.manufacturers,
+                                as: "manufacturer",
+                                attributes: ['manufacturerId', 'companyName'],
+                            }
+                        ]
                         }
                     ],
                     offset: Skip,
@@ -60,7 +67,14 @@ class SalesService {
                             model: db.products,
                             as: 'product',
                             where: whereCondition,
-                            required: true
+                            required: true,
+                            include: [
+                            {
+                                model: db.manufacturers,
+                                as: "manufacturer",
+                                attributes: ['manufacturerId', 'companyName'],
+                            }
+                        ]
                         }
                     ],
                     offset: Skip,
@@ -221,7 +235,12 @@ class SalesService {
                     organisationId: id,
                     paymentMode: sales?.order?.paymentMode || null,
                     orderStatus: sales?.order?.orderStatus || null,
-                    inv_url: sales?.order?.inv_url || null
+                    inv_url: sales?.order?.inv_url || null,
+                    deliveryType:sales?.order?.deliveryType || null,
+                    deliveryDate:sales?.order?.deliveryDate || null,
+                    extraDiscountValue:sales?.order?.extraDiscountValue || null,
+                    extraDiscountPercent:sales?.order?.extraDiscountPercent || null,
+                    advance:sales?.order?.advance || null
                 }
             )
             const salesDetailsData = sales?.items?.map((item) => {
@@ -235,7 +254,8 @@ class SalesService {
                     "SGST": item?.SGST,
                     "CGST": item?.CGST,
                     "IGST": item?.IGST,
-                    "amount": item?.amount
+                    "amount": item?.amount,
+                    "scheme":item?.Scheme
                 }
             })
             const salesDetails = await db.salesDetails.bulkCreate(salesDetailsData)
@@ -363,6 +383,33 @@ class SalesService {
                 message: error.message
             }
         }
+    }
+
+    async update_sales(data) {
+         try {
+             const { id, userType, salesId,inv_url } = data
+            if (userType === "Employee") {
+                // console.log(';;;;;;;;;;;;')
+                id = data?.data?.employeeOf;
+            }
+             if (!salesId || !inv_url) {
+                return {
+                    status: message.code400,
+                    message: 'Invalid Input'
+                }
+            }
+            await db.retailerSalesHeader.update({ inv_url: inv_url }, { where: { id: Number(salesId), organisationId: Number(id) } })
+            return {
+                status: message.code200,
+                message: 'Invoice craeted successfully'
+            }
+         } catch (error) {
+            console.log('update_sales service error:',error.message)
+            return {
+                status:message.code500,
+                message:error.message
+            }
+         }
     }
 
 }

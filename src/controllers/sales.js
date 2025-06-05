@@ -113,3 +113,19 @@ exports.sales_details = async(req,res) => {
         return res.status(500).json({ status:message.code500,message: error.message });
       }
 }
+
+exports.update_sales = async(req,res) => {
+   try {
+        const data = {...req.user,...req.body}
+        const sales = await SalesService.update_sales(data);
+    
+        // if (!distributor) {
+          return res.status(sales?.status || 200).json(sales);
+        // }
+    
+        // return res.status(200).json({ status:message.code200,message: "Distributer created successfully." });
+      } catch (error) {
+        console.error("Error fetching update_sales:", error);
+        return res.status(500).json({ status:message.code500,message: error.message });
+      }
+}

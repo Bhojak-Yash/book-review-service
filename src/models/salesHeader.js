@@ -50,6 +50,21 @@ module.exports =(sequelize,Sequelize)=>{
         "inv_url":{
             type:Sequelize.STRING
         },
+        "deliveryType":{
+            type:Sequelize.DATE
+        },
+        "deliveryDate":{
+            type:Sequelize.DATE
+        },
+        "extraDiscountValue":{
+            type:Sequelize.DECIMAL
+        },
+        "extraDiscountPercent":{
+            type:Sequelize.DECIMAL
+        },
+        "advance":{
+            type:Sequelize.DECIMAL
+        }
     },
 
     {

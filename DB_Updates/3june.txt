@@ -35,6 +35,7 @@ CREATE TABLE `sales_details` (
   `CGST` DECIMAL(10,2) DEFAULT NULL,
   `IGST` DECIMAL(10,2) DEFAULT NULL,
   `amount` DECIMAL(10,2) DEFAULT NULL,
+  `scheme` VARCHAR(255) DEFAULT NULL,
    `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -81,3 +82,11 @@ CREATE TABLE `partyList` (
 
 CREATE UNIQUE INDEX idx_unique_company_organisation
 ON partyList (companyName, organisationId);
+
+
+ALTER TABLE `crm_db`.`sales_header` 
+ADD COLUMN `deliveryType` VARCHAR(255) NULL AFTER `updatedAt`,
+ADD COLUMN `deliveryDate` DATETIME NULL AFTER `deliveryType`,
+ADD COLUMN `extraDiscountValue` DECIMAL(10,2) NULL AFTER `deliveryDate`,
+ADD COLUMN `extraDiscountPercent` DECIMAL(10,2) NULL AFTER `extraDiscountValue`,
+ADD COLUMN `advance` DECIMAL(10,2) NULL AFTER `extraDiscountPercent`;
