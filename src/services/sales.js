@@ -42,7 +42,7 @@ class SalesService {
                                 {
                                     model: db.manufacturers,
                                     as: "manufacturer",
-                                    attributes: ['manufacturerId', 'companyName'],
+                                    attributes: ['manufacturerId', 'companyName','manufacturerCode'],
                                 }
                             ]
                         }
