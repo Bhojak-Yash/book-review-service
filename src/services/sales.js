@@ -447,7 +447,7 @@ class SalesService {
                     message: 'Invalid Input'
                 }
             }
-            await db.retailerSalesHeader.update({ inv_url: inv_url }, { where: { id: Number(salesId), organisationId: Number(id) } })
+            await db.salesHeader.update({ inv_url: inv_url }, { where: { id: Number(salesId), organisationId: Number(id) } })
             return {
                 status: message.code200,
                 message: 'Invoice craeted successfully'
