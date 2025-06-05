@@ -359,7 +359,7 @@ exports.forgotPassword = async (req, res) => {
         }
         // ✅ Check if user exists
         const user = await Users.findOne({
-            where: { userName },
+            where: { userName,userType:type },
             include: [
                 {
                     model: db.employees,
