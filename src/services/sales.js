@@ -228,12 +228,12 @@ class SalesService {
                             {
                                 model:db.manufacturers,
                                 as:"manufacturer",
-                                attributes: ['manufacturerId', 'manufacturerCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'fssaiLicense', 'drugLicense'],
+                                attributes: ['manufacturerId', 'manufacturerCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'fssaiLicense', 'drugLicense','accountNumber','AccHolderName','IFSC'],
                             },
                             {
                                 model:db.distributors,
                                 as:'disuser',
-                                attributes: ['distributorId', 'distributorCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'FSSAI', 'wholeSaleDrugLicence'],
+                                attributes: ['distributorId', 'distributorCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'FSSAI', 'wholeSaleDrugLicence','accountNumber','AccHolderName','IFSC'],
                             },
                             {
                                 model:db.address,
@@ -254,6 +254,9 @@ class SalesService {
                     GST:userData?.disuser.length>0?userData?.disuser[0]?.GST:userData?.manufacturer[0]?.GST,
                     FSSAI:userData?.disuser.length>0?userData?.disuser[0]?.FSSAI:userData?.manufacturer[0]?.fssaiLicense,
                     drugLicense:userData?.disuser.length>0?userData?.disuser[0]?.wholeSaleDrugLicence:userData?.manufacturer[0]?.drugLicense,
+                    accountNumber:userData?.disuser.length>0?userData?.disuser[0]?.accountNumber:userData?.manufacturer[0]?.accountNumber,
+                    AccHolderName:userData?.disuser.length>0?userData?.disuser[0]?.AccHolderName:userData?.manufacturer[0]?.AccHolderName,
+                    IFSC:userData?.disuser.length>0?userData?.disuser[0]?.IFSC:userData?.manufacturer[0]?.IFSC,
                     state:userData?.addresss[0]?.State,
                     city:userData?.addresss[0]?.city
                 }
