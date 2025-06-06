@@ -212,12 +212,12 @@ class RetailerService {
                 attributes: ['companyName', 'type'],
                 // required: true
             },
-            // {
-            //     model: db.manufacturers,
-            //     as: 'manufacturer',
-            //     attributes: ['companyName'],
-            //     // required: true
-            // },
+            {
+                model: db.manufacturers,
+                as: 'manufacturer',
+                attributes: ['companyName'],
+                // required: true
+            },
             {
                 model: db.address,
                 as: 'addresss',
