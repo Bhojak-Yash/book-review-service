@@ -924,7 +924,7 @@ class RetailerService {
                 userName: userDataa?.userName,
                 userType: 'Distributor',
                 disuser: (userDataa?.disuser.length > 0 ? userDataa.disuser : userDataa.manufacturer)?.map(item => ({
-                    ...item,
+                    ...item.dataValues,
                     distributorId: userDataa?.id
                 })),
                 addresss: userDataa?.addresss
