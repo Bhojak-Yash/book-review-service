@@ -268,7 +268,7 @@ class DistributorService {
             let whereStock = {}
             let whereCondition = {};
             let tablesearch = 'distributors_new'
-            if (type == 'Manufacturer') {
+            if (type == 'Manufacturer' || type == 'manufacturer'  ) {
                 tablesearch = 'manufacturers'
                 whereCondition.manufacturerId = Number(manufacturerId)
             } else {
