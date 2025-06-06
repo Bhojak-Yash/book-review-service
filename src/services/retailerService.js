@@ -195,14 +195,14 @@ class RetailerService {
 
             // Get distributors (users + disuser)
             const whereClause = {
-                userType: ['distributor', 'cnf']
+                userType: ['distributor', 'Manufacturer']
             };
 
             if (search) {
                 whereClause[Op.or] = [
                     { '$disuser.companyName$': { [Op.like]: `%${search}%` } }
-                    // ,
-                    // { '$manufacturer.companyName$': { [Op.like]: `%${search}%` } }
+                    ,
+                    { '$manufacturer.companyName$': { [Op.like]: `%${search}%` } }
                 ];
             }
 
@@ -241,7 +241,7 @@ class RetailerService {
 
             const userResults = users.map(item => ({
                 id: item.id,
-                userType: item?.disuser[0]?.type ,
+                userType: item?.disuser[0]?.type || "Manufactuer" ,
                 userName: item?.disuser[0]?.companyName || item?.manufacturer[0]?.companyName || item?.userName,
                 address: item.addresss[0] || {}
             }));
