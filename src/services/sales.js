@@ -31,7 +31,7 @@ class SalesService {
             if (usercheckType == 'Manufacturer') {
                 const { rows: Data, count } = await db.manufacturerStocks.findAndCountAll({
                     attributes: ['SId', 'PId', 'BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'BoxQty', 'Loose', 'Stock', 'organisationId', 'location', 'locked'],
-                    where: { organisationId: Number(id), locked: { [db.Op.not]: true }, Stock: { [db.Op.gt]: 0 } },
+                    where: { organisationId: Number(id), locked: { [db.Op.not]: true } },
                     include: [
                         {
                             model: db.products,
@@ -61,7 +61,7 @@ class SalesService {
             } else {
                 const { rows: Data, count } = await db.stocks.findAndCountAll({
                     attributes: ['SId', 'PId', 'BatchNo', 'ExpDate', 'MRP', 'PTS', 'Scheme', 'BoxQty', 'Loose', 'Stock', 'organisationId', 'location', 'locked'],
-                    where: { organisationId: Number(id), locked: { [db.Op.not]: true }, Stock: { [db.Op.gt]: 0 } },
+                    where: { organisationId: Number(id), locked: { [db.Op.not]: true } },
                     include: [
                         {
                             model: db.products,

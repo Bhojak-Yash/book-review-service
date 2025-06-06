@@ -241,7 +241,7 @@ class RetailerService {
 
             const userResults = users.map(item => ({
                 id: item.id,
-                userType: item?.disuser[0]?.type || "Manufactuer" ,
+                userType: item?.disuser[0]?.type || "Manufacturer" ,
                 userName: item?.disuser[0]?.companyName || item?.manufacturer[0]?.companyName || item?.userName,
                 address: item.addresss[0] || {}
             }));
