@@ -54,7 +54,7 @@ module.exports =(sequelize,Sequelize)=>{
             type:Sequelize.STRING
         },
         "deliveryType":{
-            type:Sequelize.DATE
+            type:Sequelize.STRING
         },
         "deliveryDate":{
             type:Sequelize.DATE
