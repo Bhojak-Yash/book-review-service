@@ -1,7 +1,7 @@
 const message = require('../helpers/message');
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
-const {generateToken} = require('../middlewares/auth')
+const { generateToken } = require('../middlewares/auth')
 const Users = db.users;
 const Manufacturers = db.manufacturers;
 const Distributors = db.distributors;
@@ -13,125 +13,123 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 async function hashPassword(password) {
-  const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
-  return hashedPassword;
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    return hashedPassword;
 }
 
-const getData = async(userType,id)=>{
+const getData = async (userType, id) => {
     // console.log(userType,id)
-if(userType==='Manufacturer'){
-    return await Manufacturers.findOne({where:{manufacturerId:Number(id)}})
-}else if(userType === 'Distributor'){
-    return await Distributors.findOne({where:{distributorId:Number(id)}})
-}else if(userType === 'Retailer'){
-    return await Retailers.findOne({where:{retailerId:Number(id)}})
-}else if(userType === 'Employee'){
-    return await Employees.findOne({where:{employeeId:Number(id)}})
-}
+    if (userType === 'Manufacturer') {
+        return await Manufacturers.findOne({ where: { manufacturerId: Number(id) } })
+    } else if (userType === 'Distributor') {
+        return await Distributors.findOne({ where: { distributorId: Number(id) } })
+    } else if (userType === 'Retailer') {
+        return await Retailers.findOne({ where: { retailerId: Number(id) } })
+    } else if (userType === 'Employee') {
+        return await Employees.findOne({ where: { employeeId: Number(id) } })
+    }
 }
 
 exports.createUsers = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
-  try {
-    const { userName, password, companyName,userType } = req.body;
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { userName, password, companyName, userType } = req.body;
 
-    if (!userName || !password || !companyName ||!userType) {
-      return res.json({
-        status: message.code400,
-        message: "All fields are required",
-      });
-    }
-    console.log(userType)
-    const hashedPassword = await hashPassword(password);
-  
-    // Create the user and get the user ID
-    const user = await Users.create(
-      {
-        userName: userName,
-        password: hashedPassword,
-        userType: userType,
-        status:"Active"
-      },
-      { transaction }
-    );
-
-    // Use the userId to create a entity entry
-
-    if(userType === "Manufacturer")
-    {
-        await Manufacturers.create(
-        {
-            manufacturerId: user.id, // Assuming `id` is the primary key of the `users` table
-            companyName: companyName,
-        },
-        { transaction }
-        );
-         // Commit the transaction
-        await transaction.commit();
-    }
-    else if(userType === "Distributor")
-    {
-        await Distributors.create(
-            {
-                distributorId: user.id, // Assuming `id` is the primary key of the `users` table
-                companyName: companyName,
-            },
-            { transaction }
-            );
-             // Commit the transaction
-            await transaction.commit();
-    }
-    else if (userType === "Retailer"){
-        await Retailers.create(
-            {
-                retailerId: user.id, // Assuming `id` is the primary key of the `users` table
-                firmName: companyName,
-            },
-            { transaction }
-            );
-             // Commit the transaction
-            await transaction.commit();
-    }
-    else if (userType === "Employee"){
-        if (!req.body.employeeOf || !req.body.divisionId) {
+        if (!userName || !password || !companyName || !userType) {
             return res.json({
-              status: message.code400,
-              message: "Employee owner and division are mandatory",
+                status: message.code400,
+                message: "All fields are required",
             });
-          }
-        await Employees.create(
+        }
+        console.log(userType)
+        const hashedPassword = await hashPassword(password);
+
+        // Create the user and get the user ID
+        const user = await Users.create(
             {
-                employeeId: user.id, // Assuming `id` is the primary key of the `users` table
-                firstName: req.body.firstName,
-                lastName:  req.body.lastName,
-                employeeCode: "EMP"+user.id,
-                employeeOf: req.body.employeeOf,
-                divisionId: req.body.divisionId,
-                roleId: req.body.roleId,
-                employeeStatus: "Active"
+                userName: userName,
+                password: hashedPassword,
+                userType: userType,
+                status: "Active"
             },
             { transaction }
+        );
+
+        // Use the userId to create a entity entry
+
+        if (userType === "Manufacturer") {
+            await Manufacturers.create(
+                {
+                    manufacturerId: user.id, // Assuming `id` is the primary key of the `users` table
+                    companyName: companyName,
+                },
+                { transaction }
             );
-             // Commit the transaction
+            // Commit the transaction
             await transaction.commit();
+        }
+        else if (userType === "Distributor") {
+            await Distributors.create(
+                {
+                    distributorId: user.id, // Assuming `id` is the primary key of the `users` table
+                    companyName: companyName,
+                },
+                { transaction }
+            );
+            // Commit the transaction
+            await transaction.commit();
+        }
+        else if (userType === "Retailer") {
+            await Retailers.create(
+                {
+                    retailerId: user.id, // Assuming `id` is the primary key of the `users` table
+                    firmName: companyName,
+                },
+                { transaction }
+            );
+            // Commit the transaction
+            await transaction.commit();
+        }
+        else if (userType === "Employee") {
+            if (!req.body.employeeOf || !req.body.divisionId) {
+                return res.json({
+                    status: message.code400,
+                    message: "Employee owner and division are mandatory",
+                });
+            }
+            await Employees.create(
+                {
+                    employeeId: user.id, // Assuming `id` is the primary key of the `users` table
+                    firstName: req.body.firstName,
+                    lastName: req.body.lastName,
+                    employeeCode: "EMP" + user.id,
+                    employeeOf: req.body.employeeOf,
+                    divisionId: req.body.divisionId,
+                    roleId: req.body.roleId,
+                    employeeStatus: "Active"
+                },
+                { transaction }
+            );
+            // Commit the transaction
+            await transaction.commit();
+        }
+
+
+        res.json({
+            status: message.code200,
+            message: message.message200,
+        });
+    } catch (error) {
+        // Rollback the transaction in case of an error
+        if (transaction) await transaction.rollback();
+
+        console.log("createUsers error:", error.message);
+        res.json({
+            status: message.code500,
+            message: message.message500,
+        });
     }
-
-
-    res.json({
-      status: message.code200,
-      message: message.message200,
-    });
-  } catch (error) {
-    // Rollback the transaction in case of an error
-    if (transaction) await transaction.rollback();
-
-    console.log("createUsers error:", error.message);
-    res.json({
-      status: message.code500,
-      message: message.message500,
-    });
-  }
 };
 
 
@@ -212,7 +210,7 @@ exports.login = async (req, res) => {
         }
         let empOfType = null
         const checkUser = await db.users.findOne({
-            where: { userName,userType:type },
+            where: { userName },
             include: [
                 {
                     model: db.employees,
@@ -227,29 +225,41 @@ exports.login = async (req, res) => {
                 message: "Wrong credentials"
             });
         }
-
+        
         if (checkUser.userType === 'Employee') {
             const employeeOf = checkUser.employee?.employeeOf;
-
             if (!employeeOf) {
                 return res.json({
                     status: message.code400,
                     message: "employeeOf not found"
                 });
             }
-
+            
             const managerUser = await db.users.findOne({
                 where: { id: employeeOf }
             });
             empOfType = managerUser?.dataValues?.userType
-            if (!managerUser || managerUser.userType !== type) {
+            console.log(employeeOf,empOfType,checkUser.userType)
+            if(!managerUser){
+                return res.json({
+                status: message.code400,
+                message: "Wrong credentials"
+            });
+            }
+            if (managerUser.userType !== type) {
                 return res.json({
                     status: message.code400,
                     message: `Access denied. Manager userType is not '${type}'`
                 });
             }
+        }else if(checkUser.userType !== type) {
+            console.log('ppppp')
+            return res.json({
+                status: message.code400,
+                message: "Wrong credentials"
+            });
         }
-
+        console.log('ppppppp[[[[[[[[[[[')
         const match = await bcrypt.compare(password, checkUser.password);
         if (!match) {
             return res.json({
@@ -259,7 +269,7 @@ exports.login = async (req, res) => {
         }
 
         const data = await getData(checkUser.userType, checkUser.id);
-        const tokenPayload = { ...checkUser.dataValues,empOfType:empOfType, data: data?.dataValues };
+        const tokenPayload = { ...checkUser.dataValues, empOfType: empOfType, data: data?.dataValues };
 
         const token = await generateToken(tokenPayload);
 
@@ -296,56 +306,56 @@ exports.login = async (req, res) => {
 };
 
 
-exports.changePassword = async(req,res) => {
+exports.changePassword = async (req, res) => {
     try {
-        const {currPassword,newPassword} = req.body
-        const {userName} =req.user
-        const checkUser = await Users.findOne({where:{userName:userName}})
-        if(checkUser){
+        const { currPassword, newPassword } = req.body
+        const { userName } = req.user
+        const checkUser = await Users.findOne({ where: { userName: userName } })
+        if (checkUser) {
             const match = await bcrypt.compare(currPassword, checkUser.dataValues.password);
-            if(match){
-                const hashedPassword =await hashPassword(newPassword)
-                await Users.update({password:hashedPassword,isPasswordChangeRequired:0},{where:{userName:userName}})
+            if (match) {
+                const hashedPassword = await hashPassword(newPassword)
+                await Users.update({ password: hashedPassword, isPasswordChangeRequired: 0 }, { where: { userName: userName } })
                 res.json({
-                    status:message.code200,
-                    message:'Password changed successfully'
+                    status: message.code200,
+                    message: 'Password changed successfully'
                 })
-            }else{
+            } else {
                 res.json({
-                    status:message.code400,
-                    message:"wrong credentials"
+                    status: message.code400,
+                    message: "wrong credentials"
                 })
             }
-        }else{
+        } else {
             res.json({
-                status:message.code400,
-                message:"wrong credentials"
+                status: message.code400,
+                message: "wrong credentials"
             })
         }
     } catch (error) {
-        console.log('changePassword error:',error.message)
+        console.log('changePassword error:', error.message)
         res.json({
-            status:message.code500,
-            message:message.message500,
+            status: message.code500,
+            message: message.message500,
         })
     }
 }
 
-exports.logout = async(req,res) => {
+exports.logout = async (req, res) => {
     try {
         // console.log(req.body)
-        const {loginId} =req.body
-        await Logs.update({isExpired:true},{where:{id:Number(loginId)}})
+        const { loginId } = req.body
+        await Logs.update({ isExpired: true }, { where: { id: Number(loginId) } })
         res.json({
-            status:message.code200,
-            message:'Successfully logout'
+            status: message.code200,
+            message: 'Successfully logout'
         })
     } catch (error) {
-        console.log("logout error:",error.message)
+        console.log("logout error:", error.message)
         res.json({
-            status:message.code500,
-            message:message.message500,
-            apiData:null
+            status: message.code500,
+            message: message.message500,
+            apiData: null
         })
     }
 }
@@ -359,7 +369,7 @@ exports.forgotPassword = async (req, res) => {
         }
         // ✅ Check if user exists
         const user = await Users.findOne({
-            where: { userName,userType:type },
+            where: { userName, userType: type },
             include: [
                 {
                     model: db.employees,
@@ -423,7 +433,7 @@ async function sendTemporaryPasswordEmail(userName, tempPassword) {
         }
     });
     // console.log("......HHHHHHHHHHHHHHHHHHHHHHHHHHH...............")
-    
+
     const mailOptions = {
         from: process.env.EMAIL,
         to: userName, // userName is an email in this case

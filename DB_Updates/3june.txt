@@ -90,6 +90,6 @@ ON partyList (companyName, organisationId);
 ALTER TABLE `crm_db`.`sales_header` 
 ADD COLUMN `deliveryType` VARCHAR(255) NULL AFTER `updatedAt`,
 ADD COLUMN `deliveryDate` DATETIME NULL AFTER `deliveryType`,
-ADD COLUMN `extraDiscountValue` DECIMAL(10,2) NULL AFTER `deliveryDate`,
+ADD COLUMN `extraDiscountValue` d(10,2) NULL AFTER `deliveryDate`,
 ADD COLUMN `extraDiscountPercent` DECIMAL(10,2) NULL AFTER `extraDiscountValue`,
 ADD COLUMN `advance` DECIMAL(10,2) NULL AFTER `extraDiscountPercent`;
