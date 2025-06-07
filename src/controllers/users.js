@@ -212,7 +212,7 @@ exports.login = async (req, res) => {
         }
         let empOfType = null
         const checkUser = await db.users.findOne({
-            where: { userName },
+            where: { userName,userType:type },
             include: [
                 {
                     model: db.employees,
