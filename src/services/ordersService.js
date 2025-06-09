@@ -806,7 +806,7 @@ class OrdersService {
       const result = orders.map((order) => {
         let orderFrom = "";
         let userType = "";
-console.log(order)
+        console.log(order)
         if (order?.orderFromUser?.reuser?.length > 0) {
           orderFrom = order?.orderFromUser.reuser[0].firmName;
           userType = "Retailer";
@@ -830,7 +830,7 @@ console.log(order)
           invNo: order.invNo,
           reason: order.reason || null,
           deliveryType: order?.deliveryType || null,
-          isPayment:order?.payments.length?true:false
+          isPayment: order?.payments.length ? true : false
         };
       });
 
@@ -1545,11 +1545,23 @@ console.log(order)
               addressType: addressTypeLabel
             }
           });
+          let created;
+          if (updated > 0) {
+            results[type] = `${addressTypeLabel} address updated successfully`;
+          } else {
+            console.log(addressPayload[type],';;;;;;;;;')
+            // Create new address if update didn't affect any rows
+             created = await db.address.create({
+              ...addressPayload[type],
+              userId: userId,
+              addressType: addressTypeLabel,
+            });
+          }
 
-          results[type] = updated > 0
-            ? `${addressTypeLabel} address updated successfully`
-            : `No ${addressTypeLabel.toLowerCase()} address found to update`;
-        }
+            results[type] = created
+              ? `${addressTypeLabel} address created successfully`
+              : `Failed to create ${addressTypeLabel.toLowerCase()} address`;
+          }
       }
 
       return {
