@@ -210,7 +210,8 @@ class ProductsService {
             const products = await Products.findAll({
                 where: whereCondition,
                 limit: Limit,
-                offset: skip
+                offset: skip,
+                order:[['PId','desc']]
             });
 
             let totalPage = Math.ceil(totalItems / Limit)

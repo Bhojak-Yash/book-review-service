@@ -558,6 +558,12 @@ class ManufacturerService {
               where: { authorizedBy: Number(data.id) },
               attributes: ['creditCycle']
             }
+          },
+          {
+            model: db.payments,
+            as: 'payments',
+            where: { status: 'Pending' },
+            required: false
           }
         ],
         order: [['id', 'DESC']],
@@ -589,6 +595,7 @@ class ManufacturerService {
 
         return {
           ...order.toJSON(),
+          isPayment:order?.payments.length?true:false,
           entityId: order.entityId,
           distributer: distributer
             ? {
@@ -781,9 +788,9 @@ class ManufacturerService {
       }
       // console.log(checkId)
       // Parallelizing queries for better performance
-      const [ordersCount,completedOrders, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
+      const [ordersCount, completedOrders, pendingCount, counts, pendingRequest, balanceData] = await Promise.all([
         db.orders.count({ where: whereOrderCount }),
-        db.orders.count({where:whereCompleted}),
+        db.orders.count({ where: whereCompleted }),
         db.orders.count({
           where: wherePending
         }),
@@ -944,16 +951,16 @@ class ManufacturerService {
       if (data?.userType === "Employee") {
         id = data?.data?.employeeOf;
       }
-      const {status,start_date,end_date} = data
-      let whereCondition ={ authorizedId: id, status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] } }
-      
-      if(status){
-        let aa= []
+      const { status, start_date, end_date } = data
+      let whereCondition = { authorizedId: id, status: { [db.Op.in]: ['Pending', 'Approved', 'Rejected'] } }
+
+      if (status) {
+        let aa = []
         aa.push(status)
-        whereCondition ={ authorizedId: id, status: { [db.Op.in]: aa } }
+        whereCondition = { authorizedId: id, status: { [db.Op.in]: aa } }
       }
-      if(start_date && end_date){
-         const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+      if (start_date && end_date) {
+        const startDate = moment(data.start_date, "DD-MM-YYYY").startOf("day").format("YYYY-MM-DD HH:mm:ss");
         const endDate = moment(data.end_date, "DD-MM-YYYY").endOf("day").format("YYYY-MM-DD HH:mm:ss");
         whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
       }

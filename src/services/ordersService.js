@@ -789,6 +789,12 @@ class OrdersService {
               },
             ],
           },
+          {
+            model: db.payments,
+            as: 'payments',
+            where: { status: 'Pending' },
+            required: false
+          }
         ],
         where: whereClause,
         offset: skip,
@@ -800,7 +806,7 @@ class OrdersService {
       const result = orders.map((order) => {
         let orderFrom = "";
         let userType = "";
-
+console.log(order)
         if (order?.orderFromUser?.reuser?.length > 0) {
           orderFrom = order?.orderFromUser.reuser[0].firmName;
           userType = "Retailer";
@@ -823,7 +829,8 @@ class OrdersService {
           orderTotal: order.orderTotal,
           invNo: order.invNo,
           reason: order.reason || null,
-          deliveryType: order?.deliveryType || null
+          deliveryType: order?.deliveryType || null,
+          isPayment:order?.payments.length?true:false
         };
       });
 
