@@ -108,11 +108,15 @@ class OrdersService {
       }, transaction);
 
       await transaction.commit();
-      // await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
-      //   userId: Number(orderData?.orderData?.orderTo),
-      //   title: "New Purchase Order Received",
-      //   description: `You have received a new purchase order.`
-      // })
+      try {
+        await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
+          userId: Number(orderData?.orderData?.orderTo),
+          title: "New Purchase Order Received",
+          description: `You have received a new purchase order.`
+        })
+      } catch (error) {
+        console.log('error in create-order-socket:', error.message)
+      }
 
       return {
         status: message.code200,
@@ -337,11 +341,15 @@ class OrdersService {
           title: "Purchase Order: Confirmed",
           description: `Your purchase order has been confirmed for orderId ${orderId}.`
         });
-        // await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
-        //   userId: Number(order?.orderFrom),
-        //   title: "Purchase Order: Confirmed",
-        //   description: `Your purchase order has been confirmed for orderId ${orderId}.`
-        // })
+        try {
+          await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+            userId: Number(order?.orderFrom),
+            title: "Purchase Order: Confirmed",
+            description: `Your purchase order has been confirmed for orderId ${orderId}.`
+          })
+        } catch (error) {
+          console.log('error in order action socket:', error.message)
+        }
 
         if (updates?.advance > 0) {
           await notificationsService.createNotification({
@@ -350,6 +358,16 @@ class OrdersService {
             title: "Purchase Order: Advance Payment Requested",
             description: `Your purchase order has been confirmed (Order ID: ${orderId}). An advance payment of ₹${updates.advance} is requested.`,
           });
+          try {
+            await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+              userId: Number(order?.orderFrom),
+              title: "Purchase Order: Advance Payment Requested",
+              description: `Your purchase order has been confirmed (Order ID: ${orderId}). An advance payment of ₹${updates.advance} is requested.`
+            })
+          } catch (error) {
+            console.log('error in advance payment socket:', error.message)
+          }
+
         }
       }
       if (updates.orderStatus === "Rejected") {
@@ -493,13 +511,17 @@ class OrdersService {
         // console.log('099999999999999999999999999999')
         await this.db.orders.update(updates, { where: { id: orderId } });
       }
-      // if(updates?.orderStatus == "Rejected"){
-      //   await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
-      //     userId: Number(order?.orderFrom),
-      //     title: "Purchase Order: Rejected",
-      //     description: `Your purchase order has been Rejected for orderId ${orderId}.`
-      //   })
-      // }
+      if (updates?.orderStatus == "Rejected") {
+        try {
+          await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+            userId: Number(order?.orderFrom),
+            title: "Purchase Order: Rejected",
+            description: `Your purchase order has been Rejected for orderId ${orderId}.`
+          })
+        } catch (error) {
+          console.log('error in order reject socket:', error.message)
+        }
+      }
       // const aaa=await this.db.orders.findByPk(orderId);
       // console.log(aaa)
       return await this.db.orders.findByPk(orderId);
@@ -1549,19 +1571,19 @@ class OrdersService {
           if (updated > 0) {
             results[type] = `${addressTypeLabel} address updated successfully`;
           } else {
-            console.log(addressPayload[type],';;;;;;;;;')
+            console.log(addressPayload[type], ';;;;;;;;;')
             // Create new address if update didn't affect any rows
-             created = await db.address.create({
+            created = await db.address.create({
               ...addressPayload[type],
               userId: userId,
               addressType: addressTypeLabel,
             });
           }
 
-            results[type] = created
-              ? `${addressTypeLabel} address created successfully`
-              : `Failed to create ${addressTypeLabel.toLowerCase()} address`;
-          }
+          results[type] = created
+            ? `${addressTypeLabel} address created successfully`
+            : `Failed to create ${addressTypeLabel.toLowerCase()} address`;
+        }
       }
 
       return {

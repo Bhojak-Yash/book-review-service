@@ -66,11 +66,15 @@ class AuthService {
                 title: "Authorization Request Pending",
                 description: `You have received an authorization request that is pending approval.`
             });
-            // await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
-            //     userId: Number(authorizedBy),
-            //     title: "Authorization Request Pending",
-            //     description: `You have received an authorization request that is pending approval.`
-            // })
+            try {
+                await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
+                    userId: Number(authorizedBy),
+                    title: "Authorization Request Pending",
+                    description: `You have received an authorization request that is pending approval.`
+                })
+            } catch (error) {
+                console.log('error in auth-request-sent socket:',error.message)
+            }
 
 
             return {
@@ -740,11 +744,15 @@ class AuthService {
             if (newNotification.status === 200 && newNotification.data) {
                 await notificationsService.updateNotificationStatus(newNotification.data.id, "Unread");
             }
-            // await axios.post(`${process.env.Socket_URL}/auth-request-action-notification`, {
-            //     userId: Number(userId),
-            //     title: `Authorization Request: ${statusMessage}`,
-            //     description: `An authorization request has been ${statusMessage}.`
-            // })
+            try {
+                await axios.post(`${process.env.Socket_URL}/auth-request-action-notification`, {
+                    userId: Number(userId),
+                    title: `Authorization Request: ${statusMessage}`,
+                    description: `An authorization request has been ${statusMessage}.`
+                })
+            } catch (error) {
+                console.log('error in auth-request-action socket:',error.message)
+            }
 
 
             return {
