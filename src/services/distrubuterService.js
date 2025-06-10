@@ -863,7 +863,7 @@ class DistributorService {
             return {
                 status: message.code200,
                 message: message.message200,
-                apiData: result[0]
+                apiData: result[0] || {}
             }
         } catch (error) {
             console.log('distributor_profile service error:', error.message)
