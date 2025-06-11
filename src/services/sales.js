@@ -370,7 +370,7 @@ class SalesService {
                         model: db.partyList,
                         as: "partyData",
                         attributes: ['id', 'companyName', 'address', 'phone'],
-                        required: true
+                        required: false
                     }
                 ],
                 subQuery: false,
