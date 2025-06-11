@@ -342,6 +342,9 @@ class SalesService {
             let Page = Number(page) || 1
             let Limit = Number(limit) || 10
             let Skip = 0
+            if(Page>1){
+                Skip = (Page-1)*Limit
+            }
             if (start_date && end_date) {
                 const startDateParts = start_date.split('-');
                 const endDateParts = end_date.split('-');
