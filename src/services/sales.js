@@ -219,7 +219,7 @@ class SalesService {
                 // console.log(';;;;;;;;;;;;')
                 id = data?.data?.employeeOf;
             }
-            // console.log(sales)
+            console.log(id)
             let userData = await db.users.findOne(
                     {
                         where: { id: Number(id) },
@@ -229,17 +229,20 @@ class SalesService {
                                 model:db.manufacturers,
                                 as:"manufacturer",
                                 attributes: ['manufacturerId', 'manufacturerCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'fssaiLicense', 'drugLicense','accountNumber','AccHolderName','IFSC'],
+                                required:false
                             },
                             {
                                 model:db.distributors,
                                 as:'disuser',
                                 attributes: ['distributorId', 'distributorCode', 'companyName', 'email', 'phone', 'PAN', 'GST', 'FSSAI', 'wholeSaleDrugLicence','accountNumber','AccHolderName','IFSC'],
+                                required:false
                             },
                             {
                                 model:db.address,
                                 as:'addresss',
                                 where:{"addressType":'Billing'},
-                                attributes:['State','city','userId','addressId']
+                                attributes:['State','city','userId','addressId'],
+                                required:false
                             }
                         ]
                     }
@@ -300,7 +303,9 @@ class SalesService {
             })
             const salesDetails = await db.salesDetails.bulkCreate(salesDetailsData)
             function generateBillNumber(firmName, id) {
-                const firstLetter = firmName.trim().charAt(0).toUpperCase();
+                // console.log(firmName,'lllllllll',returnUser,userData)
+                const firstLetter = firmName?.trim().charAt(0).toUpperCase();
+                // console.log('niche')
                 const date = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
                 return `${firstLetter}/${date}/${id}`;
             }
