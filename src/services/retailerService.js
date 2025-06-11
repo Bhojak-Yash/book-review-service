@@ -170,7 +170,7 @@ class RetailerService {
                     return {
                         "userName": item?.companyName,
                         "id": item.distributorId,
-                        "userType": item.type,
+                        "userType": item.type || 'Distributor',
                         "address": item.addresses[0] || {}
                     }
                 })
@@ -233,7 +233,7 @@ class RetailerService {
             }
 
             const users = await db.users.findAll({
-                attributes: ['id', 'userName'],
+                attributes: ['id', 'userName', 'userType'],
                 where: whereClause,
                 include: userInclude
             });
@@ -241,7 +241,9 @@ class RetailerService {
 
             const userResults = users.map(item => ({
                 id: item.id,
-                userType: item?.disuser[0]?.type || "Manufacturer" ,
+                userType: item?.userType === 'Manufacturer'
+                    ? item?.userType
+                    : item?.disuser[0]?.type || item?.userType,
                 userName: item?.disuser[0]?.companyName || item?.manufacturer[0]?.companyName || item?.userName,
                 address: item.addresss[0] || {}
             }));
