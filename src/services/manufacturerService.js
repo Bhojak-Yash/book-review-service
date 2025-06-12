@@ -984,6 +984,7 @@ class ManufacturerService {
 
       const page = parseInt(data?.page) || 1;
       const limit = parseInt(data?.limit) || 10;
+      const search = (data?.search || "").trim().toLowerCase();
 
       // Fetch users
       const [manufacturers, distributors, retailers, addresses] = await Promise.all([
@@ -1029,7 +1030,7 @@ class ManufacturerService {
 
       const getAuthDetails = (id) => authorizedList.find(a => a.authorizedBy === id) || {};
 
-      const linkedUsers = [
+      let linkedUsers = [
         ...manufacturers.map(m => {
           const { status, createdAt, reason } = getAuthDetails(m.manufacturerId);
           return {
@@ -1070,6 +1071,11 @@ class ManufacturerService {
         })
       ];
 
+      if (search.length >= 3) {
+        linkedUsers = linkedUsers.filter(user =>
+          user.name.toLowerCase().includes(search)
+        );
+      }
 
       linkedUsers.sort((a, b) => b.id - a.id);
 

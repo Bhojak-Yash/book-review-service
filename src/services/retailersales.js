@@ -416,7 +416,7 @@ class RetailerSalesService {
                 status: 200,
                 message: "Data fetched Successfully",
                 data: {
-                    AllOrders: result.AllOrders,
+                    AllOrders: result.totalOrders,
                     Patients: totalPatients,
                     Doctors: totalDoctors,
                     totalAmount: result.totalAmount,
