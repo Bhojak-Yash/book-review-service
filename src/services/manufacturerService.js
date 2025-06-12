@@ -994,7 +994,7 @@ class ManufacturerService {
           raw: true,
         }),
         db.distributors.findAll({
-          attributes: ['distributorId', 'companyName'],
+          attributes: ['distributorId', 'companyName', "type"],
           where: { distributorId: { [Op.in]: authorizedIds } },
           raw: true,
         }),
@@ -1047,7 +1047,7 @@ class ManufacturerService {
         ...distributors.map(d => {
           const { status, createdAt, reason } = getAuthDetails(d.distributorId);
           return {
-            type: 'Distributor',
+            type: d.type,
             id: d.distributorId,
             name: d.companyName,
             status: status || null,

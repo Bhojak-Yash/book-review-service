@@ -210,7 +210,7 @@ exports.login = async (req, res) => {
         }
         let empOfType = null
         const checkUser = await db.users.findOne({
-            where: { userName },
+            where: { userName, status: "Active" },
             include: [
                 {
                     model: db.employees,
@@ -225,6 +225,14 @@ exports.login = async (req, res) => {
                 message: "Wrong credentials"
             });
         }
+
+        // Check user status
+        // if (checkUser.status !== 'Active') {
+        //     return res.json({
+        //         status: message.code400,
+        //         message: "Account is not active. Please contact admin."
+        //     });
+        // }
         
         if (checkUser.userType === 'Employee') {
             const employeeOf = checkUser.employee?.employeeOf;
@@ -252,6 +260,14 @@ exports.login = async (req, res) => {
                     message: `Access denied. Manager userType is not '${type}'`
                 });
             }
+
+            // Check manager status
+            // if (managerUser.status !== 'Active') {
+            //     return res.json({
+            //         status: message.code400,
+            //         message: "Manager account is not active. Please contact admin."
+            //     });
+            // }
         }else if(checkUser.userType !== type) {
             console.log('ppppp')
             return res.json({
@@ -369,7 +385,7 @@ exports.forgotPassword = async (req, res) => {
         }
         // ✅ Check if user exists
         const user = await Users.findOne({
-            where: { userName },
+            where: { userName, status: "Active" },
             include: [
                 {
                     model: db.employees,
@@ -381,6 +397,14 @@ exports.forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ status: message.code400, message: "User not found" });
         }
+
+        // Check user status
+        // if (user.status !== 'Active') {
+        //     return res.status(400).json({
+        //         status: message.code400,
+        //         message: "Account is not active. Please contact admin."
+        //     });
+        // }
 
         if (user.userType === 'Employee') {
             const employeeOf = user.employee?.employeeOf;
@@ -397,6 +421,14 @@ exports.forgotPassword = async (req, res) => {
                     message: `Access denied. Manager userType is not '${type}'`
                 });
             }
+
+            // if (managerUser.status !== 'Active') {
+            //     return res.status(400).json({
+            //         status: message.code400,
+            //         message: "Manager account is not active. Please contact admin."
+            //     });
+            // }
+
         }else if(user.userType!=type){
             return res.status(404).json({ status: message.code400, message: "User not found" }); 
         }
