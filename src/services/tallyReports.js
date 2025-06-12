@@ -191,57 +191,111 @@ class TallyReportsService {
             if (userType === 'Employee') {
                 id = data.data.employeeOf
             }
+            // id= 27
             let whereCondition = {
                 [db.Op.or]: [
                     { orderFrom: Number(id) },
                     { orderTo: Number(id) }
                 ]
             }
+            whereCondition.invNo = { [db.Op.not]: null }
 
             const orders = await db.orders.findAll({
                 where: whereCondition,
-                attributes:[''],
+                attributes: ['id', 'confirmationDate', 'invNo', 'invAmt', 'balance', 'orderStatus', 'orderTo', 'orderFrom'],
                 include: [
                     {
                         model: db.retailers,
                         as: 'fromRetailer',
+                        attributes: ['retailerId', 'firmName'],
                         required: false
                     },
                     {
                         model: db.manufacturers,
                         as: 'manufacturer',
+                        attributes: ['manufacturerId', 'companyName'],
                         required: false
                     },
                     {
                         model: db.distributors,
                         as: 'fromDistributor',
+                        attributes: ['distributorId', 'companyName'],
                         required: false
                     },
                     {
                         model: db.distributors,
                         as: 'distributor',
+                        attributes: ['distributorId', 'companyName'],
                         required: false
                     }
                 ]
             })
 
-            const result = orders.map(order => {
-                const fromUser = order.fromRetailer || order.fromDistributor;
-                const toUser = order.manufacturer || order.distributor;
+            const returnData = orders.map(order => {
+                const fromUser = order.fromRetailer ? {
+                    id: order?.fromRetailer?.retailerId,
+                    companyName: order?.fromRetailer?.firmName
+                } : {
+                    id: order?.fromDistributor?.distributorId,
+                    companyName: order?.fromDistributor?.companyName
+                };
+                const toUser = order.manufacturer ? {
+                    id: order?.manufacturer?.manufacturerId,
+                    companyName: order?.manufacturer?.companyName
+                } : {
+                    id: order?.distributor?.distributorId,
+                    companyName: order?.distributor?.companyName
+                };
+
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const date = new Date(dateStr);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+                    const year = date.getFullYear();
+                    return `${day}/${month}/${year}`;
+                };
+                const formatAmount = (amount, isNegative) => {
+                    const formatted = new Intl.NumberFormat('en-IN', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    }).format(Math.abs(amount || 0));
+
+                    return isNegative ? `-${formatted}` : formatted;
+                };
+
+
                 return {
-                    "id": order?.id || null,
-                    "invDate": order?.confirmationDate || null,
-                    "invNo": order?.invNo || null,
-                    "invAmt": 17140,
-                    "balance": 12140,
+                    "Document": order?.id,
+                    "invDate": order?.confirmationDate,
+                    "invNo": order?.invNo,
+                    "Amount":  formatAmount(order?.invAmt, order?.orderFrom == id),
+                    "balance": order?.balance,
                     "orderStatus": order?.orderStatus || null,
-                    "invUrl": "https://jee-1.s3.ap-south-1.amazonaws.com/invoice/1744971532742invoice.pdf",
+                    "DType": order?.orderTo == id ? "Sales" : "Purchase",
+                    'Doc Type Name': order?.orderTo == id ? "Customer Invoice" : "Vendor Invoice",
+                    "Fyr": order?.confirmationDate ? new Date(order.confirmationDate).getFullYear() : null,
+                    "Posting Date": formatDate(order?.confirmationDate),
+                    "Document Date": formatDate(order?.confirmationDate),
+                    "Reference": order?.id || null,
+                    "Dr & Cr": order?.orderTo == id ? "Dr" : "Cr",
+                    "Vendor Name":order?.orderFrom==id?toUser?.companyName:"",
+                    "Customer Name":order?.orderTo==id?fromUser?.companyName:"",
+                    "Text (NARRATION)":order?.orderTo == id ? "GOODS SOLD" : "GOODS PURCHASE",
                     fromUser,
                     toUser
                 };
             });
 
-            res.json(result)
+            const fields = ["Company", "Document", "DType", "Doc Type Name", "Fyr", "Posting Date", "Document Date", "Reference", "Post Key", "G/L Account", "G/L Account Name", "Dr & Cr", "SPL Ind", "Amount", "Vendor", "Vendor Name", "Customer", "Customer Name", "Text (NARRATION)", "Ref NO", "Order No", "Order Text", "Profit Center", "Cost Center", "Business Place", "Business Area", "User name", "T-Code", "IRN Status", "IRN Number"];
+            const json2csvParser = new Parser({ fields });
+            const csv = json2csvParser.parse(returnData);
+
+            // Send as downloadable CSV
+            res.header('Content-Type', 'text/csv');
+            res.attachment('party_payable_report.csv');
+            return res.send(csv);
+            res.json(returnData)
         } catch (error) {
             console.log('ladger_report service error:', error.message)
             res.json({
