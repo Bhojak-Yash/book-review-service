@@ -369,7 +369,7 @@ exports.forgotPassword = async (req, res) => {
         }
         // ✅ Check if user exists
         const user = await Users.findOne({
-            where: { userName, userType: type },
+            where: { userName },
             include: [
                 {
                     model: db.employees,
@@ -377,7 +377,7 @@ exports.forgotPassword = async (req, res) => {
                 }
             ]
         });
-
+        console.log(".................",user,userName);
         if (!user) {
             return res.status(404).json({ status: message.code400, message: "User not found" });
         }
@@ -397,6 +397,8 @@ exports.forgotPassword = async (req, res) => {
                     message: `Access denied. Manager userType is not '${type}'`
                 });
             }
+        }else if(user.userType!=type){
+            return res.status(404).json({ status: message.code400, message: "User not found" }); 
         }
 
         const tempPassword = crypto.randomInt(100000, 999999).toString(); // 6-digit temp password
