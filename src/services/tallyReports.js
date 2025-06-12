@@ -127,7 +127,7 @@ class TallyReportsService {
             if (userType === 'Employee') {
                 id = data.data.employeeOf
             }
-            
+
             const Data = await db.orders.findAll({
                 where: {
                     orderFrom: Number(id)
@@ -179,6 +179,72 @@ class TallyReportsService {
         } catch (error) {
             console.log('partywise_payable_report service error:', error.message)
             return res.json({
+                status: message.code500,
+                message: error.message
+            })
+        }
+    }
+
+    async ladger_report(data, res) {
+        try {
+            let { id, userType } = data
+            if (userType === 'Employee') {
+                id = data.data.employeeOf
+            }
+            let whereCondition = {
+                [db.Op.or]: [
+                    { orderFrom: Number(id) },
+                    { orderTo: Number(id) }
+                ]
+            }
+
+            const orders = await db.orders.findAll({
+                where: whereCondition,
+                attributes:[''],
+                include: [
+                    {
+                        model: db.retailers,
+                        as: 'fromRetailer',
+                        required: false
+                    },
+                    {
+                        model: db.manufacturers,
+                        as: 'manufacturer',
+                        required: false
+                    },
+                    {
+                        model: db.distributors,
+                        as: 'fromDistributor',
+                        required: false
+                    },
+                    {
+                        model: db.distributors,
+                        as: 'distributor',
+                        required: false
+                    }
+                ]
+            })
+
+            const result = orders.map(order => {
+                const fromUser = order.fromRetailer || order.fromDistributor;
+                const toUser = order.manufacturer || order.distributor;
+                return {
+                    "id": order?.id || null,
+                    "invDate": order?.confirmationDate || null,
+                    "invNo": order?.invNo || null,
+                    "invAmt": 17140,
+                    "balance": 12140,
+                    "orderStatus": order?.orderStatus || null,
+                    "invUrl": "https://jee-1.s3.ap-south-1.amazonaws.com/invoice/1744971532742invoice.pdf",
+                    fromUser,
+                    toUser
+                };
+            });
+
+            res.json(result)
+        } catch (error) {
+            console.log('ladger_report service error:', error.message)
+            res.json({
                 status: message.code500,
                 message: error.message
             })
