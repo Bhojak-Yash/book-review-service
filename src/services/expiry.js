@@ -935,9 +935,19 @@ class expiryService {
     async update_expiry_return(data) {
         let transaction;
         try {
+            let {id}=data
+             if (data?.userType === 'Employee') {
+                id = data.data.employeeOf
+            }
             transaction = await db.sequelize.transaction();
             const { status, returnId, returnAmt, items, reason, cnUrl, returnFrom, returnTo } = data
             // console.log(items)
+            if(id==returnFrom){
+                return {
+                    status:message.code400,
+                    message:'You cannot confirm an expiry request raised by yourself.'
+                }
+            }
             const Reason = reason || ""
             if (!status || !returnId) {
                 return {
