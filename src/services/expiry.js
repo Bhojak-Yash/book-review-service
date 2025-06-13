@@ -942,7 +942,7 @@ class expiryService {
             transaction = await db.sequelize.transaction();
             const { status, returnId, returnAmt, items, reason, cnUrl, returnFrom, returnTo } = data
             // console.log(items)
-            if(id==returnTo){
+            if(id==returnFrom){
                 return {
                     status:message.code400,
                     message:'You cannot confirm an expiry request raised by yourself.'
