@@ -16,7 +16,12 @@ class AuthService {
             if (data?.userType === "Employee") {
                 authorizedId = data?.data?.employeeOf
             }
-
+            if(authorizedBy==authorizedId){
+                return {
+                    status:message.code400,
+                    message:'You can not send request to yourself'
+                }
+            }
             const check = await db.authorizations.findOne({
                 where: {
                     authorizedBy: Number(authorizedBy),
