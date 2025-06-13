@@ -1,0 +1,2 @@
+ALTER TABLE crm_db.users 
+CHANGE COLUMN userType userType ENUM('Manufacturer', 'Distributor', 'Retailer', 'Admin', 'Employee', 'Hospital') NULL DEFAULT NULL ;
