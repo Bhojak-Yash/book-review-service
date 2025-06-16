@@ -199,7 +199,7 @@ class OrdersService {
         });
 
         try {
-          await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+          await axios.post(`${process.env.Socket_URL}/Payment-receive-notification`, {
             userId: Number(order?.orderTo),
             title: "You've Received a Payment",
             description: `You have received a payment for Order ID ${orderId}.`
