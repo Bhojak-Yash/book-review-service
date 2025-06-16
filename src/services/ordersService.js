@@ -111,6 +111,7 @@ class OrdersService {
       try {
         await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
           userId: Number(orderData?.orderData?.orderTo),
+          orderId:newOrder.id,
           title: "New Purchase Order Received",
           description: `You have received a new purchase order.`
         })
@@ -191,6 +192,24 @@ class OrdersService {
         }
         console.log(oStatus, 'llllllllllllll', aaa, amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
+        await notificationsService.createNotification({
+          organisationId: order.orderTo,
+          category: "Payment Received",
+          title: "You've Received a Payment",
+          description: `You have received a payment for Order ID ${orderId}.`
+        });
+
+        try {
+          await axios.post(`${process.env.Socket_URL}/Payment-receive-notification`, {
+            orderId:orderId,
+            amount:amount,
+            userId: Number(order?.orderTo),
+            title: "You've Received a Payment",
+            description: `You have received a payment for Order ID ${orderId}.`
+          })
+        } catch (error) {
+          console.log('error in order action socket:', error.message)
+        }
         return {
           status: message.code200,
           message: message.message200
@@ -344,6 +363,7 @@ class OrdersService {
         try {
           await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
             userId: Number(order?.orderFrom),
+            orderId:orderId,
             title: "Purchase Order: Confirmed",
             description: `Your purchase order has been confirmed for orderId ${orderId}.`
           })
@@ -361,6 +381,7 @@ class OrdersService {
           try {
             await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
               userId: Number(order?.orderFrom),
+              orderId:orderId,
               title: "Purchase Order: Advance Payment Requested",
               description: `Your purchase order has been confirmed (Order ID: ${orderId}). An advance payment of ₹${updates.advance} is requested.`
             })
@@ -515,6 +536,7 @@ class OrdersService {
         try {
           await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
             userId: Number(order?.orderFrom),
+            orderId:orderId,
             title: "Purchase Order: Rejected",
             description: `Your purchase order has been Rejected for orderId ${orderId}.`
           })

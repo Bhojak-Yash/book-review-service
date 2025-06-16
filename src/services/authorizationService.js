@@ -16,10 +16,10 @@ class AuthService {
             if (data?.userType === "Employee") {
                 authorizedId = data?.data?.employeeOf
             }
-            if(authorizedBy==authorizedId){
+            if (authorizedBy == authorizedId) {
                 return {
-                    status:message.code400,
-                    message:'You can not send request to yourself'
+                    status: message.code400,
+                    message: 'You can not send request to yourself'
                 }
             }
             const check = await db.authorizations.findOne({
@@ -43,6 +43,15 @@ class AuthService {
                         { status: 'Pending' }, // Update fields
                         { where: { id: Number(check.id) } } // Condition
                     );
+                    try {
+                        await axios.post(`${process.env.Socket_URL}/auth-request-sent-notification`, {
+                            userId: Number(authorizedBy),
+                            title: "Authorization Request Pending",
+                            description: `You have received an authorization request that is pending approval.`
+                        })
+                    } catch (error) {
+                        console.log('error in auth-request-sent socket:', error.message)
+                    }
                     return {
                         status: message.code200,
                         message: 'Authorization request sent',
@@ -78,7 +87,7 @@ class AuthService {
                     description: `You have received an authorization request that is pending approval.`
                 })
             } catch (error) {
-                console.log('error in auth-request-sent socket:',error.message)
+                console.log('error in auth-request-sent socket:', error.message)
             }
 
 
@@ -756,7 +765,7 @@ class AuthService {
                     description: `An authorization request has been ${statusMessage}.`
                 })
             } catch (error) {
-                console.log('error in auth-request-action socket:',error.message)
+                console.log('error in auth-request-action socket:', error.message)
             }
 
 
