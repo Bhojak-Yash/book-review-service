@@ -191,6 +191,22 @@ class OrdersService {
         }
         console.log(oStatus, 'llllllllllllll', aaa, amtUpdate)
         await db.orders.update({ balance: db.sequelize.literal(`balance - ${Number(amtUpdate)}`), orderStatus: oStatus }, { where: { id: Number(orderId) } })
+        await notificationsService.createNotification({
+          organisationId: order.orderTo,
+          category: "Payment Received",
+          title: "You've Received a Payment",
+          description: `You have received a payment for Order ID ${orderId}.`
+        });
+
+        try {
+          await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
+            userId: Number(order?.orderFrom),
+            title: "You've Received a Payment",
+            description: `You have received a payment for Order ID ${orderId}.`
+          })
+        } catch (error) {
+          console.log('error in order action socket:', error.message)
+        }
         return {
           status: message.code200,
           message: message.message200
