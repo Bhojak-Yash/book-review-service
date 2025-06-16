@@ -1234,8 +1234,8 @@ class RetailerService {
                         [db.sequelize.fn("COUNT", db.sequelize.col("id")), "totalOrders"], // Total orders
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus IN ('Settled') THEN 1 ELSE 0 END")), "completedOrders"], // Completed orders count
                         [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN orderStatus NOT IN ('Rejected','Cancelled','Settled') THEN 1 ELSE 0 END")), "pendingOrders"],
-                        [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
-                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
+                        [db.sequelize.fn("COUNT", db.sequelize.literal("CASE WHEN balance > 0 AND orderStatus NOT IN ('Rejected','Cancelled') THEN 1 ELSE NULL END")), "totalDueAmtOrders"], // Count of due amount orders
+                        [db.sequelize.fn("SUM", db.sequelize.literal("CASE WHEN balance > 0 AND orderStatus NOT IN ('Rejected','Cancelled') THEN balance ELSE 0 END")), "totalDueAmount"] // Sum of due amounts
                     ],
                     where: whereorders,
                     raw: true,

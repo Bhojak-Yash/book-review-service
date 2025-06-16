@@ -150,6 +150,7 @@ class expiryService {
                 ],
                 where: {
                     Stock: { [db.Sequelize.Op.gt]: 0 },
+                    purchasedFrom:{[db.Op.not]:null},
                     organisationId: Number(id),
                     [db.Sequelize.Op.and]: [
                         { ExpDate: { [db.Sequelize.Op.lt]: after90Days } },
@@ -861,8 +862,9 @@ class expiryService {
                 };
             }
 
-            console.log(whereClause)
-            const { count, rows: Data } = await db.returnHeader.findAndCountAll({
+          
+            const count = await db.returnHeader.count({where:whereClause})
+            const Data = await db.returnHeader.findAll({
                 attributes: ['returnId', 'returnFrom', 'returnTo', 'returnAmt', 'returnTotal', 'returnStatus', 'returnDate', 'reason'],
                 where: whereClause,
                 include: [
@@ -881,19 +883,24 @@ class expiryService {
                     {
                         model: db.returnDetails,
                         as: "returnDetails",
-                        attributes: ['PId', 'quantity', 'id']
+                        attributes: ['PId', 'quantity', 'id'],
+                         required: false
                     },
                     {
                         model: db.creditNotes,
                         as: "creditnote",
-                        attributes: ['id', 'createdAt', 'url']
+                        attributes: ['id', 'createdAt', 'url'],
+                         required: false
                     }
                 ],
                 order: [['returnId', 'desc']],
                 offset: skip,
                 limit: Limit,
-                subQuery: false,
+                // subQuery: false,
+                // distinct:true
             });
+              console.log(whereClause,skip,Data.length)
+            // return {count,Data}
 
             const result = await Data?.map((item) => {
                 const totalQuantity = item?.returnDetails?.reduce((sum, item) => sum + item.quantity, 0) || 0;
