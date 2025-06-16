@@ -168,7 +168,7 @@ class UsersCartService {
                         'name', ad.name, 
                         'mobile', ad.mobile, 
                         'city', ad.city, 
-                        'state', ad.state,
+                        'State', ad.State,
                         'email', ad.email
                       )
                     ) AS addresses
@@ -259,7 +259,41 @@ class UsersCartService {
                         type: db.Sequelize.QueryTypes.SELECT,
                     }
                 );
-            } else {
+            } 
+            //.................................................................................................
+            if (userType === 'hospital' || userType === 'Hospital') {
+                [distributor] = await db.sequelize.query(
+                    `SELECT 
+                        h.hospitalId,
+                        h.hospitalName,
+                        h.GST,
+                        JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                            'addressType', ad.addressType, 
+                            'name', ad.name, 
+                            'mobile', ad.mobile, 
+                            'email', ad.email,
+                            'addLine1', ad.addLine1,
+                            'addLine2', ad.addLine2,
+                            'State', ad.State,
+                            'city', ad.city,
+                            'country', ad.country,
+                            'pinCode', ad.pinCode
+                          )
+                        ) AS addresses
+                     FROM hospital AS h
+                     LEFT JOIN \`address\` AS ad
+                       ON ad.userId = h.hospitalId
+                     WHERE h.hospitalId = :id
+                     GROUP BY h.hospitalId, h.hospitalName`,
+                    {
+                        replacements: { id: Number(id) },
+                        type: db.Sequelize.QueryTypes.SELECT,
+                    }
+                );
+            }
+            //.................................................................................................
+            else {
                 console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[', manufacturerId, id)
                 const [distributorr] = await db.sequelize.query(
                     `SELECT 
