@@ -111,6 +111,7 @@ class OrdersService {
       try {
         await axios.post(`${process.env.Socket_URL}/order-raise-notification`, {
           userId: Number(orderData?.orderData?.orderTo),
+          orderId:newOrder.id,
           title: "New Purchase Order Received",
           description: `You have received a new purchase order.`
         })
@@ -362,6 +363,7 @@ class OrdersService {
         try {
           await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
             userId: Number(order?.orderFrom),
+            orderId:orderId,
             title: "Purchase Order: Confirmed",
             description: `Your purchase order has been confirmed for orderId ${orderId}.`
           })
@@ -379,6 +381,7 @@ class OrdersService {
           try {
             await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
               userId: Number(order?.orderFrom),
+              orderId:orderId,
               title: "Purchase Order: Advance Payment Requested",
               description: `Your purchase order has been confirmed (Order ID: ${orderId}). An advance payment of ₹${updates.advance} is requested.`
             })
@@ -533,6 +536,7 @@ class OrdersService {
         try {
           await axios.post(`${process.env.Socket_URL}/order-action-notification`, {
             userId: Number(order?.orderFrom),
+            orderId:orderId,
             title: "Purchase Order: Rejected",
             description: `Your purchase order has been Rejected for orderId ${orderId}.`
           })
