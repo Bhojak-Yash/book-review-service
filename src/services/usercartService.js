@@ -293,7 +293,7 @@ class UsersCartService {
                 );
             }
             //.................................................................................................
-            else {
+            if(userType=='Distributor' || userType ==='distributor') {
                 console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[', manufacturerId, id)
                 const [distributorr] = await db.sequelize.query(
                     `SELECT 
