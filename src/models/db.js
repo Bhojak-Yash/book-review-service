@@ -39,6 +39,7 @@ const HSN_code = require('./HSN_code');
 const salesHeader = require('./salesHeader');
 const salesDetails = require('./salesDetails');
 const partyList = require('./partylist');
+const hospital = require('./hospital');
 const Sequelize = ss.Sequelize
 const Op = ss.Op
 
@@ -103,7 +104,8 @@ const db = {
   HSN_code: HSN_code(sequelize, Sequelize),
   salesDetails: salesDetails(sequelize, Sequelize),
   salesHeader: salesHeader(sequelize, Sequelize),
-  partyList: partyList(sequelize, Sequelize)
+  partyList: partyList(sequelize, Sequelize),
+  hospital: hospital(sequelize, Sequelize),
 };
 
 db.modulemappings.belongsTo(db.roles, { foreignKey: 'roleId' });
@@ -182,6 +184,7 @@ db.orders.belongsTo(db.retailers, { foreignKey: 'orderFrom', as: 'fromRetailer' 
 
 db.distributors.belongsTo(db.manufacturers, { foreignKey: 'distributorId', as: "disuser" })
 db.retailers.belongsTo(db.manufacturers, { foreignKey: 'retailerId', as: "reuser" })
+db.users.hasMany(db.hospital, { foreignKey: 'hospitalId', as: "hospital" })
 db.users.hasMany(db.distributors, { foreignKey: 'distributorId', as: "disuser" })
 db.users.hasMany(db.retailers, { foreignKey: 'retailerId', as: "reuser" })
 db.users.hasMany(db.manufacturers, { foreignKey: 'manufacturerId', as: "manufacturer" })

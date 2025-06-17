@@ -831,6 +831,12 @@ class OrdersService {
                 attributes: ["distributorId", "companyName"],
                 required: false
               },
+              {
+                model: db.hospital,
+                as: "hospital",
+                attributes: ["hospitalId", "hospitalName"],
+                required: false
+              },
             ],
           },
           {
@@ -857,6 +863,10 @@ class OrdersService {
         } else if (order?.orderFromUser?.disuser?.length > 0) {
           orderFrom = order?.orderFromUser.disuser[0].companyName;
           userType = "Distributor";
+        } 
+        else if (order?.orderFromUser?.hospital?.length > 0) {
+          orderFrom = order?.orderFromUser.hospital[0].hospitalName;
+          userType = "Hospital";
         }
 
         return {
