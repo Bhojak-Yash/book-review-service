@@ -8,9 +8,11 @@ const { usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter
   manufacturerRouter,retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,
   rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard, distributorPanelRouter, statesRouter,
    notificationsRouter, expiryRouter, employeeManagement_Router, warehouseManagement_Router,
-    accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter} = require('./routers/index')
+    accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter,
+    hospital_Router} = require('./routers/index')
 const cors = require('cors')
-const {cronTest,sendSalesReport,openingStockEntry} =require('./cron-jobs')
+const {cronTest,sendSalesReport,openingStockEntry} =require('./cron-jobs');
+const hospital = require('./models/hospital');
 app.use(cors());
 const dbConnection = async () => {
   await db.sequelize.sync()
@@ -36,7 +38,7 @@ function formatToMySQLDateTime(inputDate) {
 app.use(usersRouter, dashboardRouter, orderRouter, pharmacyRouter, inquiryRouter, productRouter,manufacturerRouter,
   retailerRouter,distributorRouter,stockRouter,usercartRouter,entityRouter,rolesRouter,empolyeeRouter,authRouter,manufacturerDashboard,
    distributorPanelRouter, statesRouter, notificationsRouter, expiryRouter, employeeManagement_Router,
-    warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter)
+    warehouseManagement_Router, accountsRouter,retailerSalesRouter,patientRouter,doctorRouter,salesReportRouter,tallyReports,salesRouter, hospital_Router)
 
 
     cronTest()
