@@ -808,8 +808,10 @@ class AuthService {
                     where: {
                         // userType: { [db.Op.in]: ['Distributor', 'Manufacturer'] },
                         [db.Op.or]: [
-                            { '$disuser.type$': 'CNF' },
-                            { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } }
+                            // { '$disuser.type$': 'CNF' },
+                            // { '$disuser.type$': 'Distributor' },
+                            { '$manufacturer.manufacturerId$': { [db.Op.ne]: null } },
+                            { '$disuser.distributorId$': { [db.Op.ne]: null } }
                         ]
                     }
                 }
