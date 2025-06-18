@@ -907,10 +907,10 @@ class distributorDashboard {
             // If date is passed, use it; otherwise, use today's date
             const date = dateString ? new Date(dateString) : new Date();
             const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-            startOfDay.setMinutes(startOfDay.getMinutes() + 330);
+            // startOfDay.setMinutes(startOfDay.getMinutes() + 330);
 
             const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-            endOfDay.setMinutes(endOfDay.getMinutes() + 330);
+            // endOfDay.setMinutes(endOfDay.getMinutes() + 330);
             // console.log("toeknData : ", tokenData);
 
             let checkUserType = tokenData.userType;
