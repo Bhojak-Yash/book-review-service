@@ -55,3 +55,16 @@ exports.get_HospitalById = async (req, res) => {
         });
     }
 };
+
+// exports.getHospitalProfile = async (req, res) => {
+//     try {
+//         const result = await hospitalService.getHospitalProfile(req.query);
+//         res.status(result.status || 200).json(result);
+//     } catch (error) {
+//         console.error("Error in getHospitalProfile controller:", error);
+//         res.status(500).json({
+//             message: 'Failed to get the hospital by ID',
+//             error: error.message
+//         });
+//     }
+// };

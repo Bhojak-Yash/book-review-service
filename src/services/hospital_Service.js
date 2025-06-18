@@ -1,5 +1,20 @@
 const db = require('../models/db');
 const { Op } = db.Sequelize;
+const message = require('../helpers/message');
+const sequelize = require('sequelize');
+
+const formatSize = (size) => {
+    let bytes = Number(size);
+    if (isNaN(bytes)) return null;
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return `${bytes.toFixed(1)} ${units[i]}`;
+  };
 
 // exports.create_Hospital = async (hospitalData) => {
 //     const transaction = await db.sequelize.transaction();
@@ -28,7 +43,7 @@ const { Op } = db.Sequelize;
 //         const defaultPassword = Math.random().toString(36).slice(-8);
 //         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 //         let status = email ? "Active" : "Inactive";
-        
+
 //         email = email.toLowerCase();
 //         hospitalData.email = email;
 
@@ -186,52 +201,6 @@ exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate
     }
 };
 
-exports.update_Hospital = async (hospitalId, updateData) => {
-    try {
-        if (!hospitalId) {
-            return { status: 400, message: "hospitalId is required in query" };
-        }
-
-        const hospital = await db.hospital.findOne({ where: { hospitalId } });
-
-        if (!hospital) {
-            return { status: 400, message: "Hospital not found" };
-        }
-
-        await db.hospital.update(updateData, { where: { hospitalId } });
-
-        const updatedHospital = await db.hospital.findOne({
-            where: { hospitalId },
-            attributes: [
-                'hospitalName',
-                'type',
-                'phone',
-                'email',
-                'address',
-                'city',
-                'state',
-                'GST',
-                'license',
-                'status',
-            ]
-        });
-
-        return {
-            status: 200,
-            message: "Hospital updated successfully",
-            updatedHospital
-        };
-
-    } catch (error) {
-        console.error("Error in update_Hospital:", error);
-        return {
-            status: 500,
-            message: "Failed to update hospital",
-            error: error.message || "Internal Server Error"
-        };
-    }
-};
-
 exports.get_HospitalById = async ({ hospitalId }) => {
     try {
         if (!hospitalId) {
@@ -267,3 +236,248 @@ exports.get_HospitalById = async ({ hospitalId }) => {
         };
     }
 };
+
+exports.update_Hospital = async (hospitalId, updateData) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        if (!hospitalId) {
+            return { status: 400, message: "hospitalId is required in query" };
+        }
+
+        const hospital = await db.hospital.findOne({ where: { hospitalId } });
+
+        if (!hospital) {
+            return { status: 400, message: "Hospital not found" };
+        }
+
+        const hospitalFields = {
+            hospitalName: updateData.hospitalName,
+            type: updateData.type,
+            phone: updateData.phone,
+            email: updateData.email,
+            address: updateData.address,
+            city: updateData.city,
+            state: updateData.state,
+            GST: updateData.GST,
+            license: updateData.license,
+            status: updateData.status,
+        };
+
+        await db.hospital.update(hospitalFields, {
+            where: { hospitalId },
+            transaction
+        });
+
+        // ---------------- Address Handling ----------------
+        const distributorId = hospitalId;
+        const businessAdd = updateData.businessAdd;
+        const billingAdd = updateData.billingAdd;
+
+        const existingAddresses = await db.address.findAll({
+            where: { userId: distributorId },
+            transaction
+        });
+
+        const existingBusiness = existingAddresses.find(addr => addr.addressType === "Business");
+        const existingBilling = existingAddresses.find(addr => addr.addressType === "Billing");
+
+        if (existingBusiness) {
+            await existingBusiness.update(businessAdd, { transaction });
+        } else {
+            await db.address.create({
+                ...businessAdd,
+                userId: distributorId,
+                addressType: "Business"
+            }, { transaction });
+        }
+
+        if (existingBilling) {
+            await existingBilling.update(billingAdd, { transaction });
+        } else {
+            await db.address.create({
+                ...billingAdd,
+                userId: distributorId,
+                addressType: "Billing"
+            }, { transaction });
+        }
+
+        // ---------------- Document Handling ----------------
+        const documents = updateData.documents || [];
+        const documentsData = documents.map((doc) => ({
+            categoryId: doc.id,
+            image: doc.image,
+            status: 'Verified',
+            imageSize: doc?.imageSize ? formatSize(doc?.imageSize || 0) : "0KB",
+            userId: Number(distributorId),
+            isDeleted: false
+        }));
+
+        await db.documents.bulkCreate(documentsData, {
+            updateOnDuplicate: ["image", 'status', 'imageSize', 'isDeleted'],
+            conflictFields: ["categoryId", "userId", 'isDeleted'],
+            transaction
+        });
+
+        await transaction.commit();
+
+        const updatedHospital = await db.hospital.findOne({
+            where: { hospitalId },
+            attributes: [
+                'hospitalName',
+                'type',
+                'phone',
+                'email',
+                'address',
+                'city',
+                'state',
+                'GST',
+                'license',
+                'status',
+            ]
+        });
+
+        return {
+            status: 200,
+            message: "Hospital updated successfully",
+            updatedHospital,
+            billingAdd,
+            businessAdd,
+            documents: documentsData
+        };
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error("Error in update_Hospital:", error);
+        return {
+            status: 500,
+            message: "Failed to update hospital",
+            error: error.message || "Internal Server Error"
+        };
+    }
+};
+
+// exports.getHospitalProfile = async(data) => {
+//     try {
+//         const { hospitalId } = data;
+//         if (!hospitalId) {
+//             return {
+//                 status: message.code400,
+//                 message: "Hospital ID is required",
+//             };
+//         }
+
+//         const document = await db.documentCategory.findAll({
+//             attributes: ['id', 'documentName'],
+//             include: [
+//                 {
+//                     model: db.documents,
+//                     as: "documnets",
+//                     attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
+//                     where: {
+//                         isDeleted: { [db.Op.not]: true },
+//                         userId: Number(hospitalId)
+//                     },
+//                     required: false,
+//                 },
+//             ],
+//             where: { category: "Hospital" }
+//         });
+
+//         // Raw query to get hospital, user, and address data
+//         const query = `
+//         SELECT 
+//           hs.hospitalName,
+//           hs.type,
+//           hs.logo,
+//           hs.createdAt,
+//           hs.updatedAt,
+//           hs.address,
+//           hs.phone,
+//           hs.email,
+//           hs.GST as gst,
+//           hs.license,
+//           hs.city,
+//           hs.state,
+//           hs.status,
+//           hs.hospitalId,
+//           us.*,
+//           ad.*
+//         FROM hospital AS hs
+//         LEFT JOIN users AS us ON hs.hospitalId = us.id
+//         LEFT JOIN address AS ad ON hs.hospitalId = ad.userId
+//         WHERE hs.hospitalId = ${hospitalId};
+//       `;
+
+//         const [dataa] = await sequelize.query(query);
+//         const transformedData = {};
+
+//         dataa.forEach((row) => {
+//             const hospitalId = row.hospitalId;
+
+//             if (!transformedData[hospitalId]) {
+//                 transformedData[hospitalId] = {
+//                     hospital: {
+//                         hospitalName: row.hospitalName,
+//                         type: row.type,
+//                         logo: row.logo,
+//                         address: row.address,
+//                         phone: row.phone,
+//                         email: row.email,
+//                         GST: row.gst,
+//                         license: row.license,
+//                         city: row.city,
+//                         state: row.state,
+//                         status: row.status,
+//                         createdAt: row.createdAt,
+//                         updatedAt: row.updatedAt,
+//                         hospitalId: row.hospitalId
+//                     },
+//                     user: {
+//                         id: row.id,
+//                         userName: row.userName,
+//                         userType: row.userType,
+//                         password: row.password,
+//                         status: row.status,
+//                         deletedAt: row.deletedAt,
+//                         isPasswordChangeRequired: row.isPasswordChangeRequired,
+//                     },
+//                     addresses: {},
+//                     documents: {}
+//                 };
+//             }
+
+//             if (row.addressType) {
+//                 transformedData[hospitalId].addresses[row.addressType] = {
+//                     addressId: row.addressId,
+//                     userId: row.userId,
+//                     name: row.name,
+//                     email: row.email,
+//                     mobile: row.mobile,
+//                     webURL: row.webURL,
+//                     addLine1: row.addLine1,
+//                     addLine2: row.addLine2,
+//                     city: row.city,
+//                     State: row.State,
+//                     country: row.country,
+//                     pinCode: row.pinCode,
+//                 };
+//             }
+
+//             transformedData[hospitalId].documents = document;
+//         });
+
+//         return {
+//             status: 200,
+//             message: message.message200,
+//             apiData: Object.values(transformedData),
+//         };
+
+//     } catch (error) {
+//         console.log("getHospital error:", error.message);
+//         return {
+//             status: 500,
+//             message: message.message500,
+//             error: error.message
+//         };
+//     }
+// };
