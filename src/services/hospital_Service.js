@@ -464,9 +464,18 @@ exports.update_Hospital = async (hospitalId, updateData) => {
     }
 };
 
-exports.getHospitalProfile = async (data) => {
+//get Profile and get by hospitalId
+exports.getHospitalProfile = async (data, queryData) => {
     try {
         let hospitalId = data?.id;
+
+        console.log(hospitalId);
+
+        if(queryData.hospitalId){
+            hospitalId = queryData.hospitalId;
+        }
+
+        console.log(hospitalId);
 
         // Handle employee type users
         if (data?.userType === "Employee") {

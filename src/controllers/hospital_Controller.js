@@ -56,9 +56,10 @@ exports.get_HospitalById = async (req, res) => {
     }
 };
 
+//get Profile and get by hospitalId
 exports.getHospitalProfile = async (req, res) => {
     try {
-        const result = await hospitalService.getHospitalProfile(req?.user);
+        const result = await hospitalService.getHospitalProfile(req?.user, req?.query);
         res.status(result.status || 200).json(result);
     } catch (error) {
         console.error("Error in getHospitalProfile controller:", error);
