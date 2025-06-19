@@ -887,18 +887,29 @@ class DistributorService {
                 }
             }
             transaction = await db.sequelize.transaction({ timeout: 30000 });
-            //   console.log(';;;;')
             const distributor = await db.sequelize.query(
                 `SELECT 
-                     *
-                   FROM distributors_new
-                   WHERE distributorId = :distributorId`,
+                *
+                FROM distributors_new
+                WHERE distributorId = :distributorId`,
                 {
                     replacements: { distributorId },
                     type: db.Sequelize.QueryTypes.SELECT,
                     transaction,
                 }
             );
+              console.log(';;;;',distributor)
+
+             if ( distributor?.length>0 && distributor[0]?.companyName != companyName) {
+                const check = await db.distributors.findOne({ where: { companyName: companyName } })
+                if (check) {
+                    return {
+                        status: message.code400,
+                        message: `A company with the name "${companyName}" already exists. Please choose a different name.`
+                    };
+                }
+
+            }
             // console.log('gffxchbjknk', distributor)
 
             if (!distributor) {
