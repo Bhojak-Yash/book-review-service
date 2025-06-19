@@ -8,6 +8,6 @@ const router = express.Router();
 router.get('/get-hospitals', verifyToken, hospitalController.get_Hospital);
 router.put('/update-hospital', verifyToken, hospitalController.update_Hospital);
 router.get('/get-hospitalById', verifyToken, hospitalController.get_HospitalById);
-// router.get("/getHospitalProfile", verifyToken, hospitalController.getHospitalProfile);
+router.get("/getHospitalProfile", verifyToken, hospitalController.getHospitalProfile);
 
 module.exports = router;
