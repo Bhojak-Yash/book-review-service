@@ -121,14 +121,12 @@ exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate
         if (startDate && endDate) {
             const adjustedStartDate = new Date(startDate);
             const adjustedEndDate = new Date(endDate);
-
             adjustedStartDate.setUTCHours(0, 0, 0, 0);
             adjustedEndDate.setUTCHours(23, 59, 59, 999);
 
-            const formattedStart = adjustedStartDate.toISOString().slice(0, 19).replace("T", " ");
-            const formattedEnd = adjustedEndDate.toISOString().slice(0, 19).replace("T", " ");
-
-            whereClause.createdAt = { [Op.between]: [formattedStart, formattedEnd] };
+            whereClause.createdAt = {
+                [Op.between]: [adjustedStartDate, adjustedEndDate]
+            };
         }
 
         const totalHospitals = await db.hospital.count({ where: whereClause });
@@ -163,31 +161,63 @@ exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate
             };
         }
 
-        const formattedHospitals = hospitals.map(hospital => ({
-            hospitalId: hospital.hospitalId,
-            hospitalCode: hospital.hospitalCode,
-            hospitalName: hospital.hospitalName,
-            type: hospital.type,
-            phone: hospital.phone,
-            email: hospital.email,
-            address: hospital.address,
-            city: hospital.city,
-            state: hospital.state,
-            GST: hospital.GST,
-            license: hospital.license,
-            status: hospital.status,
-            createdAt: hospital.createdAt,
-            updatedAt: hospital.updatedAt
+        const formattedHospitals = await Promise.all(hospitals.map(async hospital => {
+            const hospitalId = hospital.hospitalId;
+
+            const addresses = await db.address.findAll({
+                where: { userId: hospitalId },
+                raw: true
+            });
+
+            const businessAddress = addresses.find(a => a.addressType === 'Business') || null;
+            const billingAddress = addresses.find(a => a.addressType === 'Billing') || null;
+
+            const documentData = await db.documentCategory.findAll({
+                attributes: ['id', 'documentName'],
+                where: { category: 'Hospital' },
+                include: [
+                    {
+                        model: db.documents,
+                        as: 'documnets',
+                        attributes: ['documentId', 'image', 'status', 'imageSize', 'updatedAt'],
+                        where: {
+                            isDeleted: { [Op.not]: true },
+                            userId: hospitalId
+                        },
+                        required: false
+                    }
+                ]
+            });
+
+            return {
+                hospitalId: hospital.hospitalId,
+                hospitalCode: hospital.hospitalCode,
+                hospitalName: hospital.hospitalName,
+                type: hospital.type,
+                phone: hospital.phone,
+                email: hospital.email,
+                address: hospital.address,
+                city: hospital.city,
+                state: hospital.state,
+                GST: hospital.GST,
+                license: hospital.license,
+                status: hospital.status,
+                createdAt: hospital.createdAt,
+                updatedAt: hospital.updatedAt,
+                businessAddress,
+                billingAddress,
+                documents: documentData
+            };
         }));
 
         return {
             status: 200,
             message: "Hospitals retrieved successfully",
+            totalHospitals,
+            totalPages: Math.ceil(totalHospitals / limit),
+            currentPage: Number(page),
             data: {
-                totalHospitals,
-                totalPages: Math.ceil(totalHospitals / limit),
-                currentPage: page,
-                hospitals: formattedHospitals
+                formattedHospitals
             }
         };
 
