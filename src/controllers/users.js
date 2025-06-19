@@ -233,7 +233,7 @@ exports.login = async (req, res) => {
         //         message: "Account is not active. Please contact admin."
         //     });
         // }
-        
+
         if (checkUser.userType === 'Employee') {
             const employeeOf = checkUser.employee?.employeeOf;
             if (!employeeOf) {
@@ -242,17 +242,17 @@ exports.login = async (req, res) => {
                     message: "employeeOf not found"
                 });
             }
-            
+
             const managerUser = await db.users.findOne({
                 where: { id: employeeOf }
             });
             empOfType = managerUser?.dataValues?.userType
-            console.log(employeeOf,empOfType,checkUser.userType)
-            if(!managerUser){
+            console.log(employeeOf, empOfType, checkUser.userType)
+            if (!managerUser) {
                 return res.json({
-                status: message.code400,
-                message: "Wrong credentials"
-            });
+                    status: message.code400,
+                    message: "Wrong credentials"
+                });
             }
             if (managerUser.userType !== type) {
                 return res.json({
@@ -268,7 +268,7 @@ exports.login = async (req, res) => {
             //         message: "Manager account is not active. Please contact admin."
             //     });
             // }
-        }else if(checkUser.userType !== type) {
+        } else if (checkUser.userType !== type) {
             console.log('ppppp')
             return res.json({
                 status: message.code400,
@@ -393,7 +393,8 @@ exports.forgotPassword = async (req, res) => {
                 }
             ]
         });
-        console.log(".................",user,userName);
+        let link;
+        console.log(".................", user, userName);
         if (!user) {
             return res.status(404).json({ status: message.code400, message: "User not found" });
         }
@@ -428,11 +429,48 @@ exports.forgotPassword = async (req, res) => {
             //         message: "Manager account is not active. Please contact admin."
             //     });
             // }
-
-        }else if(user.userType!=type){
-            return res.status(404).json({ status: message.code400, message: "User not found" }); 
+            if(managerUser.userType==='Manufacturer'){
+                link = process.env.login_manufacturer
+            }else if(managerUser.userType==='Distributor'){
+                link = process.env.login_distributor
+            }else{
+                link = process.env.login_retailer
+            }
+        } else if (user.userType != type) {
+            console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[[')
+            return res.status(404).json({ status: message.code400, message: "User not found" });
         }
+        let companyName;
 
+        if (user?.userType == 'Manufacturer') {
+            let aa = await db.manufacturers.findOne({
+                attributes: ['companyName'],
+                where: { manufacturerId: Number(user?.dataValues?.id) }
+            })
+            companyName = aa?.dataValues?.companyName
+            link = process.env.login_manufacturer
+        } else if (user?.userType == 'Distributor') {
+            let aa = await db.distributors.findOne({
+                attributes: ['companyName'],
+                where: { distributorId: Number(user?.dataValues?.id) }
+            })
+            companyName = aa?.dataValues?.companyName
+            link = process.env.login_distributor
+        } else if (user?.userType == 'Retailer') {
+            let aa = await db.retailers.findOne({
+                attributes: ['firmName'],
+                where: { retailerId: Number(user?.dataValues?.id) }
+            })
+            companyName = aa?.dataValues?.firmName
+            link = process.env.login_retailer
+        } else if (user?.userType == 'Employee') {
+            let aa = await db.employees.findOne({
+                attributes: ['firstName', 'lastName'],
+                where: { employeeId: Number(user?.dataValues?.id) }
+            })
+            companyName = `${aa?.dataValues?.firstName} ${aa?.dataValues?.lastName}`
+            // link =  process.env.login_retailer
+        }
         const tempPassword = crypto.randomInt(100000, 999999).toString(); // 6-digit temp password
         const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash the temp password
 
@@ -442,7 +480,7 @@ exports.forgotPassword = async (req, res) => {
         );
 
         // ✅ Send Temporary Password via Email
-        await sendTemporaryPasswordEmail(user.userName, tempPassword);
+        await sendTemporaryPasswordEmail(user.userName, tempPassword, companyName, link);
 
         return res.status(200).json({
             status: message.code200,
@@ -456,7 +494,7 @@ exports.forgotPassword = async (req, res) => {
 };
 
 // ✅ Function to send Temporary Password via Email
-async function sendTemporaryPasswordEmail(userName, tempPassword) {
+async function sendTemporaryPasswordEmail(userName, tempPassword, companyName,link) {
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -466,14 +504,45 @@ async function sendTemporaryPasswordEmail(userName, tempPassword) {
             pass: process.env.EMAIL_PASSWORD // Your email password or app password
         }
     });
-    // console.log("......HHHHHHHHHHHHHHHHHHHHHHHHHHH...............")
 
     const mailOptions = {
-        from: process.env.EMAIL,
-        to: userName, // userName is an email in this case
-        subject: "Your Temporary Password",
-        text: `Your temporary password is: ${tempPassword}. Use this password to log in and reset your password.`
+        from: `"Jee1 Connect" <${process.env.EMAIL}>`,
+        to: userName,
+        subject: `Your New Password - ${companyName}`,
+        html: `
+    <p>Dear ${companyName},</p>
+
+    <p>As per your request, we have reset your password. Below are your updated login details:</p>
+
+    <p>
+      <strong>Username (Email):</strong> ${userName}<br>
+      <strong>New Password:</strong> ${tempPassword}
+    </p>
+
+    <p>
+    👉 Login Link:<a href="${link}" target="_blank">${link}</a>
+    </p>
+
+    <p>
+     For security reasons, we recommend changing your password after logging in.
+If you did not request this password reset, please contact us immediately.
+Thank you,
+    </p>
+
+    <strong>Jee1 Team</strong></p>
+        <p>
+      <a href="mailto:connect@jee1.tech">connect@jee1.tech</a>.
+    </p>
+  `
     };
+    // console.log("......HHHHHHHHHHHHHHHHHHHHHHHHHHH...............")
+
+    // const mailOptions = {
+    //     from: process.env.EMAIL,
+    //     to: userName, // userName is an email in this case
+    //     subject: "Your Temporary Password",
+    //     text: `Your temporary password is: ${tempPassword}. Use this password to log in and reset your password.`
+    // };
 
     await transporter.sendMail(mailOptions);
 }
