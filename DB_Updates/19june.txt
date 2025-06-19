@@ -1,0 +1,8 @@
+ALTER TABLE crm_db.hospital 
+ADD PRIMARY KEY (hospitalId);
+;
+
+
+INSERT INTO crm_db.documentcategory (id, documentName, category, createdAt, updatedAt) VALUES ('17', 'PAN', 'Hospital', '2025-06-19 12:57:34', '2025-06-19 12:57:34');
+INSERT INTO crm_db.documentcategory (id, documentName, category, createdAt, updatedAt) VALUES ('18', 'GST', 'Hospital', '2025-06-19 12:57:34', '2025-06-19 12:57:34');
+INSERT INTO crm_db.documentcategory (id, documentName, category, createdAt, updatedAt) VALUES ('19', 'License', 'Hospital', '2025-06-19 12:57:34', '2025-06-19 12:57:34');

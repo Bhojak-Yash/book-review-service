@@ -487,8 +487,8 @@ class RetailerService {
         let transaction;
         // console.log(data);
         try {
-            const { retailerId, profilePic, firmName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, drugLicense, businessAdd, billingAdd, documents, distributors } = data;
-
+            const { retailerId, profilePic, companyName, companyType, ownerName, email, phone, address, GST, FSSAI, PAN, CIN, drugLicense, businessAdd, billingAdd, documents, distributors } = data;
+            const firmName = companyName
             if (!retailerId) {
                 return {
                     status: message.code400,
@@ -502,6 +502,17 @@ class RetailerService {
                 where: { retailerId },
                 transaction
             });
+            console.log(retailer?.dataValues?.firmName,firmName)
+            if (retailer?.dataValues?.firmName != firmName) {
+                const check = await db.retailers.findOne({ where: { firmName: firmName } })
+                if (check) {
+                    return {
+                        status: message.code400,
+                        message: `A firm with the name "${firmName}" already exists. Please choose a different name.`
+                    };
+                }
+
+            }
 
             // console.log('Fetched retailer:', retailer);
 

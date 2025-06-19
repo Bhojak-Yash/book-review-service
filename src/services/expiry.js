@@ -803,7 +803,7 @@ class expiryService {
 
     async returned_list(data) {
         try {
-            let { id, page, limit, search, startDate, endDate } = data
+            let { id, page, limit, search, startDate, endDate,status } = data
             // console.log(data)
             if (data?.userType === 'Employee') {
                 id = data.data.employeeOf
@@ -845,8 +845,8 @@ class expiryService {
             if (search && isSearching) {
                 whereClause[Op.or] = [
                     { returnId: { [Op.like]: `%${search}%` } },
-                    { '$returnToUser.companyName$': { [Op.like]: `%${search}%` } },
-                    { '$returnToMan.companyName$': { [Op.like]: `%${search}%` } },
+                    // { '$returnToUser.companyName$': { [Op.like]: `%${search}%` } },
+                    // { '$returnToMan.companyName$': { [Op.like]: `%${search}%` } },
                 ];
             }
 
@@ -862,6 +862,9 @@ class expiryService {
                 };
             }
 
+            if(status){
+                whereClause.returnStatus=status
+            }
           
             const count = await db.returnHeader.count({where:whereClause})
             const Data = await db.returnHeader.findAll({

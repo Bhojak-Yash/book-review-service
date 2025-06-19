@@ -605,11 +605,12 @@ class AuthService {
                 where: whereClause,
                 raw: true,
             }) || {};
-
+            const totalOrders = await db.orders.count({where:{orderTo:Number(id)}})
             const { totalCount = 0, approvedCount = 0, rejectedCount = 0, pendingCount = 0 } = currentResult;
 
             // Calculate previous period (Same duration before start_date)
             let previousWhereClause = { authorizedBy: Number(id) };
+            let sss={orderTo:Number(id)}
 
             if (start_date && end_date) {
                 let previousStartDate = new Date(start_date);
@@ -623,8 +624,11 @@ class AuthService {
                 previousWhereClause.createdAt = {
                     [Op.between]: [previousStartDate, previousEndDate],
                 };
+                sss.createdAt = {
+                    [Op.between]: [previousStartDate, previousEndDate],
+                };
             }
-
+            const totalOrderschange = await db.orders.count({where:sss})
             // Previous period result
             const previousResult = await db.authorizations.findOne({
                 attributes: [
@@ -660,7 +664,7 @@ class AuthService {
                 },
                 include: [{
                     model: db.distributors,
-                    as: 'distributor',
+                    as: 'distributorss',
                     required: true,
                 }]
             });
@@ -673,11 +677,11 @@ class AuthService {
                 status: message.code200,
                 message: message.message200,
                 apiData: {
-                    totalCount,
+                    totalCount:totalOrders,
                     approvedCount,
                     rejectedCount,
                     pendingCount,
-                    totalChange: getPercentageChange(totalCount, prevTotalCount),
+                    totalChange: getPercentageChange(totalCount, totalOrderschange),
                     approvedChange: getPercentageChange(approvedCount, prevApprovedCount),
                     rejectedChange: getPercentageChange(rejectedCount, prevRejectedCount),
                     pendingChange: getPercentageChange(pendingCount, prevPendingCount),
