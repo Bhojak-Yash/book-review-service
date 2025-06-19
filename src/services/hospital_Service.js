@@ -103,6 +103,7 @@ const formatSize = (size) => {
 //     }
 // };
 
+
 exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate, endDate }) => {
     try {
         limit = parseInt(limit) || 10;
@@ -161,64 +162,13 @@ exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate
             };
         }
 
-        const formattedHospitals = await Promise.all(hospitals.map(async hospital => {
-            const hospitalId = hospital.hospitalId;
-
-            const addresses = await db.address.findAll({
-                where: { userId: hospitalId },
-                raw: true
-            });
-
-            const businessAddress = addresses.find(a => a.addressType === 'Business') || null;
-            const billingAddress = addresses.find(a => a.addressType === 'Billing') || null;
-
-            const documentData = await db.documentCategory.findAll({
-                attributes: ['id', 'documentName'],
-                where: { category: 'Hospital' },
-                include: [
-                    {
-                        model: db.documents,
-                        as: 'documnets',
-                        attributes: ['documentId', 'image', 'status', 'imageSize', 'updatedAt'],
-                        where: {
-                            isDeleted: { [Op.not]: true },
-                            userId: hospitalId
-                        },
-                        required: false
-                    }
-                ]
-            });
-
-            return {
-                hospitalId: hospital.hospitalId,
-                hospitalCode: hospital.hospitalCode,
-                hospitalName: hospital.hospitalName,
-                type: hospital.type,
-                phone: hospital.phone,
-                email: hospital.email,
-                address: hospital.address,
-                city: hospital.city,
-                state: hospital.state,
-                GST: hospital.GST,
-                license: hospital.license,
-                status: hospital.status,
-                createdAt: hospital.createdAt,
-                updatedAt: hospital.updatedAt,
-                businessAddress,
-                billingAddress,
-                documents: documentData
-            };
-        }));
-
         return {
             status: 200,
             message: "Hospitals retrieved successfully",
             totalHospitals,
             totalPages: Math.ceil(totalHospitals / limit),
             currentPage: Number(page),
-            data: {
-                formattedHospitals
-            }
+            data: hospitals 
         };
 
     } catch (error) {
@@ -230,6 +180,134 @@ exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate
         };
     }
 };
+// exports.get_Hospital = async ({ page = 1, limit, hospitalName, status, startDate, endDate }) => {
+//     try {
+//         limit = parseInt(limit) || 10;
+//         const offset = (page - 1) * limit;
+
+//         let whereClause = {};
+
+//         if (hospitalName && hospitalName.trim().length >= 3) {
+//             whereClause.hospitalName = { [Op.like]: `%${hospitalName}%` };
+//         }
+
+//         if (status && ["Active", "Inactive"].includes(status)) {
+//             whereClause.status = status;
+//         }
+
+//         if (startDate && endDate) {
+//             const adjustedStartDate = new Date(startDate);
+//             const adjustedEndDate = new Date(endDate);
+//             adjustedStartDate.setUTCHours(0, 0, 0, 0);
+//             adjustedEndDate.setUTCHours(23, 59, 59, 999);
+
+//             whereClause.createdAt = {
+//                 [Op.between]: [adjustedStartDate, adjustedEndDate]
+//             };
+//         }
+
+//         const totalHospitals = await db.hospital.count({ where: whereClause });
+
+//         const hospitals = await db.hospital.findAll({
+//             where: whereClause,
+//             attributes: [
+//                 'hospitalId',
+//                 'hospitalCode',
+//                 'hospitalName',
+//                 'type',
+//                 'phone',
+//                 'email',
+//                 'address',
+//                 'city',
+//                 'state',
+//                 'GST',
+//                 'license',
+//                 'status',
+//                 'createdAt',
+//                 'updatedAt'
+//             ],
+//             limit,
+//             offset,
+//             order: [['createdAt', 'DESC']]
+//         });
+
+//         if (!hospitals.length) {
+//             return {
+//                 status: 400,
+//                 message: "No hospitals found."
+//             };
+//         }
+
+//         const formattedHospitals = await Promise.all(hospitals.map(async hospital => {
+//             const hospitalId = hospital.hospitalId;
+
+//             const addresses = await db.address.findAll({
+//                 where: { userId: hospitalId },
+//                 raw: true
+//             });
+
+//             const businessAddress = addresses.find(a => a.addressType === 'Business') || null;
+//             const billingAddress = addresses.find(a => a.addressType === 'Billing') || null;
+
+//             const documentData = await db.documentCategory.findAll({
+//                 attributes: ['id', 'documentName'],
+//                 where: { category: 'Hospital' },
+//                 include: [
+//                     {
+//                         model: db.documents,
+//                         as: 'documnets',
+//                         attributes: ['documentId', 'image', 'status', 'imageSize', 'updatedAt'],
+//                         where: {
+//                             isDeleted: { [Op.not]: true },
+//                             userId: hospitalId
+//                         },
+//                         required: false
+//                     }
+//                 ]
+//             });
+
+//             return {
+//                 hospitalId: hospital.hospitalId,
+//                 hospitalCode: hospital.hospitalCode,
+//                 hospitalName: hospital.hospitalName,
+//                 type: hospital.type,
+//                 phone: hospital.phone,
+//                 email: hospital.email,
+//                 address: hospital.address,
+//                 city: hospital.city,
+//                 state: hospital.state,
+//                 GST: hospital.GST,
+//                 license: hospital.license,
+//                 status: hospital.status,
+//                 createdAt: hospital.createdAt,
+//                 updatedAt: hospital.updatedAt,
+//                 businessAddress,
+//                 billingAddress,
+//                 documents: documentData
+//             };
+//         }));
+
+//         return {
+//             status: 200,
+//             message: "Hospitals retrieved successfully",
+//             totalHospitals,
+//             totalPages: Math.ceil(totalHospitals / limit),
+//             currentPage: Number(page),
+//             data: {
+//                 formattedHospitals
+//             }
+//         };
+
+//     } catch (error) {
+//         console.error("Error in get_Hospital:", error);
+//         return {
+//             status: 500,
+//             message: "Failed to fetch hospitals",
+//             error: error.message || "Internal Server Error"
+//         };
+//     }
+// };
+
 
 exports.get_HospitalById = async ({ hospitalId }) => {
     try {
@@ -386,128 +464,93 @@ exports.update_Hospital = async (hospitalId, updateData) => {
     }
 };
 
-// exports.getHospitalProfile = async(data) => {
-//     try {
-//         const { hospitalId } = data;
-//         if (!hospitalId) {
-//             return {
-//                 status: message.code400,
-//                 message: "Hospital ID is required",
-//             };
-//         }
+exports.getHospitalProfile = async (data) => {
+    try {
+        let hospitalId = data?.id;
 
-//         const document = await db.documentCategory.findAll({
-//             attributes: ['id', 'documentName'],
-//             include: [
-//                 {
-//                     model: db.documents,
-//                     as: "documnets",
-//                     attributes: ['documentId', 'image', "status", "imageSize", 'updatedAt'],
-//                     where: {
-//                         isDeleted: { [db.Op.not]: true },
-//                         userId: Number(hospitalId)
-//                     },
-//                     required: false,
-//                 },
-//             ],
-//             where: { category: "Hospital" }
-//         });
+        // Handle employee type users
+        if (data?.userType === "Employee") {
+            hospitalId = data?.data?.employeeOf;
+        }
 
-//         // Raw query to get hospital, user, and address data
-//         const query = `
-//         SELECT 
-//           hs.hospitalName,
-//           hs.type,
-//           hs.logo,
-//           hs.createdAt,
-//           hs.updatedAt,
-//           hs.address,
-//           hs.phone,
-//           hs.email,
-//           hs.GST as gst,
-//           hs.license,
-//           hs.city,
-//           hs.state,
-//           hs.status,
-//           hs.hospitalId,
-//           us.*,
-//           ad.*
-//         FROM hospital AS hs
-//         LEFT JOIN users AS us ON hs.hospitalId = us.id
-//         LEFT JOIN address AS ad ON hs.hospitalId = ad.userId
-//         WHERE hs.hospitalId = ${hospitalId};
-//       `;
+        if (!hospitalId) {
+            return {
+                status: 400,
+                message: "Hospital ID is required"
+            };
+        }
 
-//         const [dataa] = await sequelize.query(query);
-//         const transformedData = {};
+        // Fetch hospital data
+        const hospital = await db.hospital.findOne({
+            where: { hospitalId: hospitalId },
+            order: [['createdAt', 'DESC']]
+        });
 
-//         dataa.forEach((row) => {
-//             const hospitalId = row.hospitalId;
+        if (!hospital) {
+            return {
+                status: 400,
+                message: "No hospital found."
+            };
+        }
 
-//             if (!transformedData[hospitalId]) {
-//                 transformedData[hospitalId] = {
-//                     hospital: {
-//                         hospitalName: row.hospitalName,
-//                         type: row.type,
-//                         logo: row.logo,
-//                         address: row.address,
-//                         phone: row.phone,
-//                         email: row.email,
-//                         GST: row.gst,
-//                         license: row.license,
-//                         city: row.city,
-//                         state: row.state,
-//                         status: row.status,
-//                         createdAt: row.createdAt,
-//                         updatedAt: row.updatedAt,
-//                         hospitalId: row.hospitalId
-//                     },
-//                     user: {
-//                         id: row.id,
-//                         userName: row.userName,
-//                         userType: row.userType,
-//                         password: row.password,
-//                         status: row.status,
-//                         deletedAt: row.deletedAt,
-//                         isPasswordChangeRequired: row.isPasswordChangeRequired,
-//                     },
-//                     addresses: {},
-//                     documents: {}
-//                 };
-//             }
+        // Fetch addresses (Business & Billing)
+        const addresses = await db.address.findAll({
+            where: { userId: hospitalId },
+            raw: true
+        });
 
-//             if (row.addressType) {
-//                 transformedData[hospitalId].addresses[row.addressType] = {
-//                     addressId: row.addressId,
-//                     userId: row.userId,
-//                     name: row.name,
-//                     email: row.email,
-//                     mobile: row.mobile,
-//                     webURL: row.webURL,
-//                     addLine1: row.addLine1,
-//                     addLine2: row.addLine2,
-//                     city: row.city,
-//                     State: row.State,
-//                     country: row.country,
-//                     pinCode: row.pinCode,
-//                 };
-//             }
+        const businessAddress = addresses.find(a => a.addressType === 'Business') || null;
+        const billingAddress = addresses.find(a => a.addressType === 'Billing') || null;
 
-//             transformedData[hospitalId].documents = document;
-//         });
+        // Fetch documents
+        const documentData = await db.documentCategory.findAll({
+            attributes: ['id', 'documentName'],
+            where: { category: 'Hospital' },
+            include: [
+                {
+                    model: db.documents,
+                    as: 'documnets',
+                    attributes: ['documentId', 'image', 'status', 'imageSize', 'updatedAt'],
+                    where: {
+                        isDeleted: { [db.Sequelize.Op.not]: true },
+                        userId: hospitalId
+                    },
+                    required: false
+                }
+            ]
+        });
 
-//         return {
-//             status: 200,
-//             message: message.message200,
-//             apiData: Object.values(transformedData),
-//         };
+        return {
+            status: 200,
+            message: "Hospital retrieved successfully",
+            data: {
+                hospitalId: hospital.hospitalId,
+                hospitalCode: hospital.hospitalCode,
+                hospitalName: hospital.hospitalName,
+                type: hospital.type,
+                phone: hospital.phone,
+                email: hospital.email,
+                address: hospital.address,
+                city: hospital.city,
+                state: hospital.state,
+                GST: hospital.GST,
+                license: hospital.license,
+                status: hospital.status,
+                createdAt: hospital.createdAt,
+                updatedAt: hospital.updatedAt,
+                businessAddress,
+                billingAddress,
+                documents: documentData
+            }
+        };
 
-//     } catch (error) {
-//         console.log("getHospital error:", error.message);
-//         return {
-//             status: 500,
-//             message: message.message500,
-//             error: error.message
-//         };
-//     }
-// };
+    } catch (error) {
+        console.error("Error in getHospitalProfile:", error);
+        return {
+            status: 500,
+            message: "Failed to fetch hospital",
+            error: error.message || "Internal Server Error"
+        };
+    }
+};
+
