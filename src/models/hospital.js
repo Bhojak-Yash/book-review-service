@@ -33,6 +33,9 @@ module.exports = (sequelize, Sequelize) => {
         "state": {
             type: Sequelize.STRING
         },
+        "pinCode": {
+            type: Sequelize.BIGINT
+        },
         "GST" : {
             type: Sequelize.STRING
         },
