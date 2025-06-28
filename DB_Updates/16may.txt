@@ -1,7 +1,0 @@
-ALTER TABLE `crm_db`.`doctors` 
-ADD COLUMN `userStatus` ENUM('Active', 'Inactive') NULL DEFAULT 'Active' AFTER `updatedAt`;
-
-
-
-ALTER TABLE `crm_db`.`patients` 
-ADD COLUMN `userStatus` ENUM('Active', 'Inactive') NULL DEFAULT 'Active' AFTER `updatedAt`;

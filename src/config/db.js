@@ -1,21 +1,17 @@
-const dotenv =require('dotenv')
+require('dotenv').config();
 
-dotenv.config();
-
-const dbConfig = {
+module.exports = {
   HOST: process.env.MYSQL_HOST,
   USER: process.env.MYSQL_USER,
   PASSWORD: process.env.MYSQL_PASSWORD,
   DB: process.env.MYSQL_DB,
-  PORT: process.env.MYSQL_PORT,
+  PORT: process.env.MYSQL_PORT || 3306,
+  dialect: 'mysql',
+  logging: false, // ✅ Disables SQL query logs
   pool: {
-    max: 100,
+    max: 5,
     min: 0,
-    acquire: 60000,
-    idle: 10000,
-  },
+    acquire: 30000,
+    idle: 10000
+  }
 };
-
-
-
-module.exports= dbConfig;

@@ -1,2 +1,0 @@
-ALTER TABLE crm_db.doctorsPayments 
-CHANGE COLUMN amount amount DECIMAL(10,2) NULL DEFAULT NULL
