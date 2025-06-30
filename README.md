@@ -30,7 +30,7 @@ A simple backend service built with **Node.js**, **Express**, **Sequelize**, and
 
 - Install all dependies, files and all
         - npm install
-- Download Redis in your local machine.
+- Download Redis in your local machine
 - Configure MySQL database
         - Ensure MySQL is installed and running.
         - Create a database named (e.g., book_review_db)
